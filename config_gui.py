@@ -16,7 +16,7 @@ import shutil
 # ================================
 # APP VERSION
 # ================================
-APP_VERSION = "1.2.4"
+APP_VERSION = "1.2.5"
 GITHUB_REPO = "ashwilliams7-code/SeekMateAI"
 GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 
@@ -892,10 +892,9 @@ class SeekMateGUI:
         main = tk.Frame(self.root, bg=COLORS["bg_dark"])
         main.pack(fill="both", expand=True, padx=20, pady=15)
 
-        # Left panel - Configuration
-        left = tk.Frame(main, bg=COLORS["bg_dark"], width=420)
-        left.pack(side="left", fill="y", padx=(0, 15))
-        left.pack_propagate(False)
+        # Left panel - Configuration (50% width)
+        left = tk.Frame(main, bg=COLORS["bg_dark"])
+        left.pack(side="left", fill="both", expand=True, padx=(0, 10))
 
         # Make left panel scrollable
         left_canvas = tk.Canvas(left, bg=COLORS["bg_dark"], highlightthickness=0)
@@ -905,7 +904,12 @@ class SeekMateGUI:
         left_scroll_frame.bind("<Configure>", 
             lambda e: left_canvas.configure(scrollregion=left_canvas.bbox("all")))
         
-        left_canvas.create_window((0, 0), window=left_scroll_frame, anchor="nw", width=400)
+        # Dynamic width based on canvas
+        def update_scroll_width(event):
+            left_canvas.itemconfig(scroll_window_id, width=event.width - 20)
+        
+        scroll_window_id = left_canvas.create_window((0, 0), window=left_scroll_frame, anchor="nw")
+        left_canvas.bind("<Configure>", update_scroll_width)
         left_canvas.configure(yscrollcommand=left_scrollbar.set)
         
         left_canvas.pack(side="left", fill="both", expand=True)
@@ -939,9 +943,9 @@ class SeekMateGUI:
         # Initial update
         self.update_config_status()
 
-        # Right panel - Dashboard and Logs
+        # Right panel - Dashboard and Logs (50% width)
         right = tk.Frame(main, bg=COLORS["bg_dark"])
-        right.pack(side="right", fill="both", expand=True)
+        right.pack(side="right", fill="both", expand=True, padx=(10, 0))
 
         self.build_stats_panel(right)
         self.build_log_panel(right)
