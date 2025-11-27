@@ -28,7 +28,7 @@ except ImportError:
 # ================================
 # APP VERSION
 # ================================
-APP_VERSION = "2.0.2"
+APP_VERSION = "2.0.3"
 GITHUB_REPO = "ashwilliams7-code/SeekMateAI"
 GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 
@@ -2640,15 +2640,18 @@ rm "$0"
     # SAVE CONFIG
     # ============================================================
     def save_all_config(self):
+        """Save ALL settings to config.json"""
+        # Personal Info
         self.config["FULL_NAME"] = self.full_name_entry.get().strip()
         self.config["LOCATION"] = self.location_var.get().strip()
 
-        # Save speed slider values
+        # Speed settings
         self.config["SCAN_SPEED"] = self.scan_speed_slider.get()
         self.config["APPLY_SPEED"] = self.apply_speed_slider.get()
         self.config["COOLDOWN_DELAY"] = self.cooldown_slider.get()
         self.config["STEALTH_MODE"] = self.stealth_var.get()
 
+        # Job settings
         self.config["JOB_TITLES"] = [
             j.strip() for j in self.job_entry.get().split(",") if j.strip()
         ]
@@ -2663,7 +2666,7 @@ rm "$0"
         except:
             self.config["EXPECTED_SALARY"] = 100000
 
-        # Save blocklist
+        # Blocklist
         self.config["BLOCKED_COMPANIES"] = [
             c.strip() for c in self.blocked_companies_entry.get().split(",") if c.strip()
         ]
@@ -2671,7 +2674,15 @@ rm "$0"
             t.strip() for t in self.blocked_titles_entry.get().split(",") if t.strip()
         ]
 
+        # API & Notifications
+        self.config["OPENAI_API_KEY"] = self.api_entry.get().strip()
+        self.config["NOTIFICATIONS_ENABLED"] = self.notifications_var.get()
+        
+        # Theme preference (already saved elsewhere, but ensure consistency)
+        self.config["THEME"] = getattr(self, 'current_theme', 'dark')
+
         save_config(self.config)
+        self.log("INFO", "💾 All settings saved!")
 
     def update_settings(self):
         try:
