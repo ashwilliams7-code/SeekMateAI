@@ -16,7 +16,7 @@ import shutil
 # ================================
 # APP VERSION
 # ================================
-APP_VERSION = "1.1.0"
+APP_VERSION = "1.2.0"
 GITHUB_REPO = "ashwilliams7-code/SeekMateAI"
 GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 
@@ -889,13 +889,9 @@ class SeekMateGUI:
 
         # Configuration Progress Bar (at top)
         self.progress_bar = ConfigProgressBar(left_scroll_frame)
-        self.progress_bar.pack(fill="x", pady=(0, 15))
+        self.progress_bar.pack(fill="x", pady=(0, 10))
 
-        self.build_config_panel(left_scroll_frame)
-        self.build_speed_panel(left_scroll_frame)
-        self.build_controls_panel(left_scroll_frame)
-        
-        # Live Config Summary (at bottom of left panel)
+        # Live Config Summary (at top for quick overview)
         self.config_summary = ConfigSummary(left_scroll_frame)
         self.config_summary.pack(fill="x", pady=(0, 15))
         
@@ -906,6 +902,10 @@ class SeekMateGUI:
         self.config_summary.add_item("max", "🎯", "Max Jobs")
         self.config_summary.add_item("salary", "💰", "Salary")
         self.config_summary.add_item("speed", "⚡", "Speed")
+
+        self.build_config_panel(left_scroll_frame)
+        self.build_speed_panel(left_scroll_frame)
+        self.build_controls_panel(left_scroll_frame)
         
         # Initial update
         self.update_config_status()
@@ -1981,7 +1981,30 @@ del "%~f0"
             os.remove("log.txt")
 
         try:
-            self.bot_process = subprocess.Popen([sys.executable, "main.py"])
+            # Check if running as bundled exe or from source
+            is_bundled = getattr(sys, 'frozen', False)
+            
+            if is_bundled:
+                # Running as exe - run bot in thread
+                self.log("INFO", "Starting bot (bundled mode)...")
+                self.bot_thread_stop = False
+                
+                def run_bot_thread():
+                    try:
+                        import main as bot_module
+                        bot_module.main()
+                    except Exception as e:
+                        self.log("ERROR", f"Bot error: {e}")
+                
+                self.bot_thread = threading.Thread(target=run_bot_thread, daemon=True)
+                self.bot_thread.start()
+            else:
+                # Running from source - use subprocess
+                self.bot_process = subprocess.Popen(
+                    [sys.executable, "main.py"],
+                    creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+                )
+            
             threading.Thread(target=self.tail_log, daemon=True).start()
             self.log("INFO", "Bot started successfully.")
         except Exception as e:
@@ -2016,7 +2039,12 @@ del "%~f0"
 
         self.log("INFO", "Stop signal sent...")
 
-        # Terminate the bot process
+        # Stop bot thread if running in bundled mode
+        if hasattr(self, "bot_thread_stop"):
+            self.bot_thread_stop = True
+            self.log("INFO", "Bot thread stop signal sent.")
+
+        # Terminate the bot process (source mode)
         try:
             if hasattr(self, "bot_process") and self.bot_process:
                 self.bot_process.terminate()
