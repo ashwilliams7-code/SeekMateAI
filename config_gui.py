@@ -28,7 +28,7 @@ except ImportError:
 # ================================
 # APP VERSION
 # ================================
-APP_VERSION = "2.0.0"
+APP_VERSION = "2.0.1"
 GITHUB_REPO = "ashwilliams7-code/SeekMateAI"
 GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 
@@ -1935,28 +1935,45 @@ class SeekMateGUI:
         self.job_entry.insert(0, ", ".join(titles))
 
     def toggle_theme(self):
-        """Toggle between dark and light theme"""
+        """Toggle between dark and light theme and restart app"""
         global COLORS
         
         if self.current_theme == "dark":
             self.current_theme = "light"
             COLORS = COLORS_LIGHT.copy()
             self.theme_btn.config(text="☀️")
-            self.log("INFO", "🌞 Switched to Light theme")
+            self.log("INFO", "🌞 Switching to Light theme...")
         else:
             self.current_theme = "dark"
             COLORS = COLORS_DARK.copy()
             self.theme_btn.config(text="🌙")
-            self.log("INFO", "🌙 Switched to Dark theme")
+            self.log("INFO", "🌙 Switching to Dark theme...")
         
         # Save preference
         self.config["THEME"] = self.current_theme
         save_config(self.config)
         
-        # Show restart notice
-        messagebox.showinfo("Theme Changed", 
-            f"Theme changed to {self.current_theme.title()} mode!\n\n"
-            "Restart the app to fully apply the new theme.")
+        # Auto-restart the app
+        self.log("INFO", "🔄 Restarting app to apply theme...")
+        self.root.after(500, self.restart_app)
+    
+    def restart_app(self):
+        """Restart the application"""
+        try:
+            # Get the current executable or script
+            if getattr(sys, 'frozen', False):
+                # Running as compiled exe
+                executable = sys.executable
+                subprocess.Popen([executable])
+            else:
+                # Running as script
+                subprocess.Popen([sys.executable, __file__])
+            
+            # Close current instance
+            self.root.quit()
+            self.root.destroy()
+        except Exception as e:
+            self.log("ERROR", f"Failed to restart: {e}")
 
     def toggle_notifications(self):
         """Toggle desktop notifications on/off"""
