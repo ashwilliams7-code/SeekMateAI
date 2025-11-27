@@ -28,7 +28,7 @@ except ImportError:
 # ================================
 # APP VERSION
 # ================================
-APP_VERSION = "2.0.1"
+APP_VERSION = "2.0.2"
 GITHUB_REPO = "ashwilliams7-code/SeekMateAI"
 GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 
@@ -2684,7 +2684,23 @@ rm "$0"
 # ============================================================
 # MAIN
 # ============================================================
+def load_theme_on_startup():
+    """Load the saved theme preference and apply it"""
+    global COLORS
+    try:
+        config = load_config()
+        saved_theme = config.get("THEME", "dark")
+        if saved_theme == "light":
+            COLORS.update(COLORS_LIGHT)
+        else:
+            COLORS.update(COLORS_DARK)
+    except:
+        pass  # Use default dark theme
+
 def main():
+    # Load theme before creating UI
+    load_theme_on_startup()
+    
     root = tk.Tk()
     
     # Set app icon if available
