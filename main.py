@@ -21,38 +21,34 @@ from datetime import datetime
 
 
 # ============================================
-# SUCCESS SOUND (Pleasant Chime)
+# SUCCESS SOUND (Soft Chime)
 # ============================================
 def play_success_sound():
-    """Play a pleasant chime sound on successful job submission"""
+    """Play a soft, gentle chime on successful job submission"""
     def _play():
         try:
             if sys.platform == "win32":
-                # Windows - play a pleasant 3-tone chime (like a cash register)
+                # Windows - soft 2-tone chime (gentle and quiet)
                 import winsound
-                # Rising tones - sounds like coins/success
-                winsound.Beep(800, 100)   # First tone
-                time.sleep(0.05)
-                winsound.Beep(1000, 100)  # Second tone (higher)
-                time.sleep(0.05)
-                winsound.Beep(1200, 150)  # Third tone (highest, longer)
+                winsound.Beep(440, 80)    # Soft A4 note
+                time.sleep(0.08)
+                winsound.Beep(523, 100)   # Soft C5 note (gentle rise)
             elif sys.platform == "darwin":
-                # macOS - use a gentle, pleasant sound
-                # Try multiple options in order of pleasantness
+                # macOS - use softest available sounds
                 sounds = [
-                    "/System/Library/Sounds/Funk.aiff",      # Pleasant funk sound
+                    "/System/Library/Sounds/Tink.aiff",      # Softest - tiny tink
                     "/System/Library/Sounds/Pop.aiff",       # Gentle pop
-                    "/System/Library/Sounds/Tink.aiff",      # Soft tink
-                    "/System/Library/Sounds/Glass.aiff",     # Glass (fallback)
+                    "/System/Library/Sounds/Purr.aiff",      # Soft purr
                 ]
                 for sound in sounds:
                     if os.path.exists(sound):
-                        subprocess.run(["afplay", sound], capture_output=True, timeout=5)
+                        subprocess.run(["afplay", "-v", "0.5", sound], 
+                                      capture_output=True, timeout=5)
                         break
             else:
-                # Linux - try pleasant notification sound
+                # Linux - soft notification
                 try:
-                    subprocess.run(["paplay", "/usr/share/sounds/freedesktop/stereo/complete.oga"],
+                    subprocess.run(["paplay", "/usr/share/sounds/freedesktop/stereo/message.oga"],
                                  capture_output=True, timeout=5)
                 except:
                     pass
