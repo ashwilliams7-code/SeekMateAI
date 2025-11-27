@@ -19,17 +19,23 @@ try:
 except ImportError:
     OPENPYXL_AVAILABLE = False
 
+try:
+    from plyer import notification
+    NOTIFICATIONS_AVAILABLE = True
+except ImportError:
+    NOTIFICATIONS_AVAILABLE = False
+
 # ================================
 # APP VERSION
 # ================================
-APP_VERSION = "1.2.7"
+APP_VERSION = "2.0.0"
 GITHUB_REPO = "ashwilliams7-code/SeekMateAI"
 GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 
 # ================================
-# MODERN COLOR PALETTE
+# MODERN COLOR PALETTES
 # ================================
-COLORS = {
+COLORS_DARK = {
     "bg_dark": "#0f0f1a",
     "bg_card": "#1a1a2e",
     "bg_card_hover": "#252542",
@@ -48,7 +54,33 @@ COLORS = {
     "money_green": "#00ff88",
     "slider_track": "#2a2a4a",
     "slider_fill": "#00d4ff",
+    "gpt_highlight": "#FF6EC7",
 }
+
+COLORS_LIGHT = {
+    "bg_dark": "#f5f5f7",
+    "bg_card": "#ffffff",
+    "bg_card_hover": "#f0f0f5",
+    "bg_input": "#e8e8ed",
+    "accent_primary": "#0066cc",
+    "accent_secondary": "#5856d6",
+    "accent_gradient_start": "#0066cc",
+    "accent_gradient_end": "#5856d6",
+    "success": "#34c759",
+    "warning": "#ff9500",
+    "danger": "#ff3b30",
+    "text_primary": "#1c1c1e",
+    "text_secondary": "#636366",
+    "text_muted": "#8e8e93",
+    "border": "#d1d1d6",
+    "money_green": "#34c759",
+    "slider_track": "#d1d1d6",
+    "slider_fill": "#0066cc",
+    "gpt_highlight": "#af52de",
+}
+
+# Default to dark theme
+COLORS = COLORS_DARK.copy()
 
 # ================================
 # GLOBAL FONTS
@@ -889,6 +921,19 @@ class SeekMateGUI:
             font=FONT_BOLD)
         self.header_speed.pack(side="left", padx=(5, 0))
 
+        # Theme toggle button
+        theme_frame = tk.Frame(right_header, bg=COLORS["bg_dark"])
+        theme_frame.pack(side="right", padx=10)
+        
+        self.current_theme = self.config.get("THEME", "dark")
+        theme_icon = "🌙" if self.current_theme == "dark" else "☀️"
+        
+        self.theme_btn = tk.Button(theme_frame, text=theme_icon,
+            bg=COLORS["bg_dark"], fg=COLORS["accent_primary"],
+            font=("Segoe UI", 16), relief="flat", cursor="hand2",
+            activebackground=COLORS["bg_dark"], command=self.toggle_theme)
+        self.theme_btn.pack()
+
         # Divider line
         divider = tk.Frame(self.root, bg=COLORS["border"], height=1)
         divider.pack(fill="x", padx=20, pady=(15, 0))
@@ -1114,6 +1159,26 @@ class SeekMateGUI:
         self.save_api_btn = ModernButton(api_buttons, text="Save", command=self.save_api,
                                         style="primary", width=60, height=36)
         self.save_api_btn.pack(side="left")
+        
+        # Notifications toggle
+        notif_frame = tk.Frame(form, bg=COLORS["bg_card"])
+        notif_frame.pack(fill="x", pady=(15, 0))
+        
+        self.notifications_var = tk.BooleanVar(value=self.config.get("NOTIFICATIONS_ENABLED", True))
+        
+        notif_check = tk.Checkbutton(notif_frame, text="🔔 Desktop Notifications",
+                                    variable=self.notifications_var,
+                                    bg=COLORS["bg_card"], fg=COLORS["text_primary"],
+                                    selectcolor=COLORS["bg_input"],
+                                    activebackground=COLORS["bg_card"],
+                                    activeforeground=COLORS["text_primary"],
+                                    font=FONT_NORMAL, cursor="hand2",
+                                    command=self.toggle_notifications)
+        notif_check.pack(side="left")
+        
+        tk.Label(notif_frame, text="Get notified when jobs are applied",
+                bg=COLORS["bg_card"], fg=COLORS["text_muted"],
+                font=FONT_LABEL).pack(side="left", padx=(10, 0))
         
         # Bind field changes to update progress
         self.full_name_entry.entry.bind("<KeyRelease>", lambda e: self.update_config_status())
@@ -1869,6 +1934,42 @@ class SeekMateGUI:
         self.job_entry.delete(0, tk.END)
         self.job_entry.insert(0, ", ".join(titles))
 
+    def toggle_theme(self):
+        """Toggle between dark and light theme"""
+        global COLORS
+        
+        if self.current_theme == "dark":
+            self.current_theme = "light"
+            COLORS = COLORS_LIGHT.copy()
+            self.theme_btn.config(text="☀️")
+            self.log("INFO", "🌞 Switched to Light theme")
+        else:
+            self.current_theme = "dark"
+            COLORS = COLORS_DARK.copy()
+            self.theme_btn.config(text="🌙")
+            self.log("INFO", "🌙 Switched to Dark theme")
+        
+        # Save preference
+        self.config["THEME"] = self.current_theme
+        save_config(self.config)
+        
+        # Show restart notice
+        messagebox.showinfo("Theme Changed", 
+            f"Theme changed to {self.current_theme.title()} mode!\n\n"
+            "Restart the app to fully apply the new theme.")
+
+    def toggle_notifications(self):
+        """Toggle desktop notifications on/off"""
+        enabled = self.notifications_var.get()
+        self.config["NOTIFICATIONS_ENABLED"] = enabled
+        save_config(self.config)
+        
+        if enabled:
+            self.log("SUCCESS", "🔔 Desktop notifications enabled")
+            self.send_notification("Notifications Enabled", "You'll be notified when jobs are applied!")
+        else:
+            self.log("INFO", "🔕 Desktop notifications disabled")
+
     def toggle_api(self):
         current = self.api_entry.cget("show")
         self.api_entry.config(show="" if current == "•" else "•")
@@ -2156,6 +2257,28 @@ rm "$0"
             else:
                 speed_text, speed_color = "SAFE", COLORS["success"]
             self.config_summary.update_item("speed", speed_text, speed_color)
+
+    # ============================================================
+    # DESKTOP NOTIFICATIONS
+    # ============================================================
+    def send_notification(self, title, message, timeout=5):
+        """Send a desktop notification"""
+        if not NOTIFICATIONS_AVAILABLE:
+            return
+        
+        # Check if notifications are enabled
+        if not self.config.get("NOTIFICATIONS_ENABLED", True):
+            return
+        
+        try:
+            notification.notify(
+                title=title,
+                message=message,
+                app_name="SeekMate AI",
+                timeout=timeout
+            )
+        except Exception as e:
+            print(f"Notification error: {e}")
 
     # ============================================================
     # LOGGING SYSTEM
@@ -2457,8 +2580,21 @@ rm "$0"
                         self.counter_label.config(text=str(num))
                         # Update time saved (2 mins per application)
                         self.update_time_saved(num)
+                        # Send notification
+                        self.root.after(0, lambda n=num: self.send_notification(
+                            "🎉 Job Applied!", 
+                            f"Successfully applied to job #{n}!"
+                        ))
                     except:
                         pass
+                
+                # Notify when bot is done
+                if "DONE" in clean and "applications" in clean.lower():
+                    self.root.after(0, lambda: self.send_notification(
+                        "✅ Bot Complete!",
+                        clean,
+                        timeout=10
+                    ))
 
     # ============================================================
     # SYSTEM TEST
