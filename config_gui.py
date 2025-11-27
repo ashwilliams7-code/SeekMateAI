@@ -28,7 +28,7 @@ except ImportError:
 # ================================
 # APP VERSION
 # ================================
-APP_VERSION = "2.0.8"
+APP_VERSION = "2.0.9"
 GITHUB_REPO = "ashwilliams7-code/SeekMateAI"
 GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 
@@ -2191,15 +2191,42 @@ del "%~f0"
                 return
             
             app_parent = os.path.dirname(app_bundle)
+            app_name = os.path.basename(app_bundle)  # e.g., "SeekMate AI.app"
+            temp_extract = os.path.join(tempfile.gettempdir(), "seekmate_update_extract")
             
-            # Create shell script for macOS
+            # Create shell script for macOS that handles zip structure properly
             update_script = os.path.join(tempfile.gettempdir(), "seekmate_update.sh")
             with open(update_script, 'w') as f:
                 f.write(f'''#!/bin/bash
 sleep 2
+
+# Clean up any previous extract
+rm -rf "{temp_extract}"
+mkdir -p "{temp_extract}"
+
+# Unzip to temp location
+unzip -o "{temp_file}" -d "{temp_extract}"
+
+# Find the .app bundle inside the extracted files
+NEW_APP=$(find "{temp_extract}" -name "*.app" -type d -maxdepth 2 | head -1)
+
+if [ -z "$NEW_APP" ]; then
+    echo "ERROR: Could not find .app in update package"
+    exit 1
+fi
+
+# Remove old app and replace with new
 rm -rf "{app_bundle}"
-unzip -o "{temp_file}" -d "{app_parent}"
-open -a "{app_bundle}"
+mv "$NEW_APP" "{app_bundle}"
+
+# Remove quarantine attribute (allows app to run without Gatekeeper warning)
+xattr -rd com.apple.quarantine "{app_bundle}" 2>/dev/null || true
+
+# Open the updated app
+open "{app_bundle}"
+
+# Cleanup
+rm -rf "{temp_extract}"
 rm "{temp_file}"
 rm "$0"
 ''')
