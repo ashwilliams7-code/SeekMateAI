@@ -622,6 +622,166 @@ class SeekBot:
                 continue
         return ""
 
+    # ---------- SELECT DOCUMENT OPTIONS (Resume, Cover Letter, Selection Criteria) ----------
+    def select_document_options(self):
+        """
+        Click the correct radio buttons on SEEK application page:
+        - Resume: "Select a resumé" (use saved from SEEK profile)
+        - Cover letter: "Write a cover letter" (for GPT text)
+        - Selection criteria: "Write a statement" (for GPT text)
+        """
+        try:
+            # Find all radio button labels
+            labels = self.driver.find_elements(By.TAG_NAME, "label")
+            
+            selections_made = []
+            
+            for label in labels:
+                try:
+                    label_text = label.text.lower().strip()
+                    
+                    # Resume: Click "Select a resumé"
+                    if "select a resum" in label_text or "select a résumé" in label_text:
+                        self.driver.execute_script("arguments[0].click();", label)
+                        selections_made.append("Resume: Select saved")
+                        speed_sleep(0.3, "apply")
+                        continue
+                    
+                    # Cover letter: Click "Write a cover letter"
+                    if "write a cover letter" in label_text:
+                        self.driver.execute_script("arguments[0].click();", label)
+                        selections_made.append("Cover letter: Write")
+                        speed_sleep(0.3, "apply")
+                        continue
+                    
+                    # Selection criteria: Click "Write a statement"
+                    if "write a statement" in label_text:
+                        self.driver.execute_script("arguments[0].click();", label)
+                        selections_made.append("Selection criteria: Write")
+                        speed_sleep(0.3, "apply")
+                        continue
+                        
+                except:
+                    continue
+            
+            if selections_made:
+                print(f"    [+] Document options: {', '.join(selections_made)}")
+            
+            speed_sleep(0.5, "apply")
+            
+        except Exception as e:
+            print(f"    [!] Document selection error: {e}")
+
+    # ---------- SELECTION CRITERIA STATEMENT (GPT) ----------
+    def fill_selection_criteria(self, job_title, company, desc):
+        """Generate and fill selection criteria statement using GPT"""
+        full_name = CONFIG.get("FULL_NAME", "Applicant")
+        location = CONFIG.get("LOCATION", "Australia")
+        background_bio = CONFIG.get("BACKGROUND_BIO", "")
+        
+        # Find selection criteria textarea
+        textareas = self.driver.find_elements(By.TAG_NAME, "textarea")
+        criteria_textarea = None
+        
+        for ta in textareas:
+            try:
+                # Look for selection criteria textarea (not cover letter)
+                placeholder = (ta.get_attribute("placeholder") or "").lower()
+                name_attr = (ta.get_attribute("name") or "").lower()
+                aria = (ta.get_attribute("aria-label") or "").lower()
+                
+                # Skip cover letter textareas
+                if "cover" in name_attr or "cover" in placeholder or "cover" in aria:
+                    continue
+                
+                # Look for selection/criteria/statement keywords
+                if any(kw in placeholder or kw in name_attr or kw in aria 
+                       for kw in ["selection", "criteria", "statement", "address"]):
+                    criteria_textarea = ta
+                    break
+                    
+            except:
+                continue
+        
+        if not criteria_textarea:
+            # Try finding by section - look for textarea after "Selection criteria" heading
+            try:
+                sections = self.driver.find_elements(By.XPATH, 
+                    "//*[contains(text(), 'Selection criteria') or contains(text(), 'selection criteria')]"
+                    "/following::textarea[1]"
+                )
+                if sections:
+                    criteria_textarea = sections[0]
+            except:
+                pass
+        
+        if not criteria_textarea:
+            print("    [!] No selection criteria textarea found")
+            return
+        
+        # Generate statement using GPT
+        statement = self.gpt(
+            "You are an expert at writing selection criteria responses for job applications. You write concise, specific statements that directly address key requirements.",
+            f"""
+Write a selection criteria statement for **{full_name}** applying for:
+
+ROLE: {job_title}
+COMPANY: {company}
+
+CANDIDATE BACKGROUND:
+- Name: {full_name}
+- Location: {location}
+- Experience: {background_bio}
+
+INSTRUCTIONS:
+1. Read the job description below
+2. Identify the TOP 3-4 key selection criteria or requirements
+3. Write a focused statement (250-400 words) addressing each criterion
+4. Use specific examples and achievements where possible
+5. Use bullet points or short paragraphs for clarity
+
+FORMAT:
+- Start with a brief intro sentence
+- Address each key criterion with evidence
+- Keep it professional and concise
+- Do NOT include any headers like "Selection Criteria Response"
+
+JOB DESCRIPTION:
+{desc}
+"""
+        )
+        
+        if not statement:
+            print("    [-] GPT selection criteria failed")
+            return
+        
+        try:
+            self.driver.execute_script("arguments[0].scrollIntoView(true);", criteria_textarea)
+            speed_sleep(0.5, "apply")
+            
+            # Clear and fill
+            criteria_textarea.clear()
+            speed_sleep(0.2, "apply")
+            
+            self.driver.execute_script(
+                "arguments[0].value = arguments[1];", criteria_textarea, statement
+            )
+            
+            # Fire events
+            self.driver.execute_script("""
+                arguments[0].dispatchEvent(new Event('input', { bubbles: true }));
+                arguments[0].dispatchEvent(new Event('change', { bubbles: true }));
+            """, criteria_textarea)
+            
+            speed_sleep(0.3, "apply")
+            criteria_textarea.send_keys(" ")
+            criteria_textarea.send_keys("\b")
+            
+            print("    [+] Selection criteria statement added (GPT)")
+            
+        except Exception as e:
+            print(f"    [!] Selection criteria fill error: {e}")
+
     # ---------- COVER LETTER (NEW LONG VERSION + OVERWRITE PROTECTION) ----------
     def fill_cover_letter(self, job_title, company, desc):
         full_name = CONFIG.get("FULL_NAME", "Applicant")
@@ -1380,9 +1540,14 @@ Reply with ONLY the exact option text to select:"""
         desc = self.get_description()
 
         # --------------------------
-        # PAGE 1 — only text + cover letter
+        # PAGE 1 — Document selection + GPT content
         # --------------------------
+        # First: Select the right radio buttons (Resume, Cover Letter, Selection Criteria)
+        self.select_document_options()
+        
+        # Then: Fill GPT-generated content
         self.fill_cover_letter(job_title, company, desc)
+        self.fill_selection_criteria(job_title, company, desc)
         self.answer_questions(job_title, company, desc)
 
         try:
