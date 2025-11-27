@@ -1,0 +1,15 @@
+{
+    "FULL_NAME": "Your Name",
+    "LOCATION": "Brisbane, Australia",
+    "JOB_TITLES": ["project manager", "program manager"],
+    "MAX_JOBS": 100,
+    "EXPECTED_SALARY": 100000,
+    "SCAN_SPEED": 50,
+    "APPLY_SPEED": 50,
+    "COOLDOWN_DELAY": 5,
+    "STEALTH_MODE": false,
+    "BLOCKED_COMPANIES": [],
+    "BLOCKED_TITLES": [],
+    "OPENAI_API_KEY": "your-api-key-here"
+}
+

@@ -1,0 +1,101 @@
+name: Build SeekMate AI
+
+on:
+  push:
+    tags:
+      - 'v*'  # Triggers on version tags like v1.0.0
+  workflow_dispatch:  # Allows manual trigger
+
+jobs:
+  build:
+    strategy:
+      matrix:
+        include:
+          - os: windows-latest
+            name: Windows
+            extension: .exe
+          - os: macos-latest
+            name: macOS
+            extension: .app
+          - os: ubuntu-latest
+            name: Linux
+            extension: ""
+
+    runs-on: ${{ matrix.os }}
+    
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+
+      - name: Set up Python
+        uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+
+      - name: Install dependencies
+        run: |
+          python -m pip install --upgrade pip
+          pip install -r requirements.txt
+          pip install pyinstaller
+
+      - name: Build with PyInstaller (Windows)
+        if: matrix.os == 'windows-latest'
+        run: |
+          pyinstaller --onefile --windowed --name="SeekMate AI" --icon="seekmate.ico" --add-data="config.json;." --add-data="control.json;." --add-data="seekmate_logo.png;." --add-data="seekmate.ico;." config_gui.py
+
+      - name: Build with PyInstaller (macOS)
+        if: matrix.os == 'macos-latest'
+        run: |
+          pyinstaller --onefile --windowed --name="SeekMate AI" --add-data="config.json:." --add-data="control.json:." --add-data="seekmate_logo.png:." config_gui.py
+          cd dist && zip -r "SeekMate AI-macOS.zip" "SeekMate AI.app"
+
+      - name: Build with PyInstaller (Linux)
+        if: matrix.os == 'ubuntu-latest'
+        run: |
+          pyinstaller --onefile --windowed --name="SeekMate AI" --add-data="config.json:." --add-data="control.json:." --add-data="seekmate_logo.png:." config_gui.py
+
+      - name: Upload Windows Artifact
+        if: matrix.os == 'windows-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: SeekMate-AI-Windows
+          path: dist/SeekMate AI.exe
+
+      - name: Upload macOS Artifact
+        if: matrix.os == 'macos-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: SeekMate-AI-macOS
+          path: dist/SeekMate AI-macOS.zip
+
+      - name: Upload Linux Artifact
+        if: matrix.os == 'ubuntu-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: SeekMate-AI-Linux
+          path: dist/SeekMate AI
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/')
+    
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+
+      - name: Create Release
+        uses: softprops/action-gh-release@v1
+        with:
+          files: |
+            artifacts/SeekMate-AI-Windows/SeekMate AI.exe
+            artifacts/SeekMate-AI-macOS/SeekMate AI-macOS.zip
+            artifacts/SeekMate-AI-Linux/SeekMate AI
+          draft: false
+          prerelease: false
+          generate_release_notes: true
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
