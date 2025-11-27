@@ -80,84 +80,7 @@ def detect_category(titles):
     return "generic"
 
 
-def title_matches(job_title):
-    """Strict matching engine using category rules."""
-    job = job_title.lower().strip()
-    titles = CONFIG.get("JOB_TITLES", [])
-    category = detect_category(titles)
-
-    # ------------------------------
-    # RULESETS PER CATEGORY
-    # ------------------------------
-
-    # GOV — APS REMOVED, EL/SES/Director only
-    if category == "gov":
-        allowed = [
-            "el1", "el 1",
-            "el2", "el 2",
-            "ses", "ses1", "ses 1", "ses2", "ses 2",
-            "director",
-            "policy",
-            "principal",
-            "executive",
-            "governance",
-            "advisor",
-            "project manager",
-            "program manager",
-            "public sector",
-            "engagement",
-            "analyst",
-            "coordinator"
-        ]
-        return any(a in job for a in allowed)
-
-    if category == "leadership":
-        allowed = [
-            "director", "head", "general manager", "gm",
-            "executive", "principal", "lead",
-            "program director", "project director"
-        ]
-        return any(a in job for a in allowed)
-
-    if category == "project":
-        allowed = [
-            "project manager", "program manager", "delivery manager",
-            "scrum master", "agile", "project lead"
-        ]
-        return any(a in job for a in allowed)
-
-    if category == "sales":
-        allowed = [
-            "bdm", "business development", "sales",
-            "account manager", "partnership",
-            "growth", "client", "relationship manager",
-            "sales manager", "solutions"
-        ]
-        return any(a in job for a in allowed)
-
-    if category == "social":
-        allowed = [
-            "research", "policy", "community",
-            "program officer", "stakeholder",
-            "case manager", "social"
-        ]
-        return any(a in job for a in allowed)
-
-    if category == "admin":
-        allowed = [
-            "admin", "coordinator", "ea", "executive assistant",
-            "office manager", "project coordinator"
-        ]
-        return any(a in job for a in allowed)
-
-    if category == "it":
-        allowed = [
-            "developer", "engineer", "software",
-            "it", "cloud", "cyber", "product manager"
-        ]
-        return any(a in job for a in allowed)
-
-    return True
+# title_matches function is defined later with smart category expansion
 
 
 # ============================================
@@ -431,13 +354,73 @@ def stealth_page_behavior(driver):
         pass
 
 
-# ---------- STRICT TITLE FILTER ----------
+# ---------- SMART TITLE FILTER ----------
 def title_matches(title: str) -> bool:
+    """
+    Smart matching: checks if job title relates to user's target titles.
+    Uses both direct matching AND category-based expansion.
+    """
     allowed = [t.lower().strip() for t in CONFIG.get("JOB_TITLES", [])]
     title_clean = title.lower().strip()
 
-    # strict contains matching
-    return any(a in title_clean for a in allowed)
+    # 1. Direct match - any target title keyword in job title
+    if any(a in title_clean for a in allowed):
+        return True
+    
+    # 2. Reverse match - any job title word in target titles
+    title_words = [w for w in title_clean.replace('-', ' ').split() if len(w) > 3]
+    for word in title_words:
+        if any(word in a for a in allowed):
+            return True
+    
+    # 3. Category expansion - related roles
+    category = detect_category(allowed)
+    
+    if category == "social":
+        related = ["research", "policy", "community", "program", "stakeholder", 
+                   "case manager", "social", "analyst", "coordinator", "officer",
+                   "engagement", "advisor", "consultant", "specialist"]
+        if any(r in title_clean for r in related):
+            return True
+    
+    if category == "gov":
+        related = ["el1", "el 1", "el2", "el 2", "ses", "director", "policy",
+                   "principal", "executive", "governance", "advisor", "analyst",
+                   "coordinator", "officer", "manager", "public sector"]
+        if any(r in title_clean for r in related):
+            return True
+    
+    if category == "project":
+        related = ["project", "program", "delivery", "scrum", "agile", "lead",
+                   "coordinator", "manager", "officer", "analyst"]
+        if any(r in title_clean for r in related):
+            return True
+    
+    if category == "sales":
+        related = ["bdm", "business development", "sales", "account", "partnership",
+                   "growth", "client", "relationship", "solutions", "commercial"]
+        if any(r in title_clean for r in related):
+            return True
+    
+    if category == "leadership":
+        related = ["director", "head", "general manager", "gm", "executive",
+                   "principal", "lead", "chief", "senior", "manager"]
+        if any(r in title_clean for r in related):
+            return True
+    
+    if category == "admin":
+        related = ["admin", "coordinator", "ea", "executive assistant",
+                   "office", "project coordinator", "officer", "support"]
+        if any(r in title_clean for r in related):
+            return True
+    
+    if category == "it":
+        related = ["developer", "engineer", "software", "it", "cloud", "cyber",
+                   "product", "technical", "devops", "data", "analyst"]
+        if any(r in title_clean for r in related):
+            return True
+    
+    return False
 
 
 # ---------- BLOCKLIST FILTERS ----------

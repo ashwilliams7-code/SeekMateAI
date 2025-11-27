@@ -28,7 +28,7 @@ except ImportError:
 # ================================
 # APP VERSION
 # ================================
-APP_VERSION = "2.0.9"
+APP_VERSION = "2.1.0"
 GITHUB_REPO = "ashwilliams7-code/SeekMateAI"
 GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 
