@@ -1314,7 +1314,7 @@ Reply with ONLY the exact option text to select:"""
             return False
 
     # ---------- APPLY FLOW ----------
-    def apply(self, job_title, company):
+    def apply(self, job_title, company, job_url=""):
         speed_sleep(2, "scan")
         throttle()
         
@@ -1461,8 +1461,8 @@ Reply with ONLY the exact option text to select:"""
 
             # LOG SUCCESSFUL SUBMISSION
             try:
-                current_url = self.driver.current_url
-                self.log_job(job_title, company, current_url)
+                # Use the original job URL, not the confirmation page URL
+                self.log_job(job_title, company, job_url)
             except Exception as e:
                 print("    [-] Logging failed:", e)
 
@@ -1597,7 +1597,7 @@ Reply with ONLY the exact option text to select:"""
                     speed_sleep(2, "scan")
 
                     try:
-                        self.apply(title, company)
+                        self.apply(title, company, job_url)
                     except Exception as e:
                         print(f"    [!] Error during apply: {e}")
 
