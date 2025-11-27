@@ -477,14 +477,19 @@ SEARCH_URL = build_search_url(JOB_TITLE, LOCATION)
 
 # ------------------ FIXED BROWSER LAUNCHER ------------------
 def init_browser():
+    import tempfile
+    
     chrome_options = Options()
     chrome_options.add_argument("--start-maximized")
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
     chrome_options.add_argument("--disable-extensions")
     chrome_options.add_argument("--disable-notifications")
 
-    profile_dir = os.path.join(os.getcwd(), "chrome_seek_profile")
-    chrome_options.add_argument(f"user-data-dir={profile_dir}")
+    # Use temp directory for Chrome profile (works on macOS bundled apps)
+    # This avoids permission issues on macOS sandboxed environments
+    profile_dir = os.path.join(tempfile.gettempdir(), "seekmate_chrome_profile")
+    os.makedirs(profile_dir, exist_ok=True)
+    chrome_options.add_argument(f"--user-data-dir={profile_dir}")
 
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=chrome_options)
