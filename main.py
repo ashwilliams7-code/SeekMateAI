@@ -3,6 +3,8 @@ import os
 import json
 import time
 import sys
+import subprocess
+import threading
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -16,6 +18,37 @@ from openai import OpenAI
 import openpyxl
 from openpyxl import Workbook
 from datetime import datetime
+
+
+# ============================================
+# SUCCESS SOUND (Money/Cha-ching)
+# ============================================
+def play_success_sound():
+    """Play a money/cha-ching sound on successful job submission"""
+    def _play():
+        try:
+            if sys.platform == "win32":
+                # Windows - use system sound
+                import winsound
+                # Play Windows "tada" or cash register-like sound
+                winsound.PlaySound("SystemAsterisk", winsound.SND_ALIAS | winsound.SND_ASYNC)
+            elif sys.platform == "darwin":
+                # macOS - use afplay with system sound
+                subprocess.run(["afplay", "/System/Library/Sounds/Glass.aiff"], 
+                             capture_output=True, timeout=5)
+            else:
+                # Linux - try paplay or aplay
+                try:
+                    subprocess.run(["paplay", "/usr/share/sounds/freedesktop/stereo/complete.oga"],
+                                 capture_output=True, timeout=5)
+                except:
+                    subprocess.run(["aplay", "/usr/share/sounds/sound-icons/trumpet-12.wav"],
+                                 capture_output=True, timeout=5)
+        except Exception as e:
+            pass  # Silently fail if sound can't play
+    
+    # Play in background thread to not block
+    threading.Thread(target=_play, daemon=True).start()
 
 # ============================================
 # SMART CATEGORY + STRICT TITLE MATCHING
@@ -1618,7 +1651,13 @@ Reply with ONLY the exact option text to select:"""
             )
             self.driver.execute_script("arguments[0].click();", submit)
             print("    [+] SUBMITTED.")
-            speed_sleep(3, "apply")
+            
+            # Wait 1 second then play success sound
+            time.sleep(1)
+            play_success_sound()
+            print("    💰 Cha-ching!")
+            
+            speed_sleep(2, "apply")  # Reduced from 3 since we added 1 sec above
 
             # LOG SUCCESSFUL SUBMISSION
             try:
