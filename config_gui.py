@@ -28,7 +28,7 @@ except ImportError:
 # ================================
 # APP VERSION
 # ================================
-APP_VERSION = "2.0.3"
+APP_VERSION = "2.0.7"
 GITHUB_REPO = "ashwilliams7-code/SeekMateAI"
 GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 
@@ -830,6 +830,7 @@ class SeekMateGUI:
 
         # Build UI
         self.build_header()
+        self.build_controls_bar()
         self.build_main_content()
         
         # Check for updates after UI is built (non-blocking)
@@ -938,6 +939,48 @@ class SeekMateGUI:
         divider = tk.Frame(self.root, bg=COLORS["border"], height=1)
         divider.pack(fill="x", padx=20, pady=(15, 0))
 
+    def build_controls_bar(self):
+        """Build the fixed controls bar under the header"""
+        controls_bar = tk.Frame(self.root, bg=COLORS["bg_card"], height=60)
+        controls_bar.pack(fill="x", padx=20, pady=(15, 0))
+        controls_bar.pack_propagate(False)
+        
+        # Inner frame for buttons with padding
+        inner = tk.Frame(controls_bar, bg=COLORS["bg_card"])
+        inner.pack(fill="both", expand=True, padx=15, pady=10)
+        
+        # Left side - Main action buttons
+        left_btns = tk.Frame(inner, bg=COLORS["bg_card"])
+        left_btns.pack(side="left", fill="y")
+        
+        self.start_btn = ModernButton(left_btns, text="▶  START", 
+                                      command=self.start_bot, style="success", width=110)
+        self.start_btn.pack(side="left", padx=(0, 8))
+
+        self.pause_btn = ModernButton(left_btns, text="⏸  PAUSE", 
+                                      command=self.pause_bot, style="warning", width=110)
+        self.pause_btn.pack(side="left", padx=(0, 8))
+
+        self.stop_btn = ModernButton(left_btns, text="⏹  STOP", 
+                                     command=self.stop_bot, style="danger", width=100)
+        self.stop_btn.pack(side="left")
+        
+        # Right side - Secondary buttons
+        right_btns = tk.Frame(inner, bg=COLORS["bg_card"])
+        right_btns.pack(side="right", fill="y")
+        
+        self.check_update_btn = ModernButton(right_btns, text="🔄 UPDATE", 
+                                            command=self.manual_update_check, style="dark", width=100)
+        self.check_update_btn.pack(side="right", padx=(8, 0))
+        
+        self.test_btn = ModernButton(right_btns, text="🔍 TEST", 
+                                     command=self.run_test, style="dark", width=90)
+        self.test_btn.pack(side="right", padx=(8, 0))
+        
+        self.update_btn = ModernButton(right_btns, text="💾 SAVE", 
+                                       command=self.update_settings, style="primary", width=90)
+        self.update_btn.pack(side="right")
+
     def build_main_content(self):
         """Build the main content area"""
         main = tk.Frame(self.root, bg=COLORS["bg_dark"])
@@ -989,7 +1032,6 @@ class SeekMateGUI:
 
         self.build_config_panel(left_scroll_frame)
         self.build_speed_panel(left_scroll_frame)
-        self.build_controls_panel(left_scroll_frame)
         
         # Initial update
         self.update_config_status()
@@ -1389,49 +1431,6 @@ class SeekMateGUI:
         # Update config summary
         if hasattr(self, 'config_summary'):
             self.config_summary.update_item("speed", speed_text, speed_color)
-
-    def build_controls_panel(self, parent):
-        """Build the controls card with collapsible section"""
-        self.controls_card = CollapsibleCard(parent, title="Controls", icon="🎮", default_expanded=True)
-        self.controls_card.pack(fill="x")
-        
-        controls = self.controls_card.get_content()
-
-        # Main action buttons row
-        btn_row = tk.Frame(controls, bg=COLORS["bg_card"])
-        btn_row.pack(fill="x", pady=(0, 10))
-
-        self.start_btn = ModernButton(btn_row, text="▶  START", 
-                                      command=self.start_bot, style="success", width=120)
-        self.start_btn.pack(side="left", padx=(0, 8))
-
-        self.pause_btn = ModernButton(btn_row, text="⏸  PAUSE", 
-                                      command=self.pause_bot, style="warning", width=120)
-        self.pause_btn.pack(side="left", padx=(0, 8))
-
-        self.stop_btn = ModernButton(btn_row, text="⏹  STOP", 
-                                     command=self.stop_bot, style="danger", width=120)
-        self.stop_btn.pack(side="left")
-
-        # Secondary buttons row
-        btn_row2 = tk.Frame(controls, bg=COLORS["bg_card"])
-        btn_row2.pack(fill="x")
-
-        self.update_btn = ModernButton(btn_row2, text="💾  SAVE SETTINGS", 
-                                       command=self.update_settings, style="primary", width=185)
-        self.update_btn.pack(side="left", padx=(0, 8))
-
-        self.test_btn = ModernButton(btn_row2, text="🔍  RUN TEST", 
-                                     command=self.run_test, style="dark", width=180)
-        self.test_btn.pack(side="left")
-
-        # Third row - Update button
-        btn_row3 = tk.Frame(controls, bg=COLORS["bg_card"])
-        btn_row3.pack(fill="x", pady=(10, 0))
-
-        self.check_update_btn = ModernButton(btn_row3, text="🔄  CHECK FOR UPDATES", 
-                                            command=self.manual_update_check, style="dark", width=373)
-        self.check_update_btn.pack(side="left")
 
     def build_stats_panel(self, parent):
         """Build the statistics dashboard"""
