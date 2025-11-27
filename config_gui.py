@@ -1549,145 +1549,92 @@ class SeekMateGUI:
         self.log("SUCCESS", "API Key saved successfully!")
 
     # ============================================================
-    # AUTO-UPDATE SYSTEM
+    # SILENT AUTO-UPDATE SYSTEM
     # ============================================================
     def check_for_updates_async(self):
-        """Check for updates in background thread"""
-        thread = threading.Thread(target=self._check_updates_thread, daemon=True)
+        """Check for updates in background thread - SILENT MODE"""
+        self.log("INFO", "🔍 Checking for updates...")
+        thread = threading.Thread(target=self._silent_update_thread, daemon=True)
         thread.start()
     
-    def _check_updates_thread(self):
-        """Background thread to check for updates"""
-        update_info = check_for_updates()
-        if update_info and update_info.get("update_available"):
-            # Schedule UI update on main thread
-            self.root.after(0, lambda: self.show_update_dialog(update_info))
-    
-    def show_update_dialog(self, update_info):
-        """Show update available dialog"""
-        dialog = tk.Toplevel(self.root)
-        dialog.title("🔄 Update Available!")
-        dialog.geometry("500x350")
-        dialog.configure(bg=COLORS["bg_dark"])
-        dialog.transient(self.root)
-        dialog.grab_set()
-        
-        # Center the dialog
-        dialog.update_idletasks()
-        x = (dialog.winfo_screenwidth() - 500) // 2
-        y = (dialog.winfo_screenheight() - 350) // 2
-        dialog.geometry(f"500x350+{x}+{y}")
-        
-        # Content
-        tk.Label(dialog, text="🎉 New Version Available!", 
-                bg=COLORS["bg_dark"], fg=COLORS["accent_primary"],
-                font=FONT_HEADER).pack(pady=(30, 10))
-        
-        tk.Label(dialog, text=f"Current version: v{update_info['current_version']}", 
-                bg=COLORS["bg_dark"], fg=COLORS["text_secondary"],
-                font=FONT_NORMAL).pack()
-        
-        tk.Label(dialog, text=f"Latest version: v{update_info['latest_version']}", 
-                bg=COLORS["bg_dark"], fg=COLORS["success"],
-                font=FONT_BOLD).pack(pady=(5, 20))
-        
-        # Release notes (truncated)
-        notes = update_info.get('release_notes', '')[:200]
-        if notes:
-            notes_frame = tk.Frame(dialog, bg=COLORS["bg_card"])
-            notes_frame.pack(fill="x", padx=30, pady=10)
-            tk.Label(notes_frame, text="What's new:", 
-                    bg=COLORS["bg_card"], fg=COLORS["text_secondary"],
-                    font=FONT_LABEL).pack(anchor="w", padx=10, pady=(10, 5))
-            tk.Label(notes_frame, text=notes + "..." if len(update_info.get('release_notes', '')) > 200 else notes, 
-                    bg=COLORS["bg_card"], fg=COLORS["text_primary"],
-                    font=FONT_LABEL, wraplength=420, justify="left").pack(anchor="w", padx=10, pady=(0, 10))
-        
-        # Buttons
-        btn_frame = tk.Frame(dialog, bg=COLORS["bg_dark"])
-        btn_frame.pack(pady=20)
-        
-        # Progress bar (hidden initially)
-        self.update_progress = ttk.Progressbar(dialog, length=400, mode='determinate')
-        self.update_status = tk.Label(dialog, text="", bg=COLORS["bg_dark"], 
-                                      fg=COLORS["text_secondary"], font=FONT_LABEL)
-        
-        def start_download():
-            download_btn.config(state="disabled", text="Downloading...")
-            self.update_progress.pack(pady=10)
-            self.update_status.pack()
+    def _silent_update_thread(self):
+        """Background thread - silently check, download, and install updates"""
+        try:
+            update_info = check_for_updates()
             
-            thread = threading.Thread(
-                target=lambda: self._download_update_thread(update_info['download_url'], dialog),
-                daemon=True
-            )
-            thread.start()
-        
-        download_btn = tk.Button(btn_frame, text="⬇️  Download Update", 
-                                font=FONT_BOLD, bg=COLORS["success"], fg="#000000",
-                                activebackground=COLORS["accent_primary"],
-                                relief="flat", padx=20, pady=10, cursor="hand2",
-                                command=start_download)
-        download_btn.pack(side="left", padx=10)
-        
-        tk.Button(btn_frame, text="Later", 
-                 font=FONT_NORMAL, bg=COLORS["bg_card"], fg=COLORS["text_secondary"],
-                 activebackground=COLORS["border"],
-                 relief="flat", padx=20, pady=10, cursor="hand2",
-                 command=dialog.destroy).pack(side="left", padx=10)
+            if not update_info:
+                self.root.after(0, lambda: self.log("INFO", "✓ Update check complete"))
+                return
+            
+            if not update_info.get("update_available"):
+                self.root.after(0, lambda: self.log("SUCCESS", f"✓ You have the latest version (v{APP_VERSION})"))
+                return
+            
+            # Update available - start silent download
+            latest = update_info['latest_version']
+            download_url = update_info.get('download_url')
+            
+            if not download_url:
+                self.root.after(0, lambda: self.log("INFO", f"🆕 New version v{latest} available on GitHub"))
+                return
+            
+            self.root.after(0, lambda: self.log("INFO", f"🔄 Downloading update v{latest}..."))
+            self.root.after(0, lambda: self._update_header_status("UPDATING..."))
+            
+            # Download silently
+            temp_file = download_update(download_url, self._silent_progress)
+            
+            if temp_file:
+                self.root.after(0, lambda: self._silent_install(temp_file, latest))
+            else:
+                self.root.after(0, lambda: self.log("ERROR", "Update download failed"))
+                self.root.after(0, lambda: self._update_header_status("IDLE"))
+                
+        except Exception as e:
+            self.root.after(0, lambda: self.log("ERROR", f"Update check failed: {e}"))
     
-    def _download_update_thread(self, url, dialog):
-        """Download update in background"""
-        def update_progress(percent):
-            self.root.after(0, lambda: self._update_download_progress(percent))
-        
-        temp_file = download_update(url, update_progress)
-        
-        if temp_file:
-            self.root.after(0, lambda: self._finish_update(temp_file, dialog))
-        else:
-            self.root.after(0, lambda: self._update_failed(dialog))
+    def _silent_progress(self, percent):
+        """Update log with download progress (throttled)"""
+        if int(percent) % 25 == 0:  # Only log at 0%, 25%, 50%, 75%, 100%
+            self.root.after(0, lambda p=percent: self.log("INFO", f"⬇️ Downloading... {p:.0f}%"))
     
-    def _update_download_progress(self, percent):
-        """Update progress bar"""
-        self.update_progress['value'] = percent
-        self.update_status.config(text=f"Downloading... {percent:.0f}%")
+    def _update_header_status(self, text):
+        """Update the header status text"""
+        if hasattr(self, 'header_status'):
+            color = COLORS["warning"] if "UPDATING" in text else COLORS["text_muted"]
+            self.header_status.config(text=text, fg=color)
     
-    def _finish_update(self, temp_file, dialog):
-        """Finish update process"""
-        self.update_status.config(text="Download complete! Preparing to install...")
+    def _silent_install(self, temp_file, new_version):
+        """Silently install the update and restart"""
+        self.log("SUCCESS", f"✓ Update v{new_version} downloaded!")
+        self.log("INFO", "🔄 Installing update and restarting...")
         
         # Get current executable path
-        if getattr(sys, 'frozen', False):
-            current_exe = sys.executable
-        else:
-            messagebox.showinfo("Update Ready", 
-                f"Update downloaded to:\n{temp_file}\n\nPlease replace the current file manually (dev mode).")
-            dialog.destroy()
+        if not getattr(sys, 'frozen', False):
+            # Dev mode - just log
+            self.log("INFO", f"[DEV] Update saved to: {temp_file}")
+            self._update_header_status("IDLE")
             return
         
-        # Create update script
+        current_exe = sys.executable
+        
+        # Create update script that waits, copies, and restarts
         update_script = os.path.join(tempfile.gettempdir(), "seekmate_update.bat")
         with open(update_script, 'w') as f:
             f.write(f'''@echo off
 timeout /t 2 /nobreak > nul
 copy /Y "{temp_file}" "{current_exe}"
 start "" "{current_exe}"
+del "{temp_file}"
 del "%~f0"
 ''')
         
-        messagebox.showinfo("Update Ready", 
-            "SeekMate AI will now close and update.\nIt will restart automatically.")
-        
         # Run update script and exit
-        subprocess.Popen(update_script, shell=True)
-        self.root.quit()
-    
-    def _update_failed(self, dialog):
-        """Handle update failure"""
-        self.update_status.config(text="Download failed. Please try again later.")
-        messagebox.showerror("Update Failed", 
-            "Could not download the update.\nPlease check your internet connection or download manually from GitHub.")
+        subprocess.Popen(update_script, shell=True, 
+                        creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, 'CREATE_NO_WINDOW') else 0)
+        
+        # Close the app
+        self.root.after(500, self.root.quit)
 
     def update_time_saved(self, num_applications):
         """Update time saved display (2 mins per successful application)"""
