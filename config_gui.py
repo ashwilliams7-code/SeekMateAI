@@ -13,10 +13,16 @@ import urllib.error
 import tempfile
 import shutil
 
+try:
+    import openpyxl
+    OPENPYXL_AVAILABLE = True
+except ImportError:
+    OPENPYXL_AVAILABLE = False
+
 # ================================
 # APP VERSION
 # ================================
-APP_VERSION = "1.2.5"
+APP_VERSION = "1.2.6"
 GITHUB_REPO = "ashwilliams7-code/SeekMateAI"
 GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 
@@ -949,6 +955,7 @@ class SeekMateGUI:
 
         self.build_stats_panel(right)
         self.build_log_panel(right)
+        self.build_history_panel(right)
 
     def build_config_panel(self, parent):
         """Build the configuration card with collapsible sections"""
@@ -1598,6 +1605,252 @@ class SeekMateGUI:
                 )
         except:
             pass
+
+    # ============================================================
+    # APPLICATION HISTORY PANEL
+    # ============================================================
+    def build_history_panel(self, parent):
+        """Build the application history panel with search and clickable jobs"""
+        self.history_card = tk.Frame(parent, bg=COLORS["bg_card"])
+        self.history_card.pack(fill="both", expand=True, pady=(10, 0))
+        
+        self.history_expanded = False  # Start collapsed
+        self.history_data = []  # Store loaded job data
+        
+        # Header
+        header = tk.Frame(self.history_card, bg=COLORS["bg_card"])
+        header.pack(fill="x", padx=20, pady=(15, 10))
+        
+        # Left side - title and count
+        title_frame = tk.Frame(header, bg=COLORS["bg_card"])
+        title_frame.pack(side="left", fill="x", expand=True)
+        
+        self.history_collapse_btn = tk.Button(header, text="▶", command=self.toggle_history_collapse,
+                                             bg=COLORS["bg_card"], fg=COLORS["accent_primary"],
+                                             font=("Segoe UI", 12, "bold"), relief="flat",
+                                             activebackground=COLORS["bg_card"], cursor="hand2")
+        self.history_collapse_btn.pack(side="left", padx=(0, 10))
+        
+        tk.Label(title_frame, text="📋 Application History", 
+                bg=COLORS["bg_card"], fg=COLORS["text_primary"],
+                font=FONT_TITLE).pack(side="left")
+        
+        self.history_count_label = tk.Label(title_frame, text="(0 jobs)", 
+                                           bg=COLORS["bg_card"], fg=COLORS["text_muted"],
+                                           font=FONT_LABEL)
+        self.history_count_label.pack(side="left", padx=(10, 0))
+        
+        # Refresh button
+        self.refresh_btn = tk.Button(header, text="🔄", command=self.load_job_history,
+                                    bg=COLORS["bg_card"], fg=COLORS["accent_primary"],
+                                    font=("Segoe UI", 12), relief="flat",
+                                    activebackground=COLORS["bg_card"], cursor="hand2")
+        self.refresh_btn.pack(side="right")
+        
+        # History content (collapsible)
+        self.history_content = tk.Frame(self.history_card, bg=COLORS["bg_card"])
+        # Don't pack initially - starts collapsed
+        
+        # Search bar
+        search_frame = tk.Frame(self.history_content, bg=COLORS["bg_card"])
+        search_frame.pack(fill="x", padx=20, pady=(0, 10))
+        
+        tk.Label(search_frame, text="🔍", bg=COLORS["bg_card"], 
+                fg=COLORS["text_muted"], font=("Segoe UI", 12)).pack(side="left", padx=(0, 5))
+        
+        self.history_search = tk.Entry(search_frame, font=FONT_NORMAL, bg=COLORS["bg_input"],
+                                      fg=COLORS["text_primary"], insertbackground=COLORS["accent_primary"],
+                                      relief="flat", highlightthickness=2,
+                                      highlightbackground=COLORS["border"],
+                                      highlightcolor=COLORS["accent_primary"])
+        self.history_search.pack(side="left", fill="x", expand=True, ipady=6)
+        self.history_search.insert(0, "Search jobs...")
+        self.history_search.bind("<FocusIn>", self._history_search_focus_in)
+        self.history_search.bind("<FocusOut>", self._history_search_focus_out)
+        self.history_search.bind("<KeyRelease>", self._filter_history)
+        self.history_search.config(fg=COLORS["text_muted"])
+        
+        # Job list (scrollable)
+        list_frame = tk.Frame(self.history_content, bg=COLORS["bg_card"])
+        list_frame.pack(fill="both", expand=True, padx=20, pady=(0, 15))
+        
+        self.history_canvas = tk.Canvas(list_frame, bg=COLORS["bg_dark"], 
+                                       highlightthickness=0, height=200)
+        history_scrollbar = ttk.Scrollbar(list_frame, orient="vertical", 
+                                         command=self.history_canvas.yview)
+        self.history_list_frame = tk.Frame(self.history_canvas, bg=COLORS["bg_dark"])
+        
+        self.history_list_frame.bind("<Configure>", 
+            lambda e: self.history_canvas.configure(scrollregion=self.history_canvas.bbox("all")))
+        
+        self.history_canvas.create_window((0, 0), window=self.history_list_frame, anchor="nw")
+        self.history_canvas.configure(yscrollcommand=history_scrollbar.set)
+        
+        self.history_canvas.pack(side="left", fill="both", expand=True)
+        history_scrollbar.pack(side="right", fill="y")
+        
+        # Bind mousewheel
+        self.history_canvas.bind_all("<MouseWheel>", 
+            lambda e: self.history_canvas.yview_scroll(int(-1 * (e.delta / 120)), "units"))
+        
+        # Load initial data
+        self.load_job_history()
+    
+    def _history_search_focus_in(self, event):
+        """Clear placeholder on focus"""
+        if self.history_search.get() == "Search jobs...":
+            self.history_search.delete(0, tk.END)
+            self.history_search.config(fg=COLORS["text_primary"])
+    
+    def _history_search_focus_out(self, event):
+        """Restore placeholder if empty"""
+        if not self.history_search.get().strip():
+            self.history_search.insert(0, "Search jobs...")
+            self.history_search.config(fg=COLORS["text_muted"])
+    
+    def _filter_history(self, event=None):
+        """Filter displayed jobs based on search"""
+        query = self.history_search.get().strip().lower()
+        if query == "search jobs...":
+            query = ""
+        self._display_jobs(query)
+    
+    def toggle_history_collapse(self):
+        """Toggle history panel collapse"""
+        self.history_expanded = not self.history_expanded
+        
+        if self.history_expanded:
+            self.history_collapse_btn.config(text="▼")
+            self.history_content.pack(fill="both", expand=True)
+            self.load_job_history()  # Refresh when expanding
+        else:
+            self.history_collapse_btn.config(text="▶")
+            self.history_content.pack_forget()
+    
+    def load_job_history(self):
+        """Load job history from job_log.xlsx"""
+        self.history_data = []
+        
+        if not OPENPYXL_AVAILABLE:
+            self.history_count_label.config(text="(openpyxl not installed)")
+            return
+        
+        job_log_path = "job_log.xlsx"
+        if not os.path.exists(job_log_path):
+            self.history_count_label.config(text="(no jobs yet)")
+            self._display_jobs()
+            return
+        
+        try:
+            wb = openpyxl.load_workbook(job_log_path)
+            ws = wb.active
+            
+            # Skip header row, load all data
+            for row in ws.iter_rows(min_row=2, values_only=True):
+                if row[0]:  # Has timestamp
+                    self.history_data.append({
+                        "timestamp": str(row[0]) if row[0] else "",
+                        "title": str(row[1]) if row[1] else "Unknown",
+                        "company": str(row[2]) if row[2] else "Unknown",
+                        "url": str(row[3]) if row[3] else ""
+                    })
+            
+            wb.close()
+            
+            # Sort by timestamp descending (newest first)
+            self.history_data.sort(key=lambda x: x["timestamp"], reverse=True)
+            
+            self.history_count_label.config(text=f"({len(self.history_data)} jobs)")
+            self._display_jobs()
+            
+        except Exception as e:
+            self.history_count_label.config(text=f"(error loading)")
+            print(f"Error loading job history: {e}")
+    
+    def _display_jobs(self, filter_query=""):
+        """Display job cards in the history list"""
+        # Clear existing items
+        for widget in self.history_list_frame.winfo_children():
+            widget.destroy()
+        
+        # Filter jobs
+        if filter_query:
+            filtered = [j for j in self.history_data 
+                       if filter_query in j["title"].lower() or filter_query in j["company"].lower()]
+        else:
+            filtered = self.history_data
+        
+        if not filtered:
+            no_jobs = tk.Label(self.history_list_frame, text="No jobs found",
+                              bg=COLORS["bg_dark"], fg=COLORS["text_muted"],
+                              font=FONT_NORMAL)
+            no_jobs.pack(pady=20)
+            return
+        
+        # Create job cards
+        for job in filtered[:100]:  # Limit to 100 for performance
+            self._create_job_card(job)
+    
+    def _create_job_card(self, job):
+        """Create a single job card in the history"""
+        card = tk.Frame(self.history_list_frame, bg=COLORS["bg_card"], cursor="hand2")
+        card.pack(fill="x", pady=(0, 5), padx=5)
+        
+        inner = tk.Frame(card, bg=COLORS["bg_card"])
+        inner.pack(fill="x", padx=12, pady=10)
+        
+        # Job title
+        title_label = tk.Label(inner, text=f"💼 {job['title'][:50]}",
+                              bg=COLORS["bg_card"], fg=COLORS["text_primary"],
+                              font=FONT_BOLD, anchor="w")
+        title_label.pack(fill="x")
+        
+        # Company and date
+        date_str = job["timestamp"][:10] if len(job["timestamp"]) >= 10 else job["timestamp"]
+        info_label = tk.Label(inner, text=f"🏢 {job['company']} • 📅 {date_str}",
+                             bg=COLORS["bg_card"], fg=COLORS["text_secondary"],
+                             font=FONT_LABEL, anchor="w")
+        info_label.pack(fill="x")
+        
+        # URL link
+        if job["url"]:
+            url_label = tk.Label(inner, text="🔗 Click to view job",
+                                bg=COLORS["bg_card"], fg=COLORS["accent_primary"],
+                                font=FONT_LABEL, anchor="w", cursor="hand2")
+            url_label.pack(fill="x")
+            url_label.bind("<Button-1>", lambda e, url=job["url"]: webbrowser.open(url))
+            
+            # Hover effects
+            def on_enter(e, lbl=url_label):
+                lbl.config(fg=COLORS["accent_secondary"])
+            def on_leave(e, lbl=url_label):
+                lbl.config(fg=COLORS["accent_primary"])
+            url_label.bind("<Enter>", on_enter)
+            url_label.bind("<Leave>", on_leave)
+        
+        # Card hover effect
+        def card_enter(e, c=card, i=inner, t=title_label, inf=info_label):
+            c.config(bg=COLORS["bg_card_hover"])
+            i.config(bg=COLORS["bg_card_hover"])
+            t.config(bg=COLORS["bg_card_hover"])
+            inf.config(bg=COLORS["bg_card_hover"])
+        def card_leave(e, c=card, i=inner, t=title_label, inf=info_label):
+            c.config(bg=COLORS["bg_card"])
+            i.config(bg=COLORS["bg_card"])
+            t.config(bg=COLORS["bg_card"])
+            inf.config(bg=COLORS["bg_card"])
+        
+        card.bind("<Enter>", card_enter)
+        card.bind("<Leave>", card_leave)
+        inner.bind("<Enter>", card_enter)
+        inner.bind("<Leave>", card_leave)
+        
+        # Click anywhere on card to open URL
+        if job["url"]:
+            card.bind("<Button-1>", lambda e, url=job["url"]: webbrowser.open(url))
+            inner.bind("<Button-1>", lambda e, url=job["url"]: webbrowser.open(url))
+            title_label.bind("<Button-1>", lambda e, url=job["url"]: webbrowser.open(url))
+            info_label.bind("<Button-1>", lambda e, url=job["url"]: webbrowser.open(url))
 
     # ============================================================
     # FORM HELPERS
