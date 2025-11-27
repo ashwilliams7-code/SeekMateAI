@@ -16,7 +16,7 @@ import shutil
 # ================================
 # APP VERSION
 # ================================
-APP_VERSION = "1.0.0"
+APP_VERSION = "1.1.0"
 GITHUB_REPO = "ashwilliams7-code/SeekMateAI"
 GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 
@@ -111,6 +111,38 @@ def write_control(pause=None, stop=None):
 
     with open(CONTROL_FILE, "w") as f:
         json.dump(data, f)
+
+
+# ============================================
+# CHROME DETECTION
+# ============================================
+def is_chrome_installed():
+    """Check if Google Chrome is installed on the system"""
+    if sys.platform == "win32":
+        # Windows - check common Chrome paths
+        chrome_paths = [
+            os.path.join(os.environ.get("PROGRAMFILES", ""), "Google", "Chrome", "Application", "chrome.exe"),
+            os.path.join(os.environ.get("PROGRAMFILES(X86)", ""), "Google", "Chrome", "Application", "chrome.exe"),
+            os.path.join(os.environ.get("LOCALAPPDATA", ""), "Google", "Chrome", "Application", "chrome.exe"),
+        ]
+        return any(os.path.exists(path) for path in chrome_paths if path)
+    elif sys.platform == "darwin":
+        # macOS - check Applications folder
+        return os.path.exists("/Applications/Google Chrome.app")
+    else:
+        # Linux - check if chrome command exists
+        import shutil
+        return shutil.which("google-chrome") is not None or shutil.which("chromium-browser") is not None
+
+
+def get_chrome_download_url():
+    """Get the appropriate Chrome download URL for the current platform"""
+    if sys.platform == "darwin":
+        return "https://www.google.com/chrome/"
+    elif sys.platform == "win32":
+        return "https://www.google.com/chrome/"
+    else:
+        return "https://www.google.com/chrome/"
 
 
 # ============================================
@@ -1035,6 +1067,10 @@ class SeekMateGUI:
                                         style="dark", width=40, height=36)
         self.show_api_btn.pack(side="left", padx=(0, 5))
         
+        self.api_help_btn = ModernButton(api_buttons, text="❓", command=self.show_api_help,
+                                        style="dark", width=40, height=36)
+        self.api_help_btn.pack(side="left", padx=(0, 5))
+        
         self.save_api_btn = ModernButton(api_buttons, text="Save", command=self.save_api,
                                         style="primary", width=60, height=36)
         self.save_api_btn.pack(side="left")
@@ -1543,6 +1579,70 @@ class SeekMateGUI:
         current = self.api_entry.cget("show")
         self.api_entry.config(show="" if current == "•" else "•")
 
+    def show_api_help(self):
+        """Show a dialog with instructions on how to get an OpenAI API key"""
+        help_window = tk.Toplevel(self.root)
+        help_window.title("How to Get Your API Key")
+        help_window.geometry("500x400")
+        help_window.configure(bg=COLORS["bg_dark"])
+        help_window.transient(self.root)
+        help_window.grab_set()
+        
+        # Center the window
+        help_window.update_idletasks()
+        x = (help_window.winfo_screenwidth() // 2) - (500 // 2)
+        y = (help_window.winfo_screenheight() // 2) - (400 // 2)
+        help_window.geometry(f"+{x}+{y}")
+        
+        # Main content frame
+        content = tk.Frame(help_window, bg=COLORS["bg_card"], padx=25, pady=25)
+        content.pack(fill="both", expand=True, padx=15, pady=15)
+        
+        # Title
+        tk.Label(content, text="🔑 How to Get Your OpenAI API Key", 
+                bg=COLORS["bg_card"], fg=COLORS["accent_primary"],
+                font=FONT_TITLE).pack(anchor="w", pady=(0, 20))
+        
+        # Instructions
+        steps = [
+            "1️⃣  Go to platform.openai.com",
+            "2️⃣  Sign up or Log in to your account",
+            "3️⃣  Click on 'API Keys' in the left sidebar",
+            "4️⃣  Click '+ Create new secret key'",
+            "5️⃣  Give it a name (e.g., 'SeekMate')",
+            "6️⃣  Copy the key and paste it here!",
+        ]
+        
+        for step in steps:
+            tk.Label(content, text=step, bg=COLORS["bg_card"], 
+                    fg=COLORS["text_primary"], font=FONT_NORMAL,
+                    anchor="w").pack(fill="x", pady=5)
+        
+        # Note about credits
+        note_frame = tk.Frame(content, bg=COLORS["bg_input"], padx=15, pady=10)
+        note_frame.pack(fill="x", pady=(20, 10))
+        tk.Label(note_frame, text="💡 Note: OpenAI gives $5 free credits to new accounts!", 
+                bg=COLORS["bg_input"], fg=COLORS["warning"],
+                font=FONT_NORMAL).pack()
+        tk.Label(note_frame, text="This is enough for thousands of cover letters.", 
+                bg=COLORS["bg_input"], fg=COLORS["text_secondary"],
+                font=FONT_LABEL).pack()
+        
+        # Buttons frame
+        btn_frame = tk.Frame(content, bg=COLORS["bg_card"])
+        btn_frame.pack(fill="x", pady=(20, 0))
+        
+        def open_openai():
+            webbrowser.open("https://platform.openai.com/api-keys")
+            
+        open_btn = ModernButton(btn_frame, text="🔗 Open OpenAI Platform", 
+                               command=open_openai, style="primary", width=200, height=40)
+        open_btn.pack(side="left", padx=(0, 10))
+        
+        close_btn = ModernButton(btn_frame, text="Close", 
+                                command=help_window.destroy, style="dark", width=100, height=40)
+        close_btn.pack(side="left")
+
     def save_api(self):
         self.config["OPENAI_API_KEY"] = self.api_entry.get()
         save_config(self.config)
@@ -1803,7 +1903,61 @@ del "%~f0"
     # ============================================================
     # BOT CONTROL
     # ============================================================
+    def show_chrome_required(self):
+        """Show a dialog prompting user to install Chrome"""
+        chrome_window = tk.Toplevel(self.root)
+        chrome_window.title("Chrome Required")
+        chrome_window.geometry("450x280")
+        chrome_window.configure(bg=COLORS["bg_dark"])
+        chrome_window.transient(self.root)
+        chrome_window.grab_set()
+        
+        # Center the window
+        chrome_window.update_idletasks()
+        x = (chrome_window.winfo_screenwidth() // 2) - (450 // 2)
+        y = (chrome_window.winfo_screenheight() // 2) - (280 // 2)
+        chrome_window.geometry(f"+{x}+{y}")
+        
+        # Main content frame
+        content = tk.Frame(chrome_window, bg=COLORS["bg_card"], padx=25, pady=25)
+        content.pack(fill="both", expand=True, padx=15, pady=15)
+        
+        # Warning icon and title
+        tk.Label(content, text="⚠️ Google Chrome Required", 
+                bg=COLORS["bg_card"], fg=COLORS["warning"],
+                font=FONT_TITLE).pack(pady=(0, 15))
+        
+        # Message
+        tk.Label(content, text="SeekMate AI uses Chrome for automation.", 
+                bg=COLORS["bg_card"], fg=COLORS["text_primary"],
+                font=FONT_NORMAL).pack(pady=5)
+        tk.Label(content, text="Please install Google Chrome to continue.", 
+                bg=COLORS["bg_card"], fg=COLORS["text_secondary"],
+                font=FONT_NORMAL).pack(pady=5)
+        
+        # Buttons frame
+        btn_frame = tk.Frame(content, bg=COLORS["bg_card"])
+        btn_frame.pack(pady=(25, 0))
+        
+        def download_chrome():
+            webbrowser.open(get_chrome_download_url())
+            chrome_window.destroy()
+            
+        download_btn = ModernButton(btn_frame, text="📥 Download Chrome", 
+                                   command=download_chrome, style="primary", width=180, height=45)
+        download_btn.pack(side="left", padx=(0, 10))
+        
+        cancel_btn = ModernButton(btn_frame, text="Cancel", 
+                                 command=chrome_window.destroy, style="dark", width=100, height=45)
+        cancel_btn.pack(side="left")
+
     def start_bot(self):
+        # Check if Chrome is installed first
+        if not is_chrome_installed():
+            self.show_chrome_required()
+            self.log("ERROR", "Google Chrome is not installed. Please install Chrome to use SeekMate AI.")
+            return
+        
         self.save_all_config()
         self.console.delete("1.0", tk.END)
         self.money_saved = 0.0
