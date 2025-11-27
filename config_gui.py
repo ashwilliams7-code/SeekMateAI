@@ -16,7 +16,7 @@ import shutil
 # ================================
 # APP VERSION
 # ================================
-APP_VERSION = "1.2.1"
+APP_VERSION = "1.2.2"
 GITHUB_REPO = "ashwilliams7-code/SeekMateAI"
 GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 
@@ -148,6 +148,15 @@ def get_chrome_download_url():
 # ============================================
 # AUTO-UPDATE SYSTEM
 # ============================================
+def get_platform_info():
+    """Get current platform info for update matching"""
+    if sys.platform == "win32":
+        return {"os": "windows", "extensions": [".exe"], "keywords": ["windows"]}
+    elif sys.platform == "darwin":
+        return {"os": "macos", "extensions": [".zip"], "keywords": ["macos", "mac"]}
+    else:
+        return {"os": "linux", "extensions": [""], "keywords": ["linux"]}
+
 def check_for_updates():
     """Check GitHub for latest release version"""
     try:
@@ -161,10 +170,23 @@ def check_for_updates():
             download_url = None
             release_notes = data.get("body", "")
             
-            # Find Windows download URL
+            # Get platform-specific download URL
+            platform_info = get_platform_info()
+            
             for asset in data.get("assets", []):
-                if "windows" in asset["name"].lower() or asset["name"].endswith(".exe"):
-                    download_url = asset["browser_download_url"]
+                asset_name = asset["name"].lower()
+                # Check for platform keywords
+                for keyword in platform_info["keywords"]:
+                    if keyword in asset_name:
+                        download_url = asset["browser_download_url"]
+                        break
+                # Also check file extension as fallback
+                if not download_url:
+                    for ext in platform_info["extensions"]:
+                        if ext and asset_name.endswith(ext):
+                            download_url = asset["browser_download_url"]
+                            break
+                if download_url:
                     break
             
             return {
@@ -172,7 +194,8 @@ def check_for_updates():
                 "current_version": APP_VERSION,
                 "update_available": compare_versions(latest_version, APP_VERSION) > 0,
                 "download_url": download_url,
-                "release_notes": release_notes
+                "release_notes": release_notes,
+                "platform": platform_info["os"]
             }
     except Exception as e:
         print(f"Update check failed: {e}")
@@ -198,13 +221,19 @@ def compare_versions(v1, v2):
 def download_update(url, progress_callback=None):
     """Download update file and return path to downloaded file"""
     try:
-        # Create temp file
+        # Create temp file with platform-appropriate name
         temp_dir = tempfile.gettempdir()
-        temp_file = os.path.join(temp_dir, "SeekMate_AI_update.exe")
+        
+        if sys.platform == "win32":
+            temp_file = os.path.join(temp_dir, "SeekMate_AI_update.exe")
+        elif sys.platform == "darwin":
+            temp_file = os.path.join(temp_dir, "SeekMate_AI_update.zip")
+        else:
+            temp_file = os.path.join(temp_dir, "SeekMate_AI_update")
         
         request = urllib.request.Request(url, headers={"User-Agent": "SeekMateAI"})
         
-        with urllib.request.urlopen(request, timeout=60) as response:
+        with urllib.request.urlopen(request, timeout=120) as response:  # 2 min timeout for larger files
             total_size = int(response.headers.get('content-length', 0))
             downloaded = 0
             chunk_size = 8192
@@ -1718,20 +1747,65 @@ class SeekMateGUI:
         
         current_exe = sys.executable
         
-        # Create update script that waits, copies, and restarts
-        update_script = os.path.join(tempfile.gettempdir(), "seekmate_update.bat")
-        with open(update_script, 'w') as f:
-            f.write(f'''@echo off
+        if sys.platform == "win32":
+            # Windows: Create batch script to replace exe
+            update_script = os.path.join(tempfile.gettempdir(), "seekmate_update.bat")
+            with open(update_script, 'w') as f:
+                f.write(f'''@echo off
 timeout /t 2 /nobreak > nul
 copy /Y "{temp_file}" "{current_exe}"
 start "" "{current_exe}"
 del "{temp_file}"
 del "%~f0"
 ''')
+            subprocess.Popen(update_script, shell=True, 
+                            creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, 'CREATE_NO_WINDOW') else 0)
         
-        # Run update script and exit
-        subprocess.Popen(update_script, shell=True, 
-                        creationflags=subprocess.CREATE_NO_WINDOW if hasattr(subprocess, 'CREATE_NO_WINDOW') else 0)
+        elif sys.platform == "darwin":
+            # macOS: Unzip and replace .app bundle
+            import zipfile
+            
+            # Find the .app bundle path (go up from executable inside the bundle)
+            # Typical path: /Applications/SeekMate AI.app/Contents/MacOS/SeekMate AI
+            app_bundle = current_exe
+            while app_bundle and not app_bundle.endswith('.app'):
+                app_bundle = os.path.dirname(app_bundle)
+            
+            if not app_bundle:
+                self.log("ERROR", "Could not find .app bundle path")
+                self._update_header_status("IDLE")
+                return
+            
+            app_parent = os.path.dirname(app_bundle)
+            
+            # Create shell script for macOS
+            update_script = os.path.join(tempfile.gettempdir(), "seekmate_update.sh")
+            with open(update_script, 'w') as f:
+                f.write(f'''#!/bin/bash
+sleep 2
+rm -rf "{app_bundle}"
+unzip -o "{temp_file}" -d "{app_parent}"
+open -a "{app_bundle}"
+rm "{temp_file}"
+rm "$0"
+''')
+            os.chmod(update_script, 0o755)
+            subprocess.Popen(["bash", update_script])
+        
+        else:
+            # Linux: Replace binary directly
+            update_script = os.path.join(tempfile.gettempdir(), "seekmate_update.sh")
+            with open(update_script, 'w') as f:
+                f.write(f'''#!/bin/bash
+sleep 2
+cp "{temp_file}" "{current_exe}"
+chmod +x "{current_exe}"
+"{current_exe}" &
+rm "{temp_file}"
+rm "$0"
+''')
+            os.chmod(update_script, 0o755)
+            subprocess.Popen(["bash", update_script])
         
         # Close the app
         self.root.after(500, self.root.quit)
