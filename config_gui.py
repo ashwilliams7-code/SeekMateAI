@@ -16,7 +16,7 @@ import shutil
 # ================================
 # APP VERSION
 # ================================
-APP_VERSION = "1.2.3"
+APP_VERSION = "1.2.4"
 GITHUB_REPO = "ashwilliams7-code/SeekMateAI"
 GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 
@@ -1349,6 +1349,14 @@ class SeekMateGUI:
                                      command=self.run_test, style="dark", width=180)
         self.test_btn.pack(side="left")
 
+        # Third row - Update button
+        btn_row3 = tk.Frame(controls, bg=COLORS["bg_card"])
+        btn_row3.pack(fill="x", pady=(10, 0))
+
+        self.check_update_btn = ModernButton(btn_row3, text="🔄  CHECK FOR UPDATES", 
+                                            command=self.manual_update_check, style="dark", width=373)
+        self.check_update_btn.pack(side="left")
+
     def build_stats_panel(self, parent):
         """Build the statistics dashboard"""
         stats_frame = tk.Frame(parent, bg=COLORS["bg_dark"])
@@ -1680,6 +1688,22 @@ class SeekMateGUI:
     # ============================================================
     # SILENT AUTO-UPDATE SYSTEM
     # ============================================================
+    def manual_update_check(self):
+        """Manually trigger update check from button"""
+        self.log("INFO", "🔄 Manually checking for updates...")
+        self.check_update_btn.set_text("⏳ CHECKING...")
+        self.check_update_btn.set_disabled(True)
+        
+        def reset_button():
+            self.check_update_btn.set_text("🔄  CHECK FOR UPDATES")
+            self.check_update_btn.set_disabled(False)
+        
+        # Reset button after 5 seconds
+        self.root.after(5000, reset_button)
+        
+        thread = threading.Thread(target=self._silent_update_thread, daemon=True)
+        thread.start()
+    
     def check_for_updates_async(self):
         """Check for updates in background thread - SILENT MODE"""
         self.log("INFO", "🔍 Checking for updates...")
