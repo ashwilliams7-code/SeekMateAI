@@ -28,7 +28,7 @@ except ImportError:
 # ================================
 # APP VERSION
 # ================================
-APP_VERSION = "2.0.7"
+APP_VERSION = "2.0.8"
 GITHUB_REPO = "ashwilliams7-code/SeekMateAI"
 GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 
@@ -111,6 +111,22 @@ def resource_path(relative_path):
     except Exception:
         base_path = os.path.abspath(".")
     return os.path.join(base_path, relative_path)
+
+
+def get_data_dir():
+    """Get a consistent, user-writable data directory for logs and data files"""
+    if sys.platform == "darwin":  # macOS
+        data_dir = os.path.expanduser("~/Library/Application Support/SeekMateAI")
+    elif sys.platform == "win32":  # Windows
+        data_dir = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), "SeekMateAI")
+    else:  # Linux
+        data_dir = os.path.expanduser("~/.seekmateai")
+    
+    os.makedirs(data_dir, exist_ok=True)
+    return data_dir
+
+
+LOG_FILE = os.path.join(get_data_dir(), "log.txt")
 
 
 CONFIG_FILE = resource_path("config.json")
@@ -2471,8 +2487,9 @@ rm "$0"
         self.update_timer()
         self.money_loop()
 
-        if os.path.exists("log.txt"):
-            os.remove("log.txt")
+        # Clear previous log file
+        if os.path.exists(LOG_FILE):
+            os.remove(LOG_FILE)
 
         try:
             # Check if running as bundled exe or from source
@@ -2571,10 +2588,11 @@ rm "$0"
     # LOG TAILING
     # ============================================================
     def tail_log(self):
-        while not os.path.exists("log.txt"):
+        # Wait for log file to be created by bot
+        while not os.path.exists(LOG_FILE):
             time.sleep(0.2)
 
-        with open("log.txt", "r", encoding="utf-8") as f:
+        with open(LOG_FILE, "r", encoding="utf-8") as f:
             f.seek(0)
             while True:
                 line = f.readline()

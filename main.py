@@ -172,10 +172,23 @@ def resource_path(relative_path):
     return os.path.join(base_path, relative_path)
 
 
+def get_data_dir():
+    """Get a consistent, user-writable data directory for logs and data files"""
+    if sys.platform == "darwin":  # macOS
+        data_dir = os.path.expanduser("~/Library/Application Support/SeekMateAI")
+    elif sys.platform == "win32":  # Windows
+        data_dir = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), "SeekMateAI")
+    else:  # Linux
+        data_dir = os.path.expanduser("~/.seekmateai")
+    
+    os.makedirs(data_dir, exist_ok=True)
+    return data_dir
+
+
 # ============================================
 # LOGGING (WORKS IN EXE)
 # ============================================
-LOG_FILE = resource_path("log.txt")
+LOG_FILE = os.path.join(get_data_dir(), "log.txt")
 _orig_print = builtins.print
 
 def print(*args, **kwargs):
