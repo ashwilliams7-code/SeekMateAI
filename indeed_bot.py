@@ -433,12 +433,105 @@ class IndeedBot:
             print(f"GPT ERROR: {e}")
             return ""
 
+    def _get_related_titles_for_preferences(self, target_titles):
+        """Expand target titles to include related roles based on preset categories"""
+        related_map = {
+            # Anthropology/Research category
+            "anthropologist": ["anthropologist", "social anthropologist", "cultural anthropologist",
+                              "research officer", "research manager", "research analyst", "researcher",
+                              "research coordinator", "research consultant", "ethnographer",
+                              "field researcher", "qualitative researcher", "social researcher"],
+            "social anthropologist": ["anthropologist", "social anthropologist", "cultural anthropologist",
+                                     "research officer", "research manager", "research analyst", "researcher",
+                                     "research coordinator", "research consultant", "ethnographer",
+                                     "field researcher", "qualitative researcher", "social researcher"],
+            "cultural anthropologist": ["anthropologist", "social anthropologist", "cultural anthropologist",
+                                       "research officer", "research manager", "research analyst", "researcher",
+                                       "research coordinator", "research consultant", "ethnographer",
+                                       "field researcher", "qualitative researcher", "social researcher"],
+            "research officer": ["anthropologist", "social anthropologist", "cultural anthropologist",
+                                "research officer", "research manager", "research analyst", "researcher",
+                                "research coordinator", "research consultant", "ethnographer",
+                                "field researcher", "qualitative researcher", "social researcher"],
+            "research manager": ["anthropologist", "social anthropologist", "cultural anthropologist",
+                                "research officer", "research manager", "research analyst", "researcher",
+                                "research coordinator", "research consultant", "ethnographer",
+                                "field researcher", "qualitative researcher", "social researcher"],
+            "research analyst": ["anthropologist", "social anthropologist", "cultural anthropologist",
+                                "research officer", "research manager", "research analyst", "researcher",
+                                "research coordinator", "research consultant", "ethnographer",
+                                "field researcher", "qualitative researcher", "social researcher"],
+            "researcher": ["anthropologist", "social anthropologist", "cultural anthropologist",
+                          "research officer", "research manager", "research analyst", "researcher",
+                          "research coordinator", "research consultant", "ethnographer",
+                          "field researcher", "qualitative researcher", "social researcher"],
+            "ethnographer": ["anthropologist", "social anthropologist", "cultural anthropologist",
+                            "research officer", "research manager", "research analyst", "researcher",
+                            "research coordinator", "research consultant", "ethnographer",
+                            "field researcher", "qualitative researcher", "social researcher"],
+            "research coordinator": ["anthropologist", "social anthropologist", "cultural anthropologist",
+                                    "research officer", "research manager", "research analyst", "researcher",
+                                    "research coordinator", "research consultant", "ethnographer",
+                                    "field researcher", "qualitative researcher", "social researcher"],
+            "research consultant": ["anthropologist", "social anthropologist", "cultural anthropologist",
+                                  "research officer", "research manager", "research analyst", "researcher",
+                                  "research coordinator", "research consultant", "ethnographer",
+                                  "field researcher", "qualitative researcher", "social researcher"],
+            "field researcher": ["anthropologist", "social anthropologist", "cultural anthropologist",
+                                "research officer", "research manager", "research analyst", "researcher",
+                                "research coordinator", "research consultant", "ethnographer",
+                                "field researcher", "qualitative researcher", "social researcher"],
+            "qualitative researcher": ["anthropologist", "social anthropologist", "cultural anthropologist",
+                                      "research officer", "research manager", "research analyst", "researcher",
+                                      "research coordinator", "research consultant", "ethnographer",
+                                      "field researcher", "qualitative researcher", "social researcher"],
+            "social researcher": ["anthropologist", "social anthropologist", "cultural anthropologist",
+                                 "research officer", "research manager", "research analyst", "researcher",
+                                 "research coordinator", "research consultant", "ethnographer",
+                                 "field researcher", "qualitative researcher", "social researcher"],
+            # Project/Program Management category
+            "project manager": ["project manager", "program manager", "delivery manager", "project lead",
+                               "scrum master", "agile coach", "pmo", "portfolio manager"],
+            "program manager": ["project manager", "program manager", "delivery manager", "project lead",
+                              "scrum master", "agile coach", "pmo", "portfolio manager"],
+            "delivery manager": ["project manager", "program manager", "delivery manager", "project lead",
+                               "scrum master", "agile coach", "pmo", "portfolio manager"],
+            "scrum master": ["project manager", "program manager", "delivery manager", "project lead",
+                           "scrum master", "agile coach", "pmo", "portfolio manager"],
+            "agile coach": ["project manager", "program manager", "delivery manager", "project lead",
+                          "scrum master", "agile coach", "pmo", "portfolio manager"],
+            "portfolio manager": ["project manager", "program manager", "delivery manager", "project lead",
+                                 "scrum master", "agile coach", "pmo", "portfolio manager"],
+        }
+        
+        expanded_titles = set()
+        target_lower = [t.lower().strip() for t in target_titles]
+        
+        for target in target_lower:
+            expanded_titles.add(target)
+            # Check if this title has related titles
+            for key, related_list in related_map.items():
+                if key in target or target in key:
+                    expanded_titles.update(related_list)
+        
+        return list(expanded_titles)
+
     def gpt_should_apply(self, job_title: str, job_description: str) -> bool:
         """Use GPT to check if job matches user's target roles"""
         if not OPENAI_API_KEY:
             return True
         
-        prompt = f"""Analyze if this job is a good match for someone looking for: {', '.join(JOB_TITLES)}
+        # Get related titles based on preset categories
+        related_titles = self._get_related_titles_for_preferences(JOB_TITLES)
+        
+        # Build related titles text (only show if there are related titles)
+        related_text = ""
+        if related_titles:
+            related_list = [t for t in related_titles if t.lower() not in [x.lower() for x in JOB_TITLES]]
+            if related_list:
+                related_text = f"\n\nRELATED ROLES TO CONSIDER (also acceptable): {', '.join(related_list[:15])}"
+        
+        prompt = f"""Analyze if this job is a good match for someone looking for: {', '.join(JOB_TITLES)}{related_text}
 
 JOB TITLE: {job_title}
 
@@ -447,8 +540,12 @@ JOB DESCRIPTION (first 800 chars):
 
 Rules:
 - If the job is primarily SALES, CUSTOMER SERVICE, RETAIL, CALL CENTRE focused, say NO
-- If the job matches the target roles, say YES
+- If the job matches the target roles OR any of the related roles listed above, say YES
+- IMPORTANT: If user is looking for "anthropologist" or any research role, also accept: research officer, research manager, research analyst, researcher, research coordinator, research consultant, ethnographer, field researcher, qualitative researcher, social researcher
+- IMPORTANT: Consider related roles within the same field/category (e.g., if looking for "project manager", also accept "program manager", "delivery manager", "scrum master")
 - Be strict: "Project Manager" should NOT apply to "Sales Manager"
+- Look at the core responsibilities, not just the title
+- Accept jobs that are clearly related to the target roles, even if the exact title doesn't match
 
 Reply with ONLY "YES" or "NO" followed by a brief reason (max 15 words).
 """
