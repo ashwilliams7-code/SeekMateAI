@@ -5,6 +5,8 @@ import time
 import sys
 import subprocess
 import threading
+import urllib.request
+import urllib.parse
 
 from selenium import webdriver
 from selenium.webdriver.chrome.options import Options
@@ -19,44 +21,14 @@ import openpyxl
 from openpyxl import Workbook
 from datetime import datetime
 
+# Gmail cleanup
+try:
+    from gmail_cleanup import GmailCleanup
+    GMAIL_CLEANUP_AVAILABLE = True
+except ImportError:
+    GMAIL_CLEANUP_AVAILABLE = False
+    print("[!] Gmail cleanup module not available")
 
-# ============================================
-# SUCCESS SOUND (Soft Chime)
-# ============================================
-def play_success_sound():
-    """Play a soft, gentle chime on successful job submission"""
-    def _play():
-        try:
-            if sys.platform == "win32":
-                # Windows - soft 2-tone chime (gentle and quiet)
-                import winsound
-                winsound.Beep(440, 80)    # Soft A4 note
-                time.sleep(0.08)
-                winsound.Beep(523, 100)   # Soft C5 note (gentle rise)
-            elif sys.platform == "darwin":
-                # macOS - use softest available sounds
-                sounds = [
-                    "/System/Library/Sounds/Tink.aiff",      # Softest - tiny tink
-                    "/System/Library/Sounds/Pop.aiff",       # Gentle pop
-                    "/System/Library/Sounds/Purr.aiff",      # Soft purr
-                ]
-                for sound in sounds:
-                    if os.path.exists(sound):
-                        subprocess.run(["afplay", "-v", "0.5", sound], 
-                                      capture_output=True, timeout=5)
-                        break
-            else:
-                # Linux - soft notification
-                try:
-                    subprocess.run(["paplay", "/usr/share/sounds/freedesktop/stereo/message.oga"],
-                                 capture_output=True, timeout=5)
-                except:
-                    pass
-        except Exception as e:
-            pass  # Silently fail if sound can't play
-    
-    # Play in background thread to not block
-    threading.Thread(target=_play, daemon=True).start()
 
 # ============================================
 # SMART CATEGORY + STRICT TITLE MATCHING
@@ -190,6 +162,17 @@ def check_control():
         pass
     return "run"
 
+def is_recommended_mode():
+    """Check if running in Recommended Jobs mode"""
+    try:
+        if os.path.exists(CONTROL_FILE):
+            with open(CONTROL_FILE, "r") as f:
+                data = json.load(f)
+                return data.get("recommended", False)
+    except:
+        pass
+    return False
+
 def wait_while_paused():
     """Block execution while paused, return False if stopped"""
     while True:
@@ -203,31 +186,73 @@ def wait_while_paused():
         else:
             return True  # Continue running
 
-with open(CONFIG_FILE, "r") as f:
-    CONFIG = json.load(f)
+def write_control(pause=None, stop=None, recommended=None):
+    """Write control flags to control.json"""
+    data = {"pause": False, "stop": False, "recommended": False}
+    
+    if os.path.exists(CONTROL_FILE):
+        try:
+            with open(CONTROL_FILE, "r") as f:
+                data.update(json.load(f))
+        except:
+            pass
+    
+    if pause is not None:
+        data["pause"] = pause
+    if stop is not None:
+        data["stop"] = stop
+    if recommended is not None:
+        data["recommended"] = recommended
+    
+    with open(CONTROL_FILE, "w") as f:
+        json.dump(data, f, indent=4)
 
-
-# Basic fields
-SEEK_EMAIL = CONFIG.get("SEEK_EMAIL", "")
-JOB_TITLE = CONFIG.get("JOB_TITLE", "")
-CV_PATH = CONFIG.get("CV_PATH", "")
+# ============================================
+# CONFIG LOADING (DYNAMIC - RELOADS ON EACH RUN)
+# ============================================
+CONFIG = {}
+SEEK_EMAIL = ""
+JOB_TITLE = ""
+CV_PATH = ""
 MAX_JOBS = 100
-EXPECTED_SALARY = CONFIG.get("EXPECTED_SALARY", "100000")
+EXPECTED_SALARY = "100000"
+LOCATION = "Brisbane, Australia"
+SCAN_SPEED = 50
+APPLY_SPEED = 50
+COOLDOWN_DELAY = 5
+STEALTH_MODE = False
 
-# Read LOCATION from config
-LOCATION = CONFIG.get("LOCATION", "Brisbane, Australia")
+def reload_config():
+    """Reload config from file - call this at start of each run to get latest settings"""
+    global CONFIG, SEEK_EMAIL, JOB_TITLE, CV_PATH, MAX_JOBS, EXPECTED_SALARY
+    global LOCATION, SCAN_SPEED, APPLY_SPEED, COOLDOWN_DELAY, STEALTH_MODE
+    
+    try:
+        with open(CONFIG_FILE, "r") as f:
+            CONFIG = json.load(f)
+    except Exception as e:
+        print(f"[!] Failed to load config: {e}")
+        CONFIG = {}
+    
+    # Reload all config values
+    SEEK_EMAIL = CONFIG.get("SEEK_EMAIL", "")
+    JOB_TITLE = CONFIG.get("JOB_TITLE", "")
+    CV_PATH = CONFIG.get("CV_PATH", "")
+    MAX_JOBS = CONFIG.get("MAX_JOBS", 100)
+    EXPECTED_SALARY = CONFIG.get("EXPECTED_SALARY", "100000")
+    LOCATION = CONFIG.get("LOCATION", "Brisbane, Australia")
+    SCAN_SPEED = CONFIG.get("SCAN_SPEED", 50)
+    APPLY_SPEED = CONFIG.get("APPLY_SPEED", 50)
+    COOLDOWN_DELAY = CONFIG.get("COOLDOWN_DELAY", 5)
+    STEALTH_MODE = CONFIG.get("STEALTH_MODE", False)
+    
+    # Print speed settings
+    stealth_status = "🥷 ENABLED" if STEALTH_MODE else "OFF"
+    print(f"[CONFIG RELOADED] Scan: {SCAN_SPEED}% | Apply: {APPLY_SPEED}% | Cooldown: {COOLDOWN_DELAY}s | Stealth: {stealth_status}")
+    print(f"[CONFIG RELOADED] Max Jobs: {MAX_JOBS} | Location: {LOCATION}")
 
-# ============================================
-# SPEED SLIDER SYSTEM (1-100 scale)
-# ============================================
-SCAN_SPEED = CONFIG.get("SCAN_SPEED", 50)
-APPLY_SPEED = CONFIG.get("APPLY_SPEED", 50)
-COOLDOWN_DELAY = CONFIG.get("COOLDOWN_DELAY", 5)
-STEALTH_MODE = CONFIG.get("STEALTH_MODE", False)
-
-# Print speed settings on startup
-stealth_status = "🥷 ENABLED" if STEALTH_MODE else "OFF"
-print(f"[SPEED] Scan: {SCAN_SPEED}% | Apply: {APPLY_SPEED}% | Cooldown: {COOLDOWN_DELAY}s | Stealth: {stealth_status}")
+# Initial load
+reload_config()
 
 def get_scan_multiplier():
     """Convert 1-100 slider to delay multiplier (100=fastest, 1=slowest)"""
@@ -489,6 +514,92 @@ if BLOCKED_TITLES:
     print(f"[BLOCKLIST] Titles: {', '.join(BLOCKED_TITLES)}")
 
 
+# ============================================
+# TWILIO WHATSAPP NOTIFICATIONS
+# ============================================
+TWILIO_ACCOUNT_SID = CONFIG.get("TWILIO_ACCOUNT_SID", "")
+TWILIO_AUTH_TOKEN = CONFIG.get("TWILIO_AUTH_TOKEN", "")
+TWILIO_WHATSAPP_FROM = CONFIG.get("TWILIO_WHATSAPP_FROM", "whatsapp:+14155238886")
+WHATSAPP_NOTIFICATIONS = CONFIG.get("WHATSAPP_NOTIFICATIONS", True)
+
+# Profile phone numbers for WhatsApp notifications
+PROFILE_PHONES = {
+    "Ash Williams": "+61490077979",
+    "Jennifer Berrio": "+61491723617",
+    "Rafael Hurtado": "+6411557289",
+}
+
+def send_whatsapp_summary(full_name, jobs_applied, duration_minutes, job_titles=None):
+    """Send a WhatsApp summary via Twilio when run completes"""
+    if not WHATSAPP_NOTIFICATIONS:
+        print("[WhatsApp] Notifications disabled")
+        return False
+    
+    if not TWILIO_ACCOUNT_SID or not TWILIO_AUTH_TOKEN:
+        print("[WhatsApp] Twilio credentials not configured")
+        return False
+    
+    # Get phone number for the current profile
+    phone = PROFILE_PHONES.get(full_name)
+    if not phone:
+        print(f"[WhatsApp] No phone number configured for {full_name}")
+        return False
+    
+    # Format job titles list
+    titles_text = ""
+    if job_titles and len(job_titles) > 0:
+        # Get unique titles and limit to first 20 to avoid message being too long
+        unique_titles = list(dict.fromkeys(job_titles))[:20]
+        titles_list = "\n".join([f"• {title}" for title in unique_titles])
+        if len(job_titles) > 20:
+            titles_list += f"\n• ... and {len(job_titles) - 20} more"
+        titles_text = f"\n\n📋 *Job Titles Applied To:*\n{titles_list}"
+    
+    # Format the message
+    message = f"""🎯 *SeekMate AI Run Complete*
+
+👤 Profile: {full_name}
+✅ Jobs Applied: {jobs_applied}
+⏱️ Duration: {duration_minutes} minutes
+📅 Time: {datetime.now().strftime('%I:%M %p, %d %b %Y')}{titles_text}
+
+Great work! Your applications have been submitted."""
+
+    try:
+        # Twilio API endpoint
+        url = f"https://api.twilio.com/2010-04-01/Accounts/{TWILIO_ACCOUNT_SID}/Messages.json"
+        
+        # Format phone for WhatsApp
+        to_number = f"whatsapp:{phone}" if not phone.startswith("whatsapp:") else phone
+        
+        # Prepare data
+        data = urllib.parse.urlencode({
+            'From': TWILIO_WHATSAPP_FROM,
+            'To': to_number,
+            'Body': message
+        }).encode('utf-8')
+        
+        # Create request with basic auth
+        request = urllib.request.Request(url, data=data)
+        credentials = f"{TWILIO_ACCOUNT_SID}:{TWILIO_AUTH_TOKEN}"
+        import base64
+        encoded_credentials = base64.b64encode(credentials.encode()).decode()
+        request.add_header('Authorization', f'Basic {encoded_credentials}')
+        
+        # Send request
+        with urllib.request.urlopen(request, timeout=30) as response:
+            if response.status == 201:
+                print(f"[WhatsApp] ✅ Summary sent to {full_name} ({phone})")
+                return True
+            else:
+                print(f"[WhatsApp] Failed: Status {response.status}")
+                return False
+                
+    except Exception as e:
+        print(f"[WhatsApp] Error sending message: {e}")
+        return False
+
+
 # OpenAI
 OPENAI_API_KEY = CONFIG.get("OPENAI_API_KEY", os.getenv("OPENAI_API_KEY", ""))
 OPENAI_MODEL = "gpt-4.1-mini"
@@ -547,6 +658,7 @@ class SeekBot:
     def __init__(self, driver):
         self.successful_submits = 0
         self.driver = driver
+        self.applied_job_titles = []  # Track job titles that were successfully applied to
         
         # WebDriverWait timeout based on speed
         if SCAN_SPEED >= 90:
@@ -558,6 +670,25 @@ class SeekBot:
         
         self.wait = WebDriverWait(driver, wait_timeout)
         self.client = OpenAI(api_key=OPENAI_API_KEY)
+        
+        # Initialize Gmail cleanup if available and enabled
+        self.gmail_cleanup = None
+        self.gmail_thread = None
+        use_gmail_cleanup = CONFIG.get("USE_GMAIL_CLEANUP", False)
+        if GMAIL_CLEANUP_AVAILABLE and use_gmail_cleanup:
+            try:
+                # Create Gmail cleanup with separate window (doesn't interfere with main bot)
+                # Pass OpenAI client for GPT analysis
+                self.gmail_cleanup = GmailCleanup(
+                    driver=None,  # Will create its own browser
+                    openai_client=self.client,
+                    create_separate_window=True
+                )
+                print("[Gmail] Gmail cleanup initialized with GPT analysis in separate window")
+            except Exception as e:
+                print(f"[Gmail] Failed to initialize: {e}")
+        elif not use_gmail_cleanup:
+            print("[Gmail] Gmail cleanup is disabled in config")
 
     # ---------- GPT ----------
     def log_job(self, title, company, url):
@@ -581,6 +712,10 @@ class SeekBot:
 
         wb.save(file_path)
         print(f"    [+] Logged to Excel → {title} @ {company}")
+        
+        # Track job title for WhatsApp summary
+        if title not in self.applied_job_titles:
+            self.applied_job_titles.append(title)
     def gpt(self, system_prompt: str, user_prompt: str) -> str:
         try:
             res = self.client.chat.completions.create(
@@ -662,6 +797,51 @@ class SeekBot:
             except:
                 continue
         return ""
+
+    # ---------- GPT JOB RELEVANCE CHECK ----------
+    def gpt_should_apply(self, job_title: str, job_description: str) -> bool:
+        """Use GPT to analyze if job description matches user's target roles before applying"""
+        # Check if GPT job check is enabled (TIGHT mode) or disabled (LOOSE mode)
+        if not CONFIG.get("GPT_JOB_CHECK", False):
+            print("    [⚡ LOOSE MODE] Skipping GPT job check - applying to all")
+            return True  # LOOSE mode - apply to everything
+        
+        if not OPENAI_API_KEY:
+            return True  # If no API key, skip this check
+        
+        target_titles = CONFIG.get("JOB_TITLES", [])
+        
+        prompt = f"""Analyze if this job is a good match for someone looking for: {', '.join(target_titles)}
+
+JOB TITLE: {job_title}
+
+JOB DESCRIPTION (first 800 chars):
+{job_description[:800]}
+
+Rules:
+- If the job is primarily SALES, CUSTOMER SERVICE, RETAIL, CALL CENTRE, or TELEMARKETING focused, say NO
+- If the job title contains "Sales", "Customer Service", "Retail", "Call Centre" and user isn't looking for those, say NO
+- If the job description matches the target roles (e.g., Project Manager, Program Manager, Delivery Manager), say YES
+- Be strict: "Project Manager" should NOT apply to "Sales Manager" or "Customer Service Manager"
+- Look at the core responsibilities, not just the title
+
+Reply with ONLY "YES" or "NO" followed by a brief reason (max 15 words).
+Examples: 
+- "NO - primarily a sales role with commission targets"
+- "YES - matches project management responsibilities"
+- "NO - customer service focus, not project management"
+"""
+        
+        try:
+            response = self.gpt(
+                "You are a job matching assistant. Be strict about role relevance. Protect users from applying to mismatched roles.",
+                prompt
+            )
+            print(f"    [🤖 GPT] Job check: {response}")
+            return response.upper().startswith("YES")
+        except Exception as e:
+            print(f"    [!] GPT analysis failed: {e}")
+            return True  # Default to applying if GPT fails
 
     # ---------- SELECT DOCUMENT OPTIONS (Resume, Cover Letter, Selection Criteria) ----------
     def select_document_options(self):
@@ -828,60 +1008,73 @@ JOB DESCRIPTION:
         full_name = CONFIG.get("FULL_NAME", "Applicant")
         location = CONFIG.get("LOCATION", "Australia")
         background_bio = CONFIG.get("BACKGROUND_BIO", "")
+        
+        # Phone numbers for each profile
+        PROFILE_PHONES = {
+            "Ash Williams": "+61 490 077 979",
+            "Jennifer Berrio": "+61 491 723 617",
+            "Rafael Hurtado": "+64 11 557 289",
+        }
+        phone_number = PROFILE_PHONES.get(full_name, "")
 
         letter = self.gpt(
-            "You are a professional cover letter writer who creates highly tailored, job-specific cover letters. You carefully analyze job descriptions and match candidate experience to specific role requirements.",
+            "You are a senior executive writing your own cover letter. Write naturally as a human professional would - confident, direct, and genuine. Avoid robotic or templated language.",
             f"""
-        Write a highly targeted cover letter for **{full_name}** applying for:
+        Write a cover letter for {full_name} applying for {job_title} at {company}.
 
-        ROLE: {job_title}
-        COMPANY: {company}
-
-        CANDIDATE:
+        CANDIDATE INFO:
         - Name: {full_name}
         - Location: {location}
         - Background: {background_bio}
 
         ═══════════════════════════════════════════════════════
-        CRITICAL: JOB-SPECIFIC REQUIREMENTS
+        WRITING STYLE - CRITICAL
         ═══════════════════════════════════════════════════════
         
-        STEP 1 - ANALYZE THE JOB DESCRIPTION BELOW AND IDENTIFY:
-        • The TOP 3-4 key responsibilities mentioned
-        • The specific skills or qualifications required
-        • Any industry-specific terminology used
-        • The company's apparent culture or values
+        Write like a REAL PERSON, not an AI:
+        • NEVER start paragraphs with "Your" - vary your sentence openers
+        • NEVER use phrases like "Your requirement for...", "Your emphasis on...", "Your commitment to..."
+        • AVOID repetitive structures - each paragraph should feel different
+        • Write in FIRST PERSON naturally: "I led...", "My experience in...", "Having worked on..."
+        • Sound like a confident professional speaking, not a template
+        • Be direct and specific, not flowery or overly formal
         
-        STEP 2 - WRITE THE COVER LETTER THAT:
-        • Directly addresses EACH key responsibility from the job posting
-        • Uses the SAME terminology and keywords from the job description
-        • Provides specific examples of how {full_name} has done similar work
-        • References the actual duties listed (e.g., "Your requirement for X aligns with my experience in...")
-        • Shows understanding of what THIS specific role involves
+        BAD EXAMPLES (DO NOT USE):
+        - "Your requirement for X aligns with my experience"
+        - "Your emphasis on Y resonates with my approach"
+        - "Your commitment to Z matches my values"
+        
+        GOOD EXAMPLES:
+        - "Leading a team of 12 through a complex ERP migration taught me..."
+        - "The focus on stakeholder engagement stood out to me - this mirrors..."
+        - "Having delivered similar transformation projects, I understand..."
         
         ═══════════════════════════════════════════════════════
+        STRUCTURE
+        ═══════════════════════════════════════════════════════
         
-        STRUCTURE:
-        Paragraph 1: Hook + why THIS specific role at THIS company
-        Paragraph 2: Address the FIRST major responsibility from job description with concrete example
-        Paragraph 3: Address the SECOND major responsibility with evidence
-        Paragraph 4: Address additional key requirements (skills, qualifications, soft skills)
-        Paragraph 5: Strong closing with call to action
+        Opening: Why this role caught your attention (be specific to the job)
+        Body 1: A concrete achievement relevant to a KEY responsibility
+        Body 2: Another relevant example showing different skills
+        Body 3: Brief mention of additional relevant qualifications
+        Closing: Confident, professional sign-off (no begging or desperation)
 
-        FORMAT RULES:
-        • First line MUST be: "Dear {company} Hiring Team,"
-        • DO NOT include: email, phone, LinkedIn, dates, addresses, or any placeholders
-        • End with signature: {full_name}
-        • Length: 400-550 words
+        FORMAT:
+        • Start with: "Dear {company} Hiring Team,"
+        • NO dates, addresses, or placeholders
+        • End with signature block:
+          {full_name}
+          {phone_number}
+        • Length: 350-450 words (concise is better)
         
-        STYLE:
-        • Confident and professional, not generic
-        • Use action verbs and quantifiable achievements where possible
-        • Mirror the tone of the job posting
-        • NO clichés like "I am excited to apply" or "I believe I would be a great fit"
+        TONE:
+        • Confident but not arrogant
+        • Professional but warm
+        • Specific but not verbose
+        • NO clichés: "passionate", "excited to apply", "perfect fit", "hit the ground running"
 
         ═══════════════════════════════════════════════════════
-        JOB DESCRIPTION TO ANALYZE:
+        JOB DESCRIPTION:
         ═══════════════════════════════════════════════════════
         {desc}
         """
@@ -1553,25 +1746,41 @@ Reply with ONLY the exact option text to select:"""
             (By.XPATH, "//button[contains(., 'Apply')]"),
         ]
 
-        clicked = False
+        # First, FIND the apply button (don't click yet)
+        apply_btn = None
+        apply_sel = None
 
         for by, sel in candidates:
             try:
                 btn = self.driver.find_element(by, sel)
                 if btn.is_displayed() and btn.is_enabled():
-                    self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", btn)
-                    speed_sleep(1, "scan")
-                    throttle()
-                    stealth_before_click()  # Human-like pause before clicking
-                    self.driver.execute_script("arguments[0].click();", btn)
-                    print("    [+] Clicked apply button:", sel)
-                    clicked = True
+                    apply_btn = btn
+                    apply_sel = sel
                     break
             except:
                 continue
 
-        if not clicked:
+        if not apply_btn:
             print("    [-] No apply button found.")
+            return
+
+        # GPT Job Relevance Check - ONLY if Quick Apply button exists
+        desc = self.get_description()
+        if desc and OPENAI_API_KEY:
+            if not self.gpt_should_apply(job_title, desc):
+                print(f"    [🤖 SKIP] GPT says job doesn't match your target roles")
+                return
+
+        # Now click the apply button
+        try:
+            self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", apply_btn)
+            speed_sleep(1, "scan")
+            throttle()
+            stealth_before_click()  # Human-like pause before clicking
+            self.driver.execute_script("arguments[0].click();", apply_btn)
+            print("    [+] Clicked apply button:", apply_sel)
+        except Exception as e:
+            print(f"    [-] Failed to click apply button: {e}")
             return
 
         speed_sleep(3, "apply")
@@ -1659,13 +1868,9 @@ Reply with ONLY the exact option text to select:"""
             )
             self.driver.execute_script("arguments[0].click();", submit)
             print("    [+] SUBMITTED.")
-            
-            # Wait 1 second then play success sound
-            time.sleep(1)
-            play_success_sound()
             print("    💰 Cha-ching!")
             
-            speed_sleep(2, "apply")  # Reduced from 3 since we added 1 sec above
+            speed_sleep(2, "apply")
 
             # LOG SUCCESSFUL SUBMISSION
             try:
@@ -1714,21 +1919,247 @@ Reply with ONLY the exact option text to select:"""
             print("Next page error:", e)
             return False
 
+    def send_summary_and_exit(self, run_start_time):
+        """Helper to send WhatsApp summary and exit"""
+        duration_minutes = int((time.time() - run_start_time) / 60)
+        full_name = CONFIG.get("FULL_NAME", "User")
+        send_whatsapp_summary(full_name, self.successful_submits, duration_minutes)
+
+    # ---------- RECOMMENDED JOBS MODE ----------
+    def run_recommended_mode(self):
+        """Run in Recommended Jobs mode - searches all job titles across ALL of Australia (no location filter)"""
+        # Reload config to get latest settings
+        reload_config()
+        
+        # Reset control flags
+        write_control(pause=False, stop=False)
+        
+        run_start_time = time.time()  # Track start time for WhatsApp summary
+        
+        print("\n" + "="*50)
+        print("🎯 RECOMMENDED JOBS MODE")
+        print("="*50)
+        print("Applying to jobs across ALL of AUSTRALIA")
+        print("Using your job titles, ignoring location filter")
+        print(f"Target: {MAX_JOBS} applications")
+        print("="*50 + "\n")
+
+        job_titles = CONFIG.get("JOB_TITLES", [])
+        
+        if not job_titles:
+            print("[!] No job titles configured. Please add job titles in the config.")
+            return
+
+        for title_index, search_title in enumerate(job_titles):
+            # Check for stop signal between searches
+            if check_control() == "stop":
+                print("[!] Stop signal received. Shutting down...")
+                self.send_summary_and_exit(run_start_time)
+                return
+            
+            if self.successful_submits >= MAX_JOBS:
+                print(f"\n[✓] Reached {MAX_JOBS} applications! Stopping.")
+                break
+            
+            print(f"\n==============================")
+            print(f"🎯 RECOMMENDED: {search_title} ({title_index + 1}/{len(job_titles)})")
+            print(f"    Progress: {self.successful_submits}/{MAX_JOBS} applications")
+            print(f"==============================\n")
+
+            # Search URL with NO location filter - searches all of Australia
+            search_url = f"https://www.seek.com.au/jobs?keywords={search_title.replace(' ', '%20')}&sortmode=ListedDate"
+            print(f"[*] Opening search for: {search_title}")
+            print(f"    URL: {search_url}")
+
+            self.driver.get(search_url)
+            speed_sleep(3, "scan")
+            throttle()
+
+            page = 1
+
+            while self.successful_submits < MAX_JOBS:
+                # Check for stop signal
+                if check_control() == "stop":
+                    print("[!] Stop signal received. Shutting down...")
+                    self.send_summary_and_exit(run_start_time)
+                    return
+                
+                print(f"\n===== PAGE {page} =====")
+                cards = self.get_job_cards()
+
+                if not cards:
+                    print("[!] No more job cards found.")
+                    break
+
+                for idx, card in enumerate(cards):
+                    # Check for pause/stop before each job
+                    status = check_control()
+                    if status == "stop":
+                        print("[!] Stop signal received. Shutting down...")
+                        self.send_summary_and_exit(run_start_time)
+                        return
+                    elif status == "pause":
+                        print("[*] Bot paused. Waiting to resume...")
+                        if not wait_while_paused():
+                            # Stop signal received while paused
+                            self.send_summary_and_exit(run_start_time)
+                            return
+                        print("[*] Bot resumed.")
+
+                    try:
+                        title = card.find_element(By.CSS_SELECTOR, "[data-automation='jobTitle']").text
+                    except:
+                        title = "Unknown"
+
+                    # In recommended mode, we still apply title matching
+                    if not title_matches(title):
+                        print(f"    [-] SKIPPED (title mismatch): {title}")
+                        continue
+
+                    # Check blocklist
+                    if is_title_blocked(title):
+                        print(f"    [🚫] BLOCKED (title): {title}")
+                        continue
+
+                    if self.successful_submits >= MAX_JOBS:
+                        break
+
+                    try:
+                        company = card.find_element(By.CSS_SELECTOR, "[data-automation='jobCompany']").text
+                    except:
+                        company = "Unknown"
+
+                    if is_company_blocked(company):
+                        print(f"    [🚫] BLOCKED (company): {company}")
+                        continue
+
+                    print(f"\n[*] 🎯 Job {idx + 1}: {title} | {company}")
+
+                    # Stealth: Random pause before opening job
+                    stealth_random_pause()
+
+                    job_url = self.open_job(card)
+                    if not job_url:
+                        continue
+
+                    speed_sleep(2, "scan")
+
+                    try:
+                        self.apply(title, company, job_url)
+                    except Exception as e:
+                        print(f"    [!] Error during apply: {e}")
+
+                    if len(self.driver.window_handles) > 1:
+                        self.driver.close()
+                        self.driver.switch_to.window(self.driver.window_handles[0])
+
+                        # Stealth: Scroll around on main page between jobs
+                        stealth_random_scroll(self.driver)
+
+                    # Apply cooldown between jobs
+                    job_cooldown()
+
+                if self.successful_submits >= MAX_JOBS:
+                    break
+
+                moved = self.go_to_next_page()
+                if not moved:
+                    break
+
+                page += 1
+
+        print(f"\n[*] RECOMMENDED MODE COMPLETE — Successfully submitted {self.successful_submits} applications.")
+        
+        # Send WhatsApp summary
+        self.send_summary_and_exit(run_start_time)
+
     # ---------- MAIN LOOP ----------
     def run(self):
+        # Reload config to get latest settings
+        reload_config()
+        
+        # Reset control flags for fresh start
+        write_control(pause=False, stop=False)
+        
+        # Start Gmail cleanup in visible tab (runs continuously when bot starts)
+        if self.gmail_cleanup:
+            def gmail_cleanup_loop():
+                """Gmail cleanup runs continuously in a visible tab, independent of application cycles"""
+                # Wait a bit before first cleanup to let browser settle
+                time.sleep(30)
+                
+                # Open Gmail tab first - this will be visible to the user
+                if not self.gmail_cleanup.open_gmail_tab():
+                    print("[Gmail] Failed to open Gmail tab, will retry later")
+                    return
+                
+                print("[Gmail] Gmail tab opened and visible - cleanup will run continuously")
+                time.sleep(5)
+                
+                # Run cleanup continuously every 5 minutes in the separate window
+                while True:
+                    try:
+                        status = check_control()
+                        if status == "stop":
+                            print("[Gmail] Gmail cleanup stopped (bot stopped)")
+                            # Close the separate window
+                            if self.gmail_cleanup:
+                                self.gmail_cleanup.close()
+                            break
+                        if status == "pause":
+                            # Still run cleanup when paused (it's independent)
+                            time.sleep(10)
+                            continue
+                        
+                        # Make sure we're on the Gmail tab (keep it visible)
+                        if not self.gmail_cleanup.switch_to_gmail_tab():
+                            print("[Gmail] Gmail tab lost, reopening...")
+                            if not self.gmail_cleanup.open_gmail_tab():
+                                print("[Gmail] Failed to reopen Gmail tab")
+                                time.sleep(60)
+                                continue
+                        
+                        # Run cleanup in the visible tab
+                        print("[Gmail] Running cleanup in visible Gmail tab...")
+                        self.gmail_cleanup.cleanup_emails(max_emails=50)
+                        
+                        # Wait 5 minutes before next cleanup
+                        print("[Gmail] Next cleanup in 5 minutes...")
+                        time.sleep(300)
+                    except Exception as e:
+                        print(f"[Gmail] Cleanup error: {e}")
+                        time.sleep(60)  # Wait 1 minute before retry
+            
+            self.gmail_thread = threading.Thread(target=gmail_cleanup_loop, daemon=True)
+            self.gmail_thread.start()
+            print("[Gmail] Gmail cleanup started - will open visible tab and run continuously")
+        
         self.ensure_logged_in()
+        run_start_time = time.time()  # Track start time for WhatsApp summary
+
+        # Check if running in Recommended Jobs mode
+        if is_recommended_mode():
+            self.run_recommended_mode()
+            return
 
         job_titles = CONFIG.get("JOB_TITLES", [])
         location = CONFIG.get("LOCATION", "Brisbane")
 
-        for search_title in job_titles:
+        for title_index, search_title in enumerate(job_titles):
             # Check for stop signal between searches
             if check_control() == "stop":
                 print("[!] Stop signal received. Shutting down...")
+                self.send_summary_and_exit(run_start_time)
                 return
             
+            # Skip to next title if we already hit MAX_JOBS
+            if self.successful_submits >= MAX_JOBS:
+                print(f"\n[✓] Reached {MAX_JOBS} applications! Stopping.")
+                break
+            
             print(f"\n==============================")
-            print(f"🔎 SEARCHING FOR: {search_title}")
+            print(f"🔎 SEARCHING: {search_title} ({title_index + 1}/{len(job_titles)})")
+            print(f"    Progress: {self.successful_submits}/{MAX_JOBS} applications")
             print(f"==============================\n")
 
             search_url = build_search_url(search_title, location)
@@ -1745,6 +2176,7 @@ Reply with ONLY the exact option text to select:"""
                 # Check for stop signal
                 if check_control() == "stop":
                     print("[!] Stop signal received. Shutting down...")
+                    self.send_summary_and_exit(run_start_time)
                     return
                 
                 print(f"\n===== PAGE {page} =====")
@@ -1759,11 +2191,14 @@ Reply with ONLY the exact option text to select:"""
                     status = check_control()
                     if status == "stop":
                         print("[!] Stop signal received. Shutting down...")
+                        self.send_summary_and_exit(run_start_time)
                         return
                     elif status == "pause":
                         print("[*] Bot paused. Waiting to resume...")
                         if not wait_while_paused():
-                            return  # Stop signal received while paused
+                            # Stop signal received while paused
+                            self.send_summary_and_exit(run_start_time)
+                            return
                         print("[*] Bot resumed.")
                     
                     try:
@@ -1829,9 +2264,18 @@ Reply with ONLY the exact option text to select:"""
                 page += 1
 
         print(f"\n[*] DONE — Successfully submitted {self.successful_submits} REAL applications.")
+        
+        # Send WhatsApp summary
+        self.send_summary_and_exit(run_start_time)
 
 
 def main():
+    # Reload config to get latest settings
+    reload_config()
+    
+    # Reset control flags for fresh start
+    write_control(pause=False, stop=False)
+    
     driver = init_browser()
     bot = SeekBot(driver)
     bot.run()

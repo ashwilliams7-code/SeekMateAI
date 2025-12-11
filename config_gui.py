@@ -1,5 +1,5 @@
 import tkinter as tk
-from tkinter import ttk, messagebox
+from tkinter import ttk, messagebox, simpledialog
 import threading
 import json
 import os
@@ -28,71 +28,101 @@ except ImportError:
 # ================================
 # APP VERSION
 # ================================
-APP_VERSION = "2.1.4"
+APP_VERSION = "2.2.0"
 GITHUB_REPO = "ashwilliams7-code/SeekMateAI"
 GITHUB_API_URL = f"https://api.github.com/repos/{GITHUB_REPO}/releases/latest"
 
 # ================================
-# MODERN COLOR PALETTES
+# PREMIUM COLOR PALETTES
 # ================================
 COLORS_DARK = {
-    "bg_dark": "#0f0f1a",
-    "bg_card": "#1a1a2e",
-    "bg_card_hover": "#252542",
-    "bg_input": "#16213e",
-    "accent_primary": "#00d4ff",
-    "accent_secondary": "#7b2cbf",
-    "accent_gradient_start": "#00d4ff",
-    "accent_gradient_end": "#7b2cbf",
-    "success": "#00ff88",
-    "warning": "#ffaa00",
-    "danger": "#ff4757",
-    "text_primary": "#ffffff",
-    "text_secondary": "#a0a0b0",
-    "text_muted": "#6b6b80",
-    "border": "#2a2a4a",
-    "money_green": "#00ff88",
-    "slider_track": "#2a2a4a",
-    "slider_fill": "#00d4ff",
-    "gpt_highlight": "#FF6EC7",
+    # Backgrounds - Deep charcoal with subtle warmth
+    "bg_dark": "#0d0d12",
+    "bg_card": "#16161d",
+    "bg_card_hover": "#1e1e28",
+    "bg_input": "#1a1a24",
+    "bg_elevated": "#202030",
+    
+    # Premium accents - Elegant teal & gold
+    "accent_primary": "#4fd1c5",      # Sophisticated teal
+    "accent_secondary": "#f6ad55",     # Warm gold
+    "accent_gradient_start": "#4fd1c5",
+    "accent_gradient_end": "#38b2ac",
+    "accent_gold": "#d69e2e",          # Premium gold
+    "accent_purple": "#9f7aea",        # Soft purple
+    
+    # Status colors
+    "success": "#48bb78",
+    "warning": "#ed8936",
+    "danger": "#fc8181",
+    
+    # Text hierarchy
+    "text_primary": "#f7fafc",
+    "text_secondary": "#a0aec0",
+    "text_muted": "#718096",
+    
+    # Borders & tracks
+    "border": "#2d3748",
+    "border_light": "#4a5568",
+    "money_green": "#68d391",
+    "slider_track": "#2d3748",
+    "slider_fill": "#4fd1c5",
+    "gpt_highlight": "#f687b3",
+    
+    # Tab colors
+    "tab_active": "#4fd1c5",
+    "tab_inactive": "#2d3748",
+    "tab_hover": "#38b2ac",
 }
 
 COLORS_LIGHT = {
-    "bg_dark": "#f5f5f7",
+    "bg_dark": "#f7fafc",
     "bg_card": "#ffffff",
-    "bg_card_hover": "#f0f0f5",
-    "bg_input": "#e8e8ed",
-    "accent_primary": "#0066cc",
-    "accent_secondary": "#5856d6",
-    "accent_gradient_start": "#0066cc",
-    "accent_gradient_end": "#5856d6",
-    "success": "#34c759",
-    "warning": "#ff9500",
-    "danger": "#ff3b30",
-    "text_primary": "#1c1c1e",
-    "text_secondary": "#636366",
-    "text_muted": "#8e8e93",
-    "border": "#d1d1d6",
-    "money_green": "#34c759",
-    "slider_track": "#d1d1d6",
-    "slider_fill": "#0066cc",
-    "gpt_highlight": "#af52de",
+    "bg_card_hover": "#edf2f7",
+    "bg_input": "#e2e8f0",
+    "bg_elevated": "#ffffff",
+    "accent_primary": "#319795",
+    "accent_secondary": "#dd6b20",
+    "accent_gradient_start": "#319795",
+    "accent_gradient_end": "#2c7a7b",
+    "accent_gold": "#d69e2e",
+    "accent_purple": "#805ad5",
+    "success": "#38a169",
+    "warning": "#dd6b20",
+    "danger": "#e53e3e",
+    "text_primary": "#1a202c",
+    "text_secondary": "#4a5568",
+    "text_muted": "#718096",
+    "border": "#e2e8f0",
+    "border_light": "#cbd5e0",
+    "money_green": "#38a169",
+    "slider_track": "#cbd5e0",
+    "slider_fill": "#319795",
+    "gpt_highlight": "#d53f8c",
+    "tab_active": "#319795",
+    "tab_inactive": "#e2e8f0",
+    "tab_hover": "#2c7a7b",
 }
 
 # Default to dark theme
 COLORS = COLORS_DARK.copy()
 
 # ================================
-# GLOBAL FONTS
+# PREMIUM FONTS
 # ================================
-FONT_NORMAL = ("Segoe UI", 11)
-FONT_BOLD = ("Segoe UI", 11, "bold")
-FONT_TITLE = ("Segoe UI", 14, "bold")
-FONT_HEADER = ("Segoe UI", 22, "bold")
+FONT_FAMILY = "Segoe UI"  # Fallback: "Inter", "SF Pro Display"
+FONT_NORMAL = (FONT_FAMILY, 11)
+FONT_BOLD = (FONT_FAMILY, 11, "bold")
+FONT_TITLE = (FONT_FAMILY, 13, "bold")
+FONT_HEADER = (FONT_FAMILY, 24, "bold")
+FONT_SUBHEADER = (FONT_FAMILY, 16, "bold")
 FONT_CONSOLE = ("Cascadia Code", 10)
-FONT_STATS = ("Segoe UI", 28, "bold")
-FONT_LABEL = ("Segoe UI", 10)
-FONT_BUTTON = ("Segoe UI", 11, "bold")
+FONT_STATS = (FONT_FAMILY, 32, "bold")
+FONT_LABEL = (FONT_FAMILY, 10)
+FONT_LABEL_BOLD = (FONT_FAMILY, 10, "bold")
+FONT_BUTTON = (FONT_FAMILY, 11, "bold")
+FONT_TAB = (FONT_FAMILY, 11, "bold")
+FONT_CHIP = (FONT_FAMILY, 9, "bold")
 
 try:
     from PIL import Image, ImageTk, ImageDraw, ImageFilter
@@ -148,8 +178,8 @@ def save_config(data):
         json.dump(data, f, indent=4)
 
 
-def write_control(pause=None, stop=None):
-    data = {"pause": False, "stop": False}
+def write_control(pause=None, stop=None, recommended=None):
+    data = {"pause": False, "stop": False, "recommended": False}
     if os.path.exists(CONTROL_FILE):
         try:
             with open(CONTROL_FILE, "r") as f:
@@ -162,6 +192,8 @@ def write_control(pause=None, stop=None):
         data["pause"] = pause
     if stop is not None:
         data["stop"] = stop
+    if recommended is not None:
+        data["recommended"] = recommended
 
     with open(CONTROL_FILE, "w") as f:
         json.dump(data, f)
@@ -674,6 +706,100 @@ class CollapsibleCard(tk.Frame):
 
 
 # ============================================
+# PREMIUM TAB BAR WIDGET
+# ============================================
+class PremiumTabBar(tk.Frame):
+    """A premium horizontal tab bar for navigation"""
+    def __init__(self, parent, tabs, on_change=None, **kwargs):
+        super().__init__(parent, bg=COLORS["bg_dark"], **kwargs)
+        
+        self.tabs = tabs  # List of (name, icon) tuples
+        self.active_tab = 0
+        self.on_change = on_change
+        self.tab_buttons = []
+        
+        # Container with subtle background
+        self.container = tk.Frame(self, bg=COLORS["bg_card"], pady=4)
+        self.container.pack(fill="x", padx=0, pady=(0, 15))
+        
+        # Inner frame for tabs
+        inner = tk.Frame(self.container, bg=COLORS["bg_card"])
+        inner.pack(fill="x", padx=15, pady=8)
+        
+        for i, (name, icon) in enumerate(tabs):
+            btn = self._create_tab_button(inner, name, icon, i)
+            btn.pack(side="left", padx=(0, 8))
+            self.tab_buttons.append(btn)
+        
+        # Initial state
+        self._update_tabs()
+    
+    def _create_tab_button(self, parent, name, icon, index):
+        """Create a styled tab button"""
+        btn = tk.Frame(parent, bg=COLORS["tab_inactive"], cursor="hand2")
+        
+        inner = tk.Frame(btn, bg=COLORS["tab_inactive"])
+        inner.pack(padx=16, pady=10)
+        
+        label = tk.Label(inner, text=f"{icon}  {name}",
+                        bg=COLORS["tab_inactive"], fg=COLORS["text_secondary"],
+                        font=FONT_TAB)
+        label.pack()
+        
+        # Store references
+        btn.inner = inner
+        btn.label = label
+        btn.index = index
+        
+        # Bind events
+        for widget in [btn, inner, label]:
+            widget.bind("<Button-1>", lambda e, idx=index: self._on_tab_click(idx))
+            widget.bind("<Enter>", lambda e, b=btn: self._on_hover(b, True))
+            widget.bind("<Leave>", lambda e, b=btn: self._on_hover(b, False))
+        
+        return btn
+    
+    def _on_tab_click(self, index):
+        if index != self.active_tab:
+            self.active_tab = index
+            self._update_tabs()
+            if self.on_change:
+                self.on_change(index)
+    
+    def _on_hover(self, btn, entering):
+        if btn.index == self.active_tab:
+            return
+        if entering:
+            bg = COLORS["bg_card_hover"]
+        else:
+            bg = COLORS["tab_inactive"]
+        btn.config(bg=bg)
+        btn.inner.config(bg=bg)
+        btn.label.config(bg=bg)
+    
+    def _update_tabs(self):
+        for i, btn in enumerate(self.tab_buttons):
+            if i == self.active_tab:
+                bg = COLORS["tab_active"]
+                fg = COLORS["bg_dark"]
+            else:
+                bg = COLORS["tab_inactive"]
+                fg = COLORS["text_secondary"]
+            
+            btn.config(bg=bg)
+            btn.inner.config(bg=bg)
+            btn.label.config(bg=bg, fg=fg)
+    
+    def get_active_tab(self):
+        return self.active_tab
+    
+    def set_active_tab(self, index):
+        if 0 <= index < len(self.tabs):
+            self.active_tab = index
+            self._update_tabs()
+
+
+# ============================================
 # CONFIG PROGRESS BAR
 # ============================================
 class ConfigProgressBar(tk.Frame):
@@ -981,6 +1107,14 @@ class SeekMateGUI:
                                      command=self.stop_bot, style="danger", width=100)
         self.stop_btn.pack(side="left")
         
+        # Spacer
+        tk.Frame(left_btns, bg=COLORS["bg_card"], width=20).pack(side="left")
+        
+        # Recommended Jobs button - special action
+        self.recommended_btn = ModernButton(left_btns, text="🎯 RECOMMENDED", 
+                                           command=self.start_recommended, style="primary", width=150)
+        self.recommended_btn.pack(side="left")
+        
         # Right side - Secondary buttons
         right_btns = tk.Frame(inner, bg=COLORS["bg_card"])
         right_btns.pack(side="right", fill="y")
@@ -998,56 +1132,61 @@ class SeekMateGUI:
         self.update_btn.pack(side="right")
 
     def build_main_content(self):
-        """Build the main content area"""
+        """Build the main content area with tabbed navigation"""
         main = tk.Frame(self.root, bg=COLORS["bg_dark"])
         main.pack(fill="both", expand=True, padx=20, pady=15)
 
-        # Left panel - Configuration (50% width)
+        # Left panel - Tabbed Configuration (50% width)
         left = tk.Frame(main, bg=COLORS["bg_dark"])
         left.pack(side="left", fill="both", expand=True, padx=(0, 10))
 
-        # Make left panel scrollable
-        left_canvas = tk.Canvas(left, bg=COLORS["bg_dark"], highlightthickness=0)
-        left_scrollbar = ttk.Scrollbar(left, orient="vertical", command=left_canvas.yview)
-        left_scroll_frame = tk.Frame(left_canvas, bg=COLORS["bg_dark"])
+        # Tab Bar
+        tabs = [
+            ("Profile", "👤"),
+            ("Jobs", "💼"),
+            ("Speed", "⚡"),
+            ("API", "🔑"),
+        ]
+        self.tab_bar = PremiumTabBar(left, tabs, on_change=self.on_tab_change)
+        self.tab_bar.pack(fill="x")
+
+        # Tab content container
+        self.tab_container = tk.Frame(left, bg=COLORS["bg_dark"])
+        self.tab_container.pack(fill="both", expand=True)
         
-        left_scroll_frame.bind("<Configure>", 
-            lambda e: left_canvas.configure(scrollregion=left_canvas.bbox("all")))
+        # Create scrollable frame for tab content
+        self.tab_canvas = tk.Canvas(self.tab_container, bg=COLORS["bg_dark"], highlightthickness=0)
+        self.tab_scrollbar = ttk.Scrollbar(self.tab_container, orient="vertical", command=self.tab_canvas.yview)
+        self.tab_scroll_frame = tk.Frame(self.tab_canvas, bg=COLORS["bg_dark"])
+        
+        self.tab_scroll_frame.bind("<Configure>", 
+            lambda e: self.tab_canvas.configure(scrollregion=self.tab_canvas.bbox("all")))
         
         # Dynamic width based on canvas
         def update_scroll_width(event):
-            left_canvas.itemconfig(scroll_window_id, width=event.width - 20)
+            self.tab_canvas.itemconfig(self.scroll_window_id, width=event.width - 20)
         
-        scroll_window_id = left_canvas.create_window((0, 0), window=left_scroll_frame, anchor="nw")
-        left_canvas.bind("<Configure>", update_scroll_width)
-        left_canvas.configure(yscrollcommand=left_scrollbar.set)
+        self.scroll_window_id = self.tab_canvas.create_window((0, 0), window=self.tab_scroll_frame, anchor="nw")
+        self.tab_canvas.bind("<Configure>", update_scroll_width)
+        self.tab_canvas.configure(yscrollcommand=self.tab_scrollbar.set)
         
-        left_canvas.pack(side="left", fill="both", expand=True)
-        left_scrollbar.pack(side="right", fill="y")
+        self.tab_canvas.pack(side="left", fill="both", expand=True)
+        self.tab_scrollbar.pack(side="right", fill="y")
         
-        # Mousewheel scrolling for left panel
-        def _on_left_mousewheel(event):
-            left_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
-        left_canvas.bind_all("<MouseWheel>", _on_left_mousewheel)
+        # Mousewheel scrolling
+        def _on_mousewheel(event):
+            self.tab_canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+        self.tab_canvas.bind_all("<MouseWheel>", _on_mousewheel)
 
-        # Configuration Progress Bar (at top)
-        self.progress_bar = ConfigProgressBar(left_scroll_frame)
-        self.progress_bar.pack(fill="x", pady=(0, 10))
-
-        # Live Config Summary (at top for quick overview)
-        self.config_summary = ConfigSummary(left_scroll_frame)
-        self.config_summary.pack(fill="x", pady=(0, 15))
+        # Build all tab frames (hidden initially except first)
+        self.tab_frames = {}
+        self._build_profile_tab()
+        self._build_jobs_tab()
+        self._build_speed_tab()
+        self._build_api_tab()
         
-        # Add summary items
-        self.config_summary.add_item("name", "👤", "Name")
-        self.config_summary.add_item("location", "📍", "Location")
-        self.config_summary.add_item("jobs", "💼", "Job Titles")
-        self.config_summary.add_item("max", "🎯", "Max Jobs")
-        self.config_summary.add_item("salary", "💰", "Salary")
-        self.config_summary.add_item("speed", "⚡", "Speed")
-
-        self.build_config_panel(left_scroll_frame)
-        self.build_speed_panel(left_scroll_frame)
+        # Show first tab
+        self.on_tab_change(0)
         
         # Initial update
         self.update_config_status()
@@ -1060,232 +1199,514 @@ class SeekMateGUI:
         self.build_log_panel(right)
         self.build_history_panel(right)
 
-    def build_config_panel(self, parent):
-        """Build the configuration card with collapsible sections"""
-        # Use CollapsibleCard for main config
-        self.config_card = CollapsibleCard(parent, title="Configuration", icon="⚙️", default_expanded=True)
-        self.config_card.pack(fill="x", pady=(0, 15))
+    def on_tab_change(self, index):
+        """Handle tab change"""
+        # Hide all tab frames
+        for widget in self.tab_scroll_frame.winfo_children():
+            widget.pack_forget()
         
-        form = self.config_card.get_content()
+        # Show the selected tab
+        tab_names = ["profile", "jobs", "speed", "api"]
+        if index < len(tab_names) and tab_names[index] in self.tab_frames:
+            self.tab_frames[tab_names[index]].pack(fill="both", expand=True)
+        
+        # Scroll to top
+        self.tab_canvas.yview_moveto(0)
 
-        # ═══════════════════════════════════════════
-        # SECTION 1: Personal Information
-        # ═══════════════════════════════════════════
-        section1_header = tk.Frame(form, bg=COLORS["bg_card"])
-        section1_header.pack(fill="x", pady=(0, 10))
-        tk.Label(section1_header, text="👤 Personal Information", 
-                bg=COLORS["bg_card"], fg=COLORS["accent_primary"],
-                font=FONT_BOLD).pack(anchor="w")
-
-        # Full Name
-        self.full_name_entry = self._create_field(form, "Full Name", "FULL_NAME")
-
+    def _build_profile_tab(self):
+        """Build Profile tab content"""
+        frame = tk.Frame(self.tab_scroll_frame, bg=COLORS["bg_dark"])
+        self.tab_frames["profile"] = frame
+        
+        # Progress bar at top
+        self.progress_bar = ConfigProgressBar(frame)
+        self.progress_bar.pack(fill="x", pady=(0, 15))
+        
+        # Config summary
+        self.config_summary = ConfigSummary(frame)
+        self.config_summary.pack(fill="x", pady=(0, 15))
+        self.config_summary.add_item("name", "👤", "Name")
+        self.config_summary.add_item("location", "📍", "Location")
+        self.config_summary.add_item("jobs", "💼", "Job Titles")
+        self.config_summary.add_item("max", "🎯", "Max Jobs")
+        self.config_summary.add_item("salary", "💰", "Salary")
+        self.config_summary.add_item("speed", "⚡", "Speed")
+        
+        # Personal info card
+        card = tk.Frame(frame, bg=COLORS["bg_card"])
+        card.pack(fill="x", pady=(0, 15))
+        
+        inner = tk.Frame(card, bg=COLORS["bg_card"])
+        inner.pack(fill="x", padx=25, pady=20)
+        
+        # Section header
+        header = tk.Frame(inner, bg=COLORS["bg_card"])
+        header.pack(fill="x", pady=(0, 20))
+        tk.Label(header, text="👤  Personal Information", 
+                bg=COLORS["bg_card"], fg=COLORS["text_primary"],
+                font=FONT_SUBHEADER).pack(anchor="w")
+        tk.Label(header, text="Your details for job applications",
+                bg=COLORS["bg_card"], fg=COLORS["text_muted"],
+                font=FONT_LABEL).pack(anchor="w", pady=(5, 0))
+        
+        # Full Name dropdown
+        tk.Label(inner, text="FULL NAME", bg=COLORS["bg_card"], 
+                fg=COLORS["text_muted"], font=FONT_LABEL_BOLD).pack(anchor="w", pady=(0, 8))
+        self.full_name_var = tk.StringVar()
+        preset_names = ["Ash Williams", "Jennifer Berrio", "Rafael Hurtado", "Custom..."]
+        self.full_name_dropdown = ttk.Combobox(inner, textvariable=self.full_name_var,
+                                               values=preset_names,
+                                               style="Modern.TCombobox", font=FONT_NORMAL)
+        saved_name = self.config.get("FULL_NAME", "Ash Williams")
+        if saved_name and saved_name not in preset_names:
+            self.full_name_dropdown['values'] = preset_names[:-1] + [saved_name, "Custom..."]
+            self.full_name_dropdown.set(saved_name)
+        elif saved_name:
+            self.full_name_dropdown.set(saved_name)
+        else:
+            self.full_name_dropdown.set("Ash Williams")
+        self.full_name_dropdown.pack(fill="x", pady=(0, 15))
+        self.full_name_dropdown.bind("<<ComboboxSelected>>", self.on_name_selected)
+        
         # Location dropdown
-        tk.Label(form, text="Location", bg=COLORS["bg_card"], 
-                fg=COLORS["text_secondary"], font=FONT_LABEL).pack(anchor="w", pady=(10, 5))
+        tk.Label(inner, text="LOCATION", bg=COLORS["bg_card"], 
+                fg=COLORS["text_muted"], font=FONT_LABEL_BOLD).pack(anchor="w", pady=(0, 8))
         self.location_var = tk.StringVar()
         locations = [
-            "Brisbane, Australia", "Gold Coast, Australia", "Sydney, Australia",
-            "Melbourne, Australia", "Perth, Australia", "Adelaide, Australia",
-            "Canberra, Australia", "Hobart, Australia", "Darwin, Australia"
+            "Brisbane, Australia", "Sydney, Australia", "Melbourne, Australia",
+            "Perth, Australia", "Adelaide, Australia", "Canberra, Australia",
+            "Gold Coast, Australia", "Newcastle, Australia", "Hobart, Australia",
+            "Darwin, Australia"
         ]
-        self.location_dropdown = ttk.Combobox(form, textvariable=self.location_var,
-                                              values=locations, state="readonly",
+        self.location_dropdown = ttk.Combobox(inner, textvariable=self.location_var,
+                                              values=locations,
                                               style="Modern.TCombobox", font=FONT_NORMAL)
         self.location_dropdown.set(self.config.get("LOCATION", "Brisbane, Australia"))
-        self.location_dropdown.pack(fill="x", ipady=6)
-
-        # ═══════════════════════════════════════════
-        # SECTION DIVIDER
-        # ═══════════════════════════════════════════
-        SectionDivider(form, label="JOB SETTINGS").pack(fill="x")
-
-        # ═══════════════════════════════════════════
-        # SECTION 2: Job Settings
-        # ═══════════════════════════════════════════
-        section2_header = tk.Frame(form, bg=COLORS["bg_card"])
-        section2_header.pack(fill="x", pady=(0, 10))
-        tk.Label(section2_header, text="💼 Job Preferences", 
-                bg=COLORS["bg_card"], fg=COLORS["accent_primary"],
-                font=FONT_BOLD).pack(anchor="w")
-
-        # Job Titles
-        tk.Label(form, text="Job Titles (comma separated)", bg=COLORS["bg_card"], 
-                fg=COLORS["text_secondary"], font=FONT_LABEL).pack(anchor="w", pady=(0, 5))
-        self.job_entry = ModernEntry(form)
-        raw = self.config.get("JOB_TITLES", [])
-        self.job_entry.insert(0, ", ".join(raw))
-        self.job_entry.pack(fill="x")
-
-        # Preset buttons
-        self.build_preset_buttons(form)
-
-        # Max Jobs and Salary in a row
-        row = tk.Frame(form, bg=COLORS["bg_card"])
-        row.pack(fill="x", pady=(10, 0))
+        self.location_dropdown.pack(fill="x")
         
-        left_col = tk.Frame(row, bg=COLORS["bg_card"])
-        left_col.pack(side="left", fill="x", expand=True, padx=(0, 5))
-        tk.Label(left_col, text="Max Jobs", bg=COLORS["bg_card"], 
-                fg=COLORS["text_secondary"], font=FONT_LABEL).pack(anchor="w", pady=(0, 5))
-        self.max_entry = ModernEntry(left_col)
-        self.max_entry.insert(0, str(self.config.get("MAX_JOBS", 100)))
-        self.max_entry.pack(fill="x")
-
-        right_col = tk.Frame(row, bg=COLORS["bg_card"])
-        right_col.pack(side="right", fill="x", expand=True, padx=(5, 0))
-        tk.Label(right_col, text="Expected Salary", bg=COLORS["bg_card"], 
-                fg=COLORS["text_secondary"], font=FONT_LABEL).pack(anchor="w", pady=(0, 5))
-        self.salary_entry = ModernEntry(right_col)
-        self.salary_entry.insert(0, str(self.config.get("EXPECTED_SALARY", 100000)))
-        self.salary_entry.pack(fill="x")
-
-        # ═══════════════════════════════════════════
-        # SECTION DIVIDER
-        # ═══════════════════════════════════════════
-        SectionDivider(form, label="BLOCKLIST").pack(fill="x")
-
-        # ═══════════════════════════════════════════
-        # SECTION: Blocklist
-        # ═══════════════════════════════════════════
-        blocklist_header = tk.Frame(form, bg=COLORS["bg_card"])
-        blocklist_header.pack(fill="x", pady=(0, 10))
-        tk.Label(blocklist_header, text="🚫 Block List", 
-                bg=COLORS["bg_card"], fg=COLORS["accent_primary"],
-                font=FONT_BOLD).pack(anchor="w")
-
-        # Blocked Companies
-        tk.Label(form, text="Blocked Companies (comma separated)", bg=COLORS["bg_card"], 
-                fg=COLORS["text_secondary"], font=FONT_LABEL).pack(anchor="w", pady=(0, 5))
-        self.blocked_companies_entry = ModernEntry(form)
-        blocked_companies = self.config.get("BLOCKED_COMPANIES", [])
-        self.blocked_companies_entry.insert(0, ", ".join(blocked_companies))
-        self.blocked_companies_entry.pack(fill="x")
+        # Platform selection card
+        platform_card = tk.Frame(frame, bg=COLORS["bg_card"])
+        platform_card.pack(fill="x", pady=(0, 15))
         
-        tk.Label(form, text="e.g., Hays, Randstad, Robert Half", 
-                bg=COLORS["bg_card"], fg=COLORS["text_muted"],
-                font=("Segoe UI", 9)).pack(anchor="w", pady=(2, 8))
-
-        # Blocked Titles
-        tk.Label(form, text="Blocked Job Titles (comma separated)", bg=COLORS["bg_card"], 
-                fg=COLORS["text_secondary"], font=FONT_LABEL).pack(anchor="w", pady=(0, 5))
-        self.blocked_titles_entry = ModernEntry(form)
-        blocked_titles = self.config.get("BLOCKED_TITLES", [])
-        self.blocked_titles_entry.insert(0, ", ".join(blocked_titles))
-        self.blocked_titles_entry.pack(fill="x")
+        platform_inner = tk.Frame(platform_card, bg=COLORS["bg_card"])
+        platform_inner.pack(fill="x", padx=25, pady=20)
         
-        tk.Label(form, text="e.g., intern, junior, graduate, entry level", 
-                bg=COLORS["bg_card"], fg=COLORS["text_muted"],
-                font=("Segoe UI", 9)).pack(anchor="w", pady=(2, 0))
-
-        # ═══════════════════════════════════════════
-        # SECTION DIVIDER
-        # ═══════════════════════════════════════════
-        SectionDivider(form, label="API SETTINGS").pack(fill="x")
-
-        # ═══════════════════════════════════════════
-        # SECTION 3: API Settings
-        # ═══════════════════════════════════════════
-        section3_header = tk.Frame(form, bg=COLORS["bg_card"])
-        section3_header.pack(fill="x", pady=(0, 10))
-        tk.Label(section3_header, text="🔑 API Configuration", 
-                bg=COLORS["bg_card"], fg=COLORS["accent_primary"],
-                font=FONT_BOLD).pack(anchor="w")
-
-        # API Key section
-        tk.Label(form, text="OpenAI API Key", bg=COLORS["bg_card"], 
-                fg=COLORS["text_secondary"], font=FONT_LABEL).pack(anchor="w", pady=(0, 5))
+        tk.Label(platform_inner, text="🌐  Job Platforms", 
+                bg=COLORS["bg_card"], fg=COLORS["text_primary"],
+                font=FONT_SUBHEADER).pack(anchor="w", pady=(0, 15))
         
-        api_row = tk.Frame(form, bg=COLORS["bg_card"])
-        api_row.pack(fill="x")
+        platform_row = tk.Frame(platform_inner, bg=COLORS["bg_card"])
+        platform_row.pack(fill="x")
         
-        self.api_entry = ModernEntry(api_row, show="•")
-        self.api_entry.insert(0, self.config.get("OPENAI_API_KEY", ""))
-        self.api_entry.pack(side="left", fill="x", expand=True, padx=(0, 10))
-
-        api_buttons = tk.Frame(api_row, bg=COLORS["bg_card"])
-        api_buttons.pack(side="right")
+        self.seek_var = tk.BooleanVar(value=self.config.get("USE_SEEK", True))
+        self.indeed_var = tk.BooleanVar(value=self.config.get("USE_INDEED", False))
         
-        self.show_api_btn = ModernButton(api_buttons, text="👁", command=self.toggle_api, 
-                                        style="dark", width=40, height=36)
-        self.show_api_btn.pack(side="left", padx=(0, 5))
-        
-        self.api_help_btn = ModernButton(api_buttons, text="❓", command=self.show_api_help,
-                                        style="dark", width=40, height=36)
-        self.api_help_btn.pack(side="left", padx=(0, 5))
-        
-        self.save_api_btn = ModernButton(api_buttons, text="Save", command=self.save_api,
-                                        style="primary", width=60, height=36)
-        self.save_api_btn.pack(side="left")
-        
-        # Notifications toggle
-        notif_frame = tk.Frame(form, bg=COLORS["bg_card"])
-        notif_frame.pack(fill="x", pady=(15, 0))
-        
-        self.notifications_var = tk.BooleanVar(value=self.config.get("NOTIFICATIONS_ENABLED", True))
-        
-        notif_check = tk.Checkbutton(notif_frame, text="🔔 Desktop Notifications",
-                                    variable=self.notifications_var,
+        seek_check = tk.Checkbutton(platform_row, text="  SEEK.com.au", 
+                                    variable=self.seek_var,
                                     bg=COLORS["bg_card"], fg=COLORS["text_primary"],
                                     selectcolor=COLORS["bg_input"],
                                     activebackground=COLORS["bg_card"],
-                                    activeforeground=COLORS["text_primary"],
-                                    font=FONT_NORMAL, cursor="hand2",
-                                    command=self.toggle_notifications)
-        notif_check.pack(side="left")
+                                    font=FONT_NORMAL)
+        seek_check.pack(side="left", padx=(0, 40))
         
-        tk.Label(notif_frame, text="Get notified when jobs are applied",
+        indeed_check = tk.Checkbutton(platform_row, text="  Indeed.com.au", 
+                                      variable=self.indeed_var,
+                                      bg=COLORS["bg_card"], fg=COLORS["text_primary"],
+                                      selectcolor=COLORS["bg_input"],
+                                      activebackground=COLORS["bg_card"],
+                                      font=FONT_NORMAL)
+        indeed_check.pack(side="left")
+
+    def _build_jobs_tab(self):
+        """Build Jobs tab content"""
+        frame = tk.Frame(self.tab_scroll_frame, bg=COLORS["bg_dark"])
+        self.tab_frames["jobs"] = frame
+        
+        # Job preferences card
+        card = tk.Frame(frame, bg=COLORS["bg_card"])
+        card.pack(fill="x", pady=(0, 15))
+        
+        inner = tk.Frame(card, bg=COLORS["bg_card"])
+        inner.pack(fill="x", padx=25, pady=20)
+        
+        # Header
+        header = tk.Frame(inner, bg=COLORS["bg_card"])
+        header.pack(fill="x", pady=(0, 15))
+        tk.Label(header, text="🎯  Job Preferences", 
+                bg=COLORS["bg_card"], fg=COLORS["text_primary"],
+                font=FONT_SUBHEADER).pack(anchor="w")
+        tk.Label(header, text="Configure what jobs you're looking for",
                 bg=COLORS["bg_card"], fg=COLORS["text_muted"],
-                font=FONT_LABEL).pack(side="left", padx=(10, 0))
+                font=FONT_LABEL).pack(anchor="w", pady=(5, 0))
         
-        # Bind field changes to update progress
-        self.full_name_entry.entry.bind("<KeyRelease>", lambda e: self.update_config_status())
-        self.job_entry.entry.bind("<KeyRelease>", lambda e: self.update_config_status())
-        self.max_entry.entry.bind("<KeyRelease>", lambda e: self.update_config_status())
-        self.salary_entry.entry.bind("<KeyRelease>", lambda e: self.update_config_status())
-        self.api_entry.entry.bind("<KeyRelease>", lambda e: self.update_config_status())
-        self.location_dropdown.bind("<<ComboboxSelected>>", lambda e: self.update_config_status())
+        # Job Titles
+        tk.Label(inner, text="TARGET JOB TITLES", bg=COLORS["bg_card"], 
+                fg=COLORS["text_muted"], font=FONT_LABEL_BOLD).pack(anchor="w", pady=(15, 8))
+        tk.Label(inner, text="Comma separated list of roles you want to apply for",
+                bg=COLORS["bg_card"], fg=COLORS["text_muted"],
+                font=FONT_LABEL).pack(anchor="w", pady=(0, 8))
+        
+        self.job_entry = ModernEntry(inner)
+        raw = self.config.get("JOB_TITLES", [])
+        self.job_entry.insert(0, ", ".join(raw))
+        self.job_entry.pack(fill="x", pady=(0, 15))
+        
+        # Preset chips
+        tk.Label(inner, text="QUICK PRESETS", bg=COLORS["bg_card"], 
+                fg=COLORS["text_muted"], font=FONT_LABEL_BOLD).pack(anchor="w", pady=(10, 10))
+        
+        self.build_preset_chips(inner)
+        
+        # Max jobs and salary row
+        row = tk.Frame(inner, bg=COLORS["bg_card"])
+        row.pack(fill="x", pady=(20, 0))
+        
+        # Max Jobs
+        max_frame = tk.Frame(row, bg=COLORS["bg_card"])
+        max_frame.pack(side="left", fill="x", expand=True, padx=(0, 10))
+        tk.Label(max_frame, text="MAX APPLICATIONS", bg=COLORS["bg_card"], 
+                fg=COLORS["text_muted"], font=FONT_LABEL_BOLD).pack(anchor="w", pady=(0, 8))
+        self.max_entry = ModernEntry(max_frame, width=15)
+        self.max_entry.insert(0, str(self.config.get("MAX_JOBS", 100)))
+        self.max_entry.pack(fill="x")
+        
+        # Expected Salary
+        salary_frame = tk.Frame(row, bg=COLORS["bg_card"])
+        salary_frame.pack(side="left", fill="x", expand=True, padx=(10, 0))
+        tk.Label(salary_frame, text="EXPECTED SALARY ($)", bg=COLORS["bg_card"], 
+                fg=COLORS["text_muted"], font=FONT_LABEL_BOLD).pack(anchor="w", pady=(0, 8))
+        self.salary_entry = ModernEntry(salary_frame, width=15)
+        self.salary_entry.insert(0, str(self.config.get("EXPECTED_SALARY", 100000)))
+        self.salary_entry.pack(fill="x")
+        
+        # Blocklist card
+        block_card = tk.Frame(frame, bg=COLORS["bg_card"])
+        block_card.pack(fill="x", pady=(0, 15))
+        
+        block_inner = tk.Frame(block_card, bg=COLORS["bg_card"])
+        block_inner.pack(fill="x", padx=25, pady=20)
+        
+        tk.Label(block_inner, text="🚫  Block List", 
+                bg=COLORS["bg_card"], fg=COLORS["text_primary"],
+                font=FONT_SUBHEADER).pack(anchor="w", pady=(0, 5))
+        tk.Label(block_inner, text="Companies and job titles to skip",
+                bg=COLORS["bg_card"], fg=COLORS["text_muted"],
+                font=FONT_LABEL).pack(anchor="w", pady=(0, 15))
+        
+        # Blocked Companies
+        tk.Label(block_inner, text="BLOCKED COMPANIES", bg=COLORS["bg_card"], 
+                fg=COLORS["text_muted"], font=FONT_LABEL_BOLD).pack(anchor="w", pady=(0, 8))
+        self.blocked_companies_entry = ModernEntry(block_inner)
+        self.blocked_companies_entry.insert(0, ", ".join(self.config.get("BLOCKED_COMPANIES", [])))
+        self.blocked_companies_entry.pack(fill="x", pady=(0, 15))
+        
+        # Blocked Titles
+        tk.Label(block_inner, text="BLOCKED JOB TITLES", bg=COLORS["bg_card"], 
+                fg=COLORS["text_muted"], font=FONT_LABEL_BOLD).pack(anchor="w", pady=(0, 8))
+        self.blocked_titles_entry = ModernEntry(block_inner)
+        self.blocked_titles_entry.insert(0, ", ".join(self.config.get("BLOCKED_TITLES", [])))
+        self.blocked_titles_entry.pack(fill="x")
 
-    def build_preset_buttons(self, parent):
-        """Build the job title preset buttons"""
-        preset_frame = tk.Frame(parent, bg=COLORS["bg_card"])
-        preset_frame.pack(fill="x", pady=(10, 0))
+    def _build_speed_tab(self):
+        """Build Speed tab content"""
+        frame = tk.Frame(self.tab_scroll_frame, bg=COLORS["bg_dark"])
+        self.tab_frames["speed"] = frame
+        
+        self.build_speed_panel(frame)
 
+    def _build_api_tab(self):
+        """Build API tab content"""
+        frame = tk.Frame(self.tab_scroll_frame, bg=COLORS["bg_dark"])
+        self.tab_frames["api"] = frame
+        
+        # API Keys card
+        card = tk.Frame(frame, bg=COLORS["bg_card"])
+        card.pack(fill="x", pady=(0, 15))
+        
+        inner = tk.Frame(card, bg=COLORS["bg_card"])
+        inner.pack(fill="x", padx=25, pady=20)
+        
+        # Header
+        tk.Label(inner, text="🔑  API Configuration", 
+                bg=COLORS["bg_card"], fg=COLORS["text_primary"],
+                font=FONT_SUBHEADER).pack(anchor="w", pady=(0, 5))
+        tk.Label(inner, text="Configure your API keys for GPT and CAPTCHA solving",
+                bg=COLORS["bg_card"], fg=COLORS["text_muted"],
+                font=FONT_LABEL).pack(anchor="w", pady=(0, 20))
+        
+        # OpenAI API Key
+        tk.Label(inner, text="OPENAI API KEY", bg=COLORS["bg_card"], 
+                fg=COLORS["text_muted"], font=FONT_LABEL_BOLD).pack(anchor="w", pady=(0, 8))
+        
+        api_frame = tk.Frame(inner, bg=COLORS["bg_card"])
+        api_frame.pack(fill="x", pady=(0, 20))
+        
+        self.api_entry = ModernEntry(api_frame, show="•")
+        self.api_entry.insert(0, self.config.get("OPENAI_API_KEY", ""))
+        self.api_entry.pack(side="left", fill="x", expand=True)
+        
+        self.show_api_btn = ModernButton(api_frame, text="👁", command=self.toggle_api, 
+                                        style="dark", width=45)
+        self.show_api_btn.pack(side="right", padx=(10, 0))
+        
+        # 2Captcha API Key
+        tk.Label(inner, text="2CAPTCHA API KEY", bg=COLORS["bg_card"], 
+                fg=COLORS["text_muted"], font=FONT_LABEL_BOLD).pack(anchor="w", pady=(0, 8))
+        
+        captcha_frame = tk.Frame(inner, bg=COLORS["bg_card"])
+        captcha_frame.pack(fill="x", pady=(0, 20))
+        
+        self.captcha_api_entry = ModernEntry(captcha_frame, show="•")
+        self.captcha_api_entry.insert(0, self.config.get("TWOCAPTCHA_API_KEY", ""))
+        self.captcha_api_entry.pack(side="left", fill="x", expand=True)
+        
+        self.show_captcha_btn = ModernButton(captcha_frame, text="👁", command=self.toggle_captcha_api, 
+                                            style="dark", width=45)
+        self.show_captcha_btn.pack(side="right", padx=(10, 0))
+        
+        # Notifications toggle
+        notif_card = tk.Frame(frame, bg=COLORS["bg_card"])
+        notif_card.pack(fill="x", pady=(0, 15))
+        
+        notif_inner = tk.Frame(notif_card, bg=COLORS["bg_card"])
+        notif_inner.pack(fill="x", padx=25, pady=20)
+        
+        tk.Label(notif_inner, text="🔔  Notifications", 
+                bg=COLORS["bg_card"], fg=COLORS["text_primary"],
+                font=FONT_SUBHEADER).pack(anchor="w", pady=(0, 15))
+        
+        self.notifications_var = tk.BooleanVar(value=self.config.get("NOTIFICATIONS_ENABLED", False))
+        
+        notif_row = tk.Frame(notif_inner, bg=COLORS["bg_card"])
+        notif_row.pack(fill="x")
+        
+        self.notif_btn = tk.Button(notif_row, 
+            text="🔕 NOTIFICATIONS: OFF" if not self.notifications_var.get() else "🔔 NOTIFICATIONS: ON",
+            font=FONT_BOLD,
+            bg=COLORS["bg_input"] if not self.notifications_var.get() else COLORS["success"],
+            fg=COLORS["text_secondary"] if not self.notifications_var.get() else COLORS["text_primary"],
+            activebackground=COLORS["border"],
+            activeforeground=COLORS["text_primary"],
+            relief="flat", padx=15, pady=8, cursor="hand2",
+            command=self.toggle_notifications)
+        self.notif_btn.pack(side="left")
+        
+        tk.Label(notif_row, 
+            text="  Get desktop notifications when applications are submitted",
+            bg=COLORS["bg_card"], fg=COLORS["text_muted"],
+            font=FONT_LABEL).pack(side="left", padx=(15, 0))
+        
+        # Gmail Cleanup toggle
+        gmail_card = tk.Frame(frame, bg=COLORS["bg_card"])
+        gmail_card.pack(fill="x", pady=(0, 15))
+        
+        gmail_inner = tk.Frame(gmail_card, bg=COLORS["bg_card"])
+        gmail_inner.pack(fill="x", padx=25, pady=20)
+        
+        tk.Label(gmail_inner, text="📧  Gmail Cleanup", 
+                bg=COLORS["bg_card"], fg=COLORS["text_primary"],
+                font=FONT_SUBHEADER).pack(anchor="w", pady=(0, 5))
+        tk.Label(gmail_inner, text="Automatically delete notification emails while preserving important ones",
+                bg=COLORS["bg_card"], fg=COLORS["text_muted"],
+                font=FONT_LABEL).pack(anchor="w", pady=(0, 15))
+        
+        self.gmail_cleanup_var = tk.BooleanVar(value=self.config.get("USE_GMAIL_CLEANUP", False))
+        
+        gmail_row = tk.Frame(gmail_inner, bg=COLORS["bg_card"])
+        gmail_row.pack(fill="x")
+        
+        self.gmail_btn = tk.Button(gmail_row, 
+            text="📧 GMAIL CLEANUP: OFF" if not self.gmail_cleanup_var.get() else "📧 GMAIL CLEANUP: ON",
+            font=FONT_BOLD,
+            bg=COLORS["bg_input"] if not self.gmail_cleanup_var.get() else COLORS["success"],
+            fg=COLORS["text_secondary"] if not self.gmail_cleanup_var.get() else COLORS["text_primary"],
+            activebackground=COLORS["border"],
+            activeforeground=COLORS["text_primary"],
+            relief="flat", padx=15, pady=8, cursor="hand2",
+            command=self.toggle_gmail_cleanup)
+        self.gmail_btn.pack(side="left")
+        
+        tk.Label(gmail_row, 
+            text="  Runs continuously in background, uses GPT to identify important emails",
+            bg=COLORS["bg_card"], fg=COLORS["text_muted"],
+            font=FONT_LABEL).pack(side="left", padx=(15, 0))
+        
+        # Twilio WhatsApp Configuration
+        twilio_card = tk.Frame(frame, bg=COLORS["bg_card"])
+        twilio_card.pack(fill="x", pady=(0, 15))
+        
+        twilio_inner = tk.Frame(twilio_card, bg=COLORS["bg_card"])
+        twilio_inner.pack(fill="x", padx=25, pady=20)
+        
+        tk.Label(twilio_inner, text="📱  WhatsApp Notifications (Twilio)", 
+                bg=COLORS["bg_card"], fg=COLORS["text_primary"],
+                font=FONT_SUBHEADER).pack(anchor="w", pady=(0, 5))
+        tk.Label(twilio_inner, text="Get a summary on WhatsApp when run completes",
+                bg=COLORS["bg_card"], fg=COLORS["text_muted"],
+                font=FONT_LABEL).pack(anchor="w", pady=(0, 15))
+        
+        # WhatsApp toggle
+        self.whatsapp_var = tk.BooleanVar(value=self.config.get("WHATSAPP_NOTIFICATIONS", True))
+        
+        wa_toggle_row = tk.Frame(twilio_inner, bg=COLORS["bg_card"])
+        wa_toggle_row.pack(fill="x", pady=(0, 15))
+        
+        self.whatsapp_btn = tk.Button(wa_toggle_row, 
+            text="📱 WHATSAPP: ON" if self.whatsapp_var.get() else "📱 WHATSAPP: OFF",
+            font=FONT_BOLD,
+            bg=COLORS["success"] if self.whatsapp_var.get() else COLORS["bg_input"],
+            fg=COLORS["text_primary"] if self.whatsapp_var.get() else COLORS["text_secondary"],
+            activebackground=COLORS["border"],
+            activeforeground=COLORS["text_primary"],
+            relief="flat", padx=15, pady=8, cursor="hand2",
+            command=self.toggle_whatsapp)
+        self.whatsapp_btn.pack(side="left")
+        
+        tk.Label(wa_toggle_row, 
+            text="  Send run summary to your WhatsApp",
+            bg=COLORS["bg_card"], fg=COLORS["text_muted"],
+            font=FONT_LABEL).pack(side="left", padx=(15, 0))
+        
+        # Twilio Account SID
+        tk.Label(twilio_inner, text="TWILIO ACCOUNT SID", bg=COLORS["bg_card"], 
+                fg=COLORS["text_muted"], font=FONT_LABEL_BOLD).pack(anchor="w", pady=(10, 8))
+        
+        self.twilio_sid_entry = ModernEntry(twilio_inner, show="•")
+        self.twilio_sid_entry.insert(0, self.config.get("TWILIO_ACCOUNT_SID", ""))
+        self.twilio_sid_entry.pack(fill="x", pady=(0, 15))
+        
+        # Twilio Auth Token
+        tk.Label(twilio_inner, text="TWILIO AUTH TOKEN", bg=COLORS["bg_card"], 
+                fg=COLORS["text_muted"], font=FONT_LABEL_BOLD).pack(anchor="w", pady=(0, 8))
+        
+        twilio_token_frame = tk.Frame(twilio_inner, bg=COLORS["bg_card"])
+        twilio_token_frame.pack(fill="x", pady=(0, 15))
+        
+        self.twilio_token_entry = ModernEntry(twilio_token_frame, show="•")
+        self.twilio_token_entry.insert(0, self.config.get("TWILIO_AUTH_TOKEN", ""))
+        self.twilio_token_entry.pack(side="left", fill="x", expand=True)
+        
+        self.show_twilio_btn = ModernButton(twilio_token_frame, text="👁", command=self.toggle_twilio_token, 
+                                           style="dark", width=45)
+        self.show_twilio_btn.pack(side="right", padx=(10, 0))
+        
+        # Twilio WhatsApp From Number
+        tk.Label(twilio_inner, text="TWILIO WHATSAPP NUMBER", bg=COLORS["bg_card"], 
+                fg=COLORS["text_muted"], font=FONT_LABEL_BOLD).pack(anchor="w", pady=(0, 8))
+        
+        self.twilio_from_entry = ModernEntry(twilio_inner)
+        self.twilio_from_entry.insert(0, self.config.get("TWILIO_WHATSAPP_FROM", "whatsapp:+14155238886"))
+        self.twilio_from_entry.pack(fill="x")
+        
+        tk.Label(twilio_inner, text="💡 Default is Twilio Sandbox: whatsapp:+14155238886",
+                bg=COLORS["bg_card"], fg=COLORS["text_muted"],
+                font=FONT_LABEL).pack(anchor="w", pady=(5, 0))
+
+    def build_preset_chips(self, parent):
+        """Build modern chip-style preset buttons"""
+        # Container for all chips
+        chips_container = tk.Frame(parent, bg=COLORS["bg_card"])
+        chips_container.pack(fill="x", pady=(0, 10))
+        
         presets = [
-            ("Director", ["director", "program director", "operations director", "project director",
-                         "head of", "delivery manager", "project manager", "program manager",
-                         "transformation", "strategy", "operations", "governance", "principal"]),
+            # Row 1
+            ("Director", ["director", "managing director", "executive director", "general manager",
+                         "head of", "chief", "vice president", "regional manager", "country manager"]),
+            ("Executive", ["ceo", "coo", "cfo", "cto", "chief officer", "executive", "c-level",
+                          "managing director", "board", "principal"]),
+            ("Senior Mgmt", ["senior manager", "department head", "division manager", "branch manager",
+                            "area manager", "national manager", "group manager", "practice lead"]),
+            ("Team Lead", ["team lead", "team leader", "supervisor", "coordinator", "shift manager",
+                          "section leader", "group leader", "floor manager"]),
+            # Row 2
             ("PM/Agile", ["project manager", "program manager", "delivery manager", "project lead",
-                         "scrum master", "agile", "transformation"]),
-            ("BDM/Sales", ["bdm", "business development", "sales", "account manager",
-                          "customer success", "client manager", "partnership", "growth"]),
-            ("Research", ["research", "social research", "community", "case manager",
-                         "policy", "community engagement", "program officer"]),
-            ("Admin", ["administrator", "office manager", "receptionist", "executive assistant",
-                      "admin officer", "office coordinator", "project coordinator"]),
-            ("IT/Tech", ["it", "software", "developer", "engineer", "technical lead",
-                        "solutions architect", "cloud", "data analyst", "product manager"]),
-            ("NFP", ["community", "youth worker", "case manager", "ndis", "support worker",
-                    "family support", "mental health", "welfare"]),
-            ("Gov/APS", ["el2", "ses", "policy director", "assistant director",
-                        "senior policy officer", "program manager", "government"]),
+                         "scrum master", "agile coach", "agile", "pmo", "portfolio manager"]),
+            ("Change", ["change manager", "transformation", "business transformation", "digital transformation",
+                       "organisational change", "change lead", "transition manager", "improvement"]),
+            ("BA/Analysis", ["business analyst", "systems analyst", "data analyst", "requirements analyst",
+                            "process analyst", "functional analyst", "technical analyst", "reporting analyst"]),
+            ("Consulting", ["consultant", "management consultant", "business consultant", "strategy consultant",
+                           "senior consultant", "principal consultant", "advisory", "professional services"]),
+            # Row 3
+            ("Operations", ["operations manager", "operations coordinator", "service manager", "facility manager",
+                           "logistics manager", "supply chain", "warehouse manager", "distribution"]),
+            ("Admin", ["administrator", "office manager", "executive assistant", "personal assistant",
+                      "receptionist", "admin officer", "office coordinator", "secretary"]),
+            ("HR/People", ["hr manager", "human resources", "people and culture", "talent acquisition",
+                          "recruitment", "hr business partner", "learning and development", "payroll"]),
+            ("Finance", ["finance manager", "accountant", "financial analyst", "accounts manager",
+                        "bookkeeper", "financial controller", "cfo", "treasury", "credit"]),
+            # Row 4
+            ("IT/Tech", ["it manager", "software engineer", "developer", "systems administrator",
+                        "network engineer", "devops", "cloud engineer", "infrastructure", "technical support"]),
+            ("Data/AI", ["data scientist", "data engineer", "machine learning", "ai", "analytics",
+                        "business intelligence", "data analyst", "statistician", "big data"]),
+            ("Product", ["product manager", "product owner", "ux designer", "ui designer",
+                        "product designer", "user experience", "digital product", "product lead"]),
+            ("Cyber/Sec", ["cybersecurity", "security analyst", "information security", "soc analyst",
+                          "penetration tester", "security engineer", "risk analyst", "compliance"]),
+            # Row 5
+            ("Sales", ["sales manager", "account executive", "business development", "bdm",
+                      "sales representative", "key account", "territory manager", "sales director"]),
+            ("Marketing", ["marketing manager", "digital marketing", "content manager", "brand manager",
+                          "marketing coordinator", "social media", "seo", "communications"]),
+            ("Customer", ["customer success", "client manager", "relationship manager", "account manager",
+                         "customer service", "client services", "engagement manager", "partnerships"]),
+            ("Retail", ["store manager", "retail manager", "assistant manager", "department manager",
+                       "visual merchandiser", "buyer", "category manager", "merchandise"]),
+            # Row 6
+            ("Healthcare", ["registered nurse", "clinical manager", "healthcare administrator", "nurse manager",
+                           "medical officer", "health services", "patient coordinator", "care manager"]),
+            ("Education", ["teacher", "lecturer", "education coordinator", "training manager",
+                          "curriculum developer", "instructional designer", "academic", "learning"]),
+            ("Gov/APS", ["el2", "ses", "aps", "policy officer", "government", "public sector",
+                        "compliance officer", "regulatory", "grants", "procurement"]),
+            ("NFP/Social", ["community", "youth worker", "case manager", "ndis", "support worker",
+                           "family support", "mental health", "welfare", "program officer", "grants"]),
+            # Row 7 - New Anthropology/Research preset
+            ("Anthropology/Research", ["anthropologist", "social anthropologist", "cultural anthropologist",
+                                     "research officer", "research manager", "research analyst", "researcher",
+                                     "research coordinator", "research consultant", "ethnographer",
+                                     "field researcher", "qualitative researcher", "social researcher"]),
         ]
-
-        for i, (name, titles) in enumerate(presets):
-            row = i // 4
-            col = i % 4
-            btn = tk.Button(preset_frame, text=name, font=FONT_LABEL,
-                           bg=COLORS["bg_input"], fg=COLORS["text_secondary"],
-                           activebackground=COLORS["border"],
-                           activeforeground=COLORS["text_primary"],
-                           relief="flat", padx=8, pady=4, cursor="hand2",
-                           command=lambda t=titles: self.set_presets(t))
-            btn.grid(row=row, column=col, padx=2, pady=2, sticky="ew")
-            preset_frame.columnconfigure(col, weight=1)
+        
+        # Create rows of chips (4 per row) - Updated to 7 rows
+        for row_idx in range(7):
+            row_frame = tk.Frame(chips_container, bg=COLORS["bg_card"])
+            row_frame.pack(fill="x", pady=3)
             
-            # Hover effects
-            btn.bind("<Enter>", lambda e, b=btn: b.config(bg=COLORS["border"]))
-            btn.bind("<Leave>", lambda e, b=btn: b.config(bg=COLORS["bg_input"]))
+            for col_idx in range(4):
+                idx = row_idx * 4 + col_idx
+                if idx < len(presets):
+                    name, titles = presets[idx]
+                    chip = self._create_chip(row_frame, name, titles)
+                    chip.pack(side="left", padx=(0, 8), pady=2)
+
+    def _create_chip(self, parent, name, titles):
+        """Create a modern chip button"""
+        chip = tk.Frame(parent, bg=COLORS["border"], cursor="hand2")
+        
+        label = tk.Label(chip, text=name, 
+                        bg=COLORS["border"], fg=COLORS["text_secondary"],
+                        font=FONT_CHIP, padx=12, pady=6)
+        label.pack()
+        
+        # Bind events
+        for widget in [chip, label]:
+            widget.bind("<Button-1>", lambda e, t=titles: self.set_presets(t))
+            widget.bind("<Enter>", lambda e, c=chip, l=label: self._chip_hover(c, l, True))
+            widget.bind("<Leave>", lambda e, c=chip, l=label: self._chip_hover(c, l, False))
+        
+        return chip
+
+    def _chip_hover(self, chip, label, entering):
+        """Handle chip hover state"""
+        if entering:
+            chip.config(bg=COLORS["accent_primary"])
+            label.config(bg=COLORS["accent_primary"], fg=COLORS["bg_dark"])
+        else:
+            chip.config(bg=COLORS["border"])
+            label.config(bg=COLORS["border"], fg=COLORS["text_secondary"])
 
     def build_speed_panel(self, parent):
         """Build the speed sliders card with collapsible section"""
@@ -1387,6 +1808,42 @@ class SeekMateGUI:
             text="  Adds random scrolls, pauses & human-like behavior",
             bg=COLORS["bg_card"], fg=COLORS["text_muted"],
             font=("Segoe UI", 9)).pack(side="left", padx=(10, 0))
+        
+        # GPT Job Check toggle (Tight vs Loose applications)
+        gpt_mode_frame = tk.Frame(sliders, bg=COLORS["bg_card"])
+        gpt_mode_frame.pack(fill="x", pady=(12, 0))
+        
+        self.gpt_mode_var = tk.BooleanVar(value=self.config.get("GPT_JOB_CHECK", False))
+        
+        self.gpt_mode_btn = tk.Button(gpt_mode_frame, 
+            text="🎯 TIGHT MODE",
+            font=FONT_BOLD,
+            bg=COLORS["gpt_highlight"], 
+            fg=COLORS["text_primary"],
+            activebackground=COLORS["accent_secondary"],
+            activeforeground=COLORS["text_primary"],
+            relief="flat", padx=15, pady=8, cursor="hand2",
+            command=self.toggle_gpt_mode)
+        self.gpt_mode_btn.pack(side="left")
+        
+        # Update button state based on saved config (default to LOOSE mode)
+        if not self.gpt_mode_var.get():
+            self.gpt_mode_btn.config(
+                text="⚡ LOOSE MODE",
+                bg=COLORS["accent_secondary"],
+                fg=COLORS["text_primary"]
+            )
+        else:
+            self.gpt_mode_btn.config(
+                text="🎯 TIGHT MODE",
+                bg=COLORS["bg_input"],
+                fg=COLORS["text_secondary"]
+            )
+        
+        tk.Label(gpt_mode_frame, 
+            text="  TIGHT = GPT checks job relevance  |  LOOSE = Apply to everything",
+            bg=COLORS["bg_card"], fg=COLORS["text_muted"],
+            font=("Segoe UI", 9)).pack(side="left", padx=(10, 0))
 
     def set_speed_preset(self, scan, apply, cooldown):
         """Apply a speed preset to all sliders"""
@@ -1423,6 +1880,31 @@ class SeekMateGUI:
         
         # Save to config
         self.config["STEALTH_MODE"] = new_state
+        save_config(self.config)
+
+    def toggle_gpt_mode(self):
+        """Toggle between TIGHT (GPT checks job relevance) and LOOSE (apply to all)"""
+        current = self.gpt_mode_var.get()
+        new_state = not current
+        self.gpt_mode_var.set(new_state)
+        
+        if new_state:
+            self.gpt_mode_btn.config(
+                text="🎯 TIGHT MODE",
+                bg=COLORS["gpt_highlight"],
+                fg=COLORS["text_primary"]
+            )
+            self.log("INFO", "🎯 TIGHT MODE - GPT will check job descriptions match your target titles")
+        else:
+            self.gpt_mode_btn.config(
+                text="⚡ LOOSE MODE",
+                bg=COLORS["bg_input"],
+                fg=COLORS["text_secondary"]
+            )
+            self.log("INFO", "⚡ LOOSE MODE - Apply to all jobs, skip GPT relevance check")
+        
+        # Save to config
+        self.config["GPT_JOB_CHECK"] = new_state
         save_config(self.config)
 
     def on_speed_change(self, value):
@@ -1990,6 +2472,30 @@ class SeekMateGUI:
         except Exception as e:
             self.log("ERROR", f"Failed to restart: {e}")
 
+    def toggle_gmail_cleanup(self):
+        """Toggle Gmail cleanup on/off"""
+        current = self.gmail_cleanup_var.get()
+        new_state = not current
+        self.gmail_cleanup_var.set(new_state)
+        
+        if new_state:
+            self.gmail_btn.config(
+                text="📧 GMAIL CLEANUP: ON",
+                bg=COLORS["success"],
+                fg=COLORS["text_primary"]
+            )
+            self.log("INFO", "Gmail cleanup enabled")
+        else:
+            self.gmail_btn.config(
+                text="📧 GMAIL CLEANUP: OFF",
+                bg=COLORS["bg_input"],
+                fg=COLORS["text_secondary"]
+            )
+            self.log("INFO", "Gmail cleanup disabled")
+        
+        # Auto-save
+        self.save_all_config()
+    
     def toggle_notifications(self):
         """Toggle desktop notifications on/off"""
         enabled = self.notifications_var.get()
@@ -2002,9 +2508,59 @@ class SeekMateGUI:
         else:
             self.log("INFO", "🔕 Desktop notifications disabled")
 
+    def on_name_selected(self, event=None):
+        """Handle name selection - prompt for custom name if needed"""
+        selected = self.full_name_var.get()
+        if selected == "Custom...":
+            # Prompt for custom name
+            custom_name = simpledialog.askstring("Custom Name", "Enter full name:", parent=self.root)
+            if custom_name and custom_name.strip():
+                self.full_name_var.set(custom_name.strip())
+                # Update dropdown values to include the custom name
+                current_values = list(self.full_name_dropdown['values'])
+                if custom_name.strip() not in current_values:
+                    current_values.insert(-1, custom_name.strip())  # Insert before "Custom..."
+                    self.full_name_dropdown['values'] = current_values
+            else:
+                self.full_name_var.set("Ash Williams")  # Default fallback
+        self.update_config_status()
+
     def toggle_api(self):
         current = self.api_entry.cget("show")
         self.api_entry.config(show="" if current == "•" else "•")
+
+    def toggle_captcha_api(self):
+        current = self.captcha_api_entry.cget("show")
+        self.captcha_api_entry.config(show="" if current == "•" else "•")
+
+    def toggle_twilio_token(self):
+        current = self.twilio_token_entry.cget("show")
+        self.twilio_token_entry.config(show="" if current == "•" else "•")
+
+    def toggle_whatsapp(self):
+        """Toggle WhatsApp notifications on/off"""
+        current = self.whatsapp_var.get()
+        new_state = not current
+        self.whatsapp_var.set(new_state)
+        
+        if new_state:
+            self.whatsapp_btn.config(
+                text="📱 WHATSAPP: ON",
+                bg=COLORS["success"],
+                fg=COLORS["text_primary"]
+            )
+            self.log("INFO", "📱 WhatsApp notifications ENABLED")
+        else:
+            self.whatsapp_btn.config(
+                text="📱 WHATSAPP: OFF",
+                bg=COLORS["bg_input"],
+                fg=COLORS["text_secondary"]
+            )
+            self.log("INFO", "📱 WhatsApp notifications DISABLED")
+        
+        # Save to config
+        self.config["WHATSAPP_NOTIFICATIONS"] = new_state
+        save_config(self.config)
 
     def show_api_help(self):
         """Show a dialog with instructions on how to get an OpenAI API key"""
@@ -2266,7 +2822,7 @@ rm "$0"
         """Update the configuration progress bar and summary"""
         # Check field completion status
         fields_status = {
-            "Full Name": bool(self.full_name_entry.get().strip()),
+            "Full Name": bool(self.full_name_var.get().strip() and self.full_name_var.get() != "Custom..."),
             "Location": bool(self.location_var.get().strip()),
             "Job Titles": bool(self.job_entry.get().strip()),
             "Max Jobs": bool(self.max_entry.get().strip()),
@@ -2278,7 +2834,9 @@ rm "$0"
         self.progress_bar.update_progress(fields_status)
         
         # Update config summary
-        name = self.full_name_entry.get().strip()
+        name = self.full_name_var.get().strip()
+        if name == "Custom...":
+            name = ""
         self.config_summary.update_item("name", name if name else "—", 
                                         COLORS["text_primary"] if name else COLORS["text_muted"])
         
@@ -2495,12 +3053,17 @@ rm "$0"
             self.log("ERROR", "Google Chrome is not installed. Please install Chrome to use SeekMate AI.")
             return
         
+        # Kill any existing bot processes first
+        self._kill_existing_processes()
+        
+        # Reset control flags BEFORE starting
+        write_control(pause=False, stop=False)
+        time.sleep(0.5)  # Small delay to ensure control.json is written
+        
         self.save_all_config()
         self.console.delete("1.0", tk.END)
         self.money_saved = 0.0
         self.money_label.config(text="$0.00")
-
-        write_control(pause=False, stop=False)
 
         self.start_btn.set_text("RUNNING...")
         self.start_btn.set_disabled(True)
@@ -2517,6 +3080,116 @@ rm "$0"
         # Clear previous log file
         if os.path.exists(LOG_FILE):
             os.remove(LOG_FILE)
+
+        # Check which platforms are enabled
+        use_seek = self.seek_var.get()
+        use_indeed = self.indeed_var.get()
+        
+        if not use_seek and not use_indeed:
+            self.log("ERROR", "No platforms selected! Please enable SEEK or Indeed.")
+            self.start_btn.set_text("▶  START")
+            self.start_btn.set_disabled(False)
+            return
+        
+        try:
+            # Check if running as bundled exe or from source
+            is_bundled = getattr(sys, 'frozen', False)
+            
+            # Start SEEK bot if enabled
+            if use_seek:
+                self.log("INFO", "🔵 Starting SEEK bot...")
+                if is_bundled:
+                    self.bot_thread_stop = False
+                    def run_seek_thread():
+                        try:
+                            import main as bot_module
+                            bot_module.main()
+                        except Exception as e:
+                            self.log("ERROR", f"SEEK bot error: {e}")
+                    self.bot_thread = threading.Thread(target=run_seek_thread, daemon=True)
+                    self.bot_thread.start()
+                else:
+                    self.bot_process = subprocess.Popen(
+                        [sys.executable, "main.py"],
+                        creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+                    )
+            
+            # Start Indeed bot if enabled (runs separately)
+            if use_indeed:
+                self.log("INFO", "🟣 Starting Indeed bot...")
+                if is_bundled:
+                    def run_indeed_thread():
+                        try:
+                            import indeed_bot
+                            indeed_bot.main()
+                        except Exception as e:
+                            self.log("ERROR", f"Indeed bot error: {e}")
+                    self.indeed_thread = threading.Thread(target=run_indeed_thread, daemon=True)
+                    self.indeed_thread.start()
+                else:
+                    self.indeed_process = subprocess.Popen(
+                        [sys.executable, "indeed_bot.py"],
+                        creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+                    )
+            
+            threading.Thread(target=self.tail_log, daemon=True).start()
+            
+            platforms = []
+            if use_seek:
+                platforms.append("SEEK")
+            if use_indeed:
+                platforms.append("Indeed")
+            self.log("INFO", f"Bot(s) started: {', '.join(platforms)}")
+        except Exception as e:
+            self.log("ERROR", f"Bot failed to start: {e}")
+
+    def start_recommended(self):
+        """Start bot in Recommended Jobs mode - applies to 100 recommended jobs regardless of location"""
+        # Check if Chrome is installed first
+        if not is_chrome_installed():
+            self.show_chrome_required()
+            self.log("ERROR", "Google Chrome is not installed. Please install Chrome to use SeekMate AI.")
+            return
+        
+        # Kill any existing bot processes first
+        self._kill_existing_processes()
+        
+        # Reset control flags BEFORE starting
+        write_control(pause=False, stop=False, recommended=True)
+        time.sleep(0.5)  # Small delay to ensure control.json is written
+        
+        # Save current config first
+        self.save_all_config()
+        
+        # Temporarily set MAX_JOBS to 100 for this session
+        config = load_config()
+        original_max = config.get("MAX_JOBS", 10)
+        config["MAX_JOBS"] = 100
+        save_config(config)
+        
+        self.console.delete("1.0", tk.END)
+        self.money_saved = 0.0
+        self.money_label.config(text="$0.00")
+
+        self.start_btn.set_text("RUNNING...")
+        self.start_btn.set_disabled(True)
+        self.recommended_btn.set_text("APPLYING...")
+        self.recommended_btn.set_disabled(True)
+        self.status_indicator.set_status("running")
+        self.header_status.config(text="RECOMMENDED", fg=COLORS["accent_primary"])
+
+        self.start_time = time.time()
+        self.timer_running = True
+        self.money_running = True
+
+        self.update_timer()
+        self.money_loop()
+
+        # Clear previous log file
+        if os.path.exists(LOG_FILE):
+            os.remove(LOG_FILE)
+
+        self.log("INFO", "🎯 Starting RECOMMENDED JOBS mode - 100 applications, any location!")
 
         try:
             # Check if running as bundled exe or from source
@@ -2544,7 +3217,7 @@ rm "$0"
                 )
             
             threading.Thread(target=self.tail_log, daemon=True).start()
-            self.log("INFO", "Bot started successfully.")
+            self.log("INFO", "Bot started successfully in RECOMMENDED mode.")
         except Exception as e:
             self.log("ERROR", f"Bot failed to start: {e}")
 
@@ -2563,34 +3236,54 @@ rm "$0"
             self.header_status.config(text="RUNNING", fg=COLORS["success"])
             self.pause_btn.set_text("⏸  PAUSE")
 
+    def _kill_existing_processes(self):
+        """Kill any existing bot processes before starting a new one"""
+        # Terminate the bot process (source mode)
+        try:
+            if hasattr(self, "bot_process") and self.bot_process:
+                try:
+                    self.bot_process.terminate()
+                    self.bot_process.wait(timeout=2)
+                except:
+                    self.bot_process.kill()
+                self.bot_process = None
+        except Exception:
+            pass
+        
+        # Stop bot thread if running in bundled mode
+        if hasattr(self, "bot_thread_stop"):
+            self.bot_thread_stop = True
+        
+        # Kill Indeed process if exists
+        try:
+            if hasattr(self, "indeed_process") and self.indeed_process:
+                try:
+                    self.indeed_process.terminate()
+                    self.indeed_process.wait(timeout=2)
+                except:
+                    self.indeed_process.kill()
+                self.indeed_process = None
+        except Exception:
+            pass
+
     def stop_bot(self):
-        write_control(stop=True)
+        write_control(stop=True, recommended=False)
         self.paused = False
         self.timer_running = False
         self.money_running = False
 
         self.start_btn.set_text("▶  START")
         self.start_btn.set_disabled(False)
+        self.recommended_btn.set_text("🎯 RECOMMENDED")
+        self.recommended_btn.set_disabled(False)
         self.pause_btn.set_text("⏸  PAUSE")
         self.status_indicator.set_status("stopped")
         self.header_status.config(text="STOPPED", fg=COLORS["danger"])
 
         self.log("INFO", "Stop signal sent...")
 
-        # Stop bot thread if running in bundled mode
-        if hasattr(self, "bot_thread_stop"):
-            self.bot_thread_stop = True
-            self.log("INFO", "Bot thread stop signal sent.")
-
-        # Terminate the bot process (source mode)
-        try:
-            if hasattr(self, "bot_process") and self.bot_process:
-                self.bot_process.terminate()
-                self.bot_process.wait(timeout=3)  # Wait up to 3 seconds
-                self.bot_process = None
-                self.log("SUCCESS", "Bot process terminated.")
-        except Exception as e:
-            self.log("ERROR", f"Failed to terminate bot process: {e}")
+        # Kill existing processes
+        self._kill_existing_processes()
         
         # Force kill any remaining Chrome processes from our profile
         try:
@@ -2641,21 +3334,9 @@ rm "$0"
                         self.counter_label.config(text=str(num))
                         # Update time saved (2 mins per application)
                         self.update_time_saved(num)
-                        # Send notification
-                        self.root.after(0, lambda n=num: self.send_notification(
-                            "🎉 Job Applied!", 
-                            f"Successfully applied to job #{n}!"
-                        ))
+                        # Notification sounds removed per user request
                     except:
                         pass
-                
-                # Notify when bot is done
-                if "DONE" in clean and "applications" in clean.lower():
-                    self.root.after(0, lambda: self.send_notification(
-                        "✅ Bot Complete!",
-                        clean,
-                        timeout=10
-                    ))
 
     # ============================================================
     # SYSTEM TEST
@@ -2686,7 +3367,9 @@ rm "$0"
     def save_all_config(self):
         """Save ALL settings to config.json"""
         # Personal Info
-        self.config["FULL_NAME"] = self.full_name_entry.get().strip()
+        name = self.full_name_var.get().strip()
+        if name and name != "Custom...":
+            self.config["FULL_NAME"] = name
         self.config["LOCATION"] = self.location_var.get().strip()
 
         # Speed settings
@@ -2694,6 +3377,7 @@ rm "$0"
         self.config["APPLY_SPEED"] = self.apply_speed_slider.get()
         self.config["COOLDOWN_DELAY"] = self.cooldown_slider.get()
         self.config["STEALTH_MODE"] = self.stealth_var.get()
+        self.config["GPT_JOB_CHECK"] = self.gpt_mode_var.get()
 
         # Job settings
         self.config["JOB_TITLES"] = [
@@ -2720,7 +3404,26 @@ rm "$0"
 
         # API & Notifications
         self.config["OPENAI_API_KEY"] = self.api_entry.get().strip()
+        self.config["TWOCAPTCHA_API_KEY"] = self.captcha_api_entry.get().strip()
         self.config["NOTIFICATIONS_ENABLED"] = self.notifications_var.get()
+        
+        # Twilio WhatsApp settings
+        if hasattr(self, 'twilio_sid_entry'):
+            self.config["TWILIO_ACCOUNT_SID"] = self.twilio_sid_entry.get().strip()
+        if hasattr(self, 'twilio_token_entry'):
+            self.config["TWILIO_AUTH_TOKEN"] = self.twilio_token_entry.get().strip()
+        if hasattr(self, 'twilio_from_entry'):
+            self.config["TWILIO_WHATSAPP_FROM"] = self.twilio_from_entry.get().strip()
+        if hasattr(self, 'whatsapp_var'):
+            self.config["WHATSAPP_NOTIFICATIONS"] = self.whatsapp_var.get()
+        
+        # Platform selections
+        self.config["USE_SEEK"] = self.seek_var.get()
+        self.config["USE_INDEED"] = self.indeed_var.get()
+        
+        # Gmail cleanup setting
+        if hasattr(self, 'gmail_cleanup_var'):
+            self.config["USE_GMAIL_CLEANUP"] = self.gmail_cleanup_var.get()
         
         # Theme preference (already saved elsewhere, but ensure consistency)
         self.config["THEME"] = getattr(self, 'current_theme', 'dark')
