@@ -783,6 +783,43 @@ Reply with ONLY the answer (Yes, No, or the text to fill in). Keep it brief.
         
         print("[!] Indeed: Login timeout. Continuing anyway...")
 
+    def get_total_job_count(self):
+        """Get total number of jobs found from Indeed search results page"""
+        try:
+            # Indeed shows job count in various formats
+            count_selectors = [
+                "div[class*='jobsearch-JobCountAndSortPane-jobCount']",
+                "div[data-testid='job-count']",
+                "//div[contains(text(), 'jobs')]",
+            ]
+            
+            for selector in count_selectors:
+                try:
+                    if selector.startswith("//"):
+                        elements = self.driver.find_elements(By.XPATH, selector)
+                    else:
+                        elements = self.driver.find_elements(By.CSS_SELECTOR, selector)
+                    
+                    for element in elements:
+                        text = element.text.strip()
+                        import re
+                        match = re.search(r'([\d,]+)\s*jobs?', text, re.IGNORECASE)
+                        if match:
+                            count_str = match.group(1).replace(',', '')
+                            return int(count_str)
+                except:
+                    continue
+            
+            # Fallback: count visible job cards
+            cards = self.get_job_cards()
+            if cards:
+                return len(cards) * 2  # Conservative estimate
+            
+            return 0
+        except Exception as e:
+            print(f"    [!] Could not get job count: {e}")
+            return 0
+    
     def get_job_cards(self):
         """Get job cards from Indeed search results"""
         selectors = [
@@ -2386,6 +2423,24 @@ If no squares need clicking or you can't see the CAPTCHA clearly: SKIP"""
         
         self.ensure_logged_in()
         
+        primary_location = LOCATION
+        
+        # Alternative locations to try if primary location has < 100 jobs (GPT TIGHT mode only)
+        alternative_locations = [
+            "Sydney, Australia",
+            "Melbourne, Australia",
+            "Perth, Australia",
+            "Adelaide, Australia",
+            "Canberra, Australia",
+            "Gold Coast, Australia",
+            "Newcastle, Australia",
+            "Hobart, Australia",
+            "Darwin, Australia",
+        ]
+        
+        # Remove primary location from alternatives if it's in the list
+        alternative_locations = [loc for loc in alternative_locations if loc != primary_location]
+        
         for search_title in JOB_TITLES:
             if check_control() == "stop":
                 print("[!] Stop signal received. Shutting down Indeed bot...")
@@ -2399,77 +2454,133 @@ If no squares need clicking or you can't see the CAPTCHA clearly: SKIP"""
             print(f"🟣 INDEED: Searching for '{search_title}'")
             print(f"==============================\n")
             
-            search_url = build_indeed_url(search_title, LOCATION)
-            print(f"[*] URL: {search_url}")
+            # Determine which locations to search
+            locations_to_search = [primary_location]
+            gpt_tight_mode = CONFIG.get("GPT_JOB_CHECK", False)
             
-            self.driver.get(search_url)
-            speed_sleep(3, "scan")
+            # If GPT TIGHT mode, check job count and expand to other locations if needed
+            if gpt_tight_mode:
+                search_url = build_indeed_url(search_title, primary_location)
+                print(f"[*] Opening search for: {search_title} in {primary_location}")
+                print(f"    URL: {search_url}")
+                
+                self.driver.get(search_url)
+                speed_sleep(3, "scan")
+                
+                # Get total job count
+                total_jobs = self.get_total_job_count()
+                print(f"[*] Found {total_jobs} jobs in {primary_location}")
+                
+                # If less than 100 jobs, expand to other locations
+                if total_jobs < 100:
+                    print(f"[*] ⚠️  Only {total_jobs} jobs found in {primary_location}")
+                    print(f"[*] 🎯 GPT TIGHT mode: Expanding search to other locations...")
+                    locations_to_search.extend(alternative_locations)
+                    print(f"[*] Will search in: {', '.join(locations_to_search)}")
+                else:
+                    print(f"[*] ✓ Found {total_jobs} jobs in {primary_location} - sufficient for GPT TIGHT mode")
+            else:
+                # LOOSE mode - just use primary location
+                search_url = build_indeed_url(search_title, primary_location)
+                print(f"[*] Opening search for: {search_title} in {primary_location}")
+                print(f"    URL: {search_url}")
+                self.driver.get(search_url)
+                speed_sleep(3, "scan")
             
-            page = 1
-            
-            while self.successful_submits < MAX_JOBS:
-                if check_control() == "stop":
-                    print("[!] Stop signal received.")
-                    self.send_summary_and_exit(run_start_time)
-                    return
+            # Process jobs for each location
+            for loc_index, location in enumerate(locations_to_search):
+                if loc_index > 0:  # Skip first location (already loaded if GPT TIGHT mode)
+                    if self.successful_submits >= MAX_JOBS:
+                        break
+                    
+                    print(f"\n[*] 🔄 Trying alternative location: {location}")
+                    search_url = build_indeed_url(search_title, location)
+                    print(f"    URL: {search_url}")
+                    
+                    self.driver.get(search_url)
+                    speed_sleep(3, "scan")
+                    
+                    # Check job count for this location
+                    total_jobs = self.get_total_job_count()
+                    print(f"[*] Found {total_jobs} jobs in {location}")
+                    
+                    if total_jobs == 0:
+                        print(f"[*] ⚠️  No jobs found in {location}, skipping...")
+                        continue
                 
-                print(f"\n===== PAGE {page} =====")
-                cards = self.get_job_cards()
+                # Process pages for this location
+                page = 1
+                location_done = False
                 
-                if not cards:
-                    print("[!] No job cards found.")
-                    break
-                
-                for idx, card in enumerate(cards):
-                    status = check_control()
-                    if status == "stop":
+                while self.successful_submits < MAX_JOBS and not location_done:
+                    if check_control() == "stop":
+                        print("[!] Stop signal received.")
+                        self.send_summary_and_exit(run_start_time)
                         return
-                    elif status == "pause":
-                        print("[*] Bot paused...")
-                        if not wait_while_paused():
+                    
+                    print(f"\n===== PAGE {page} =====")
+                    cards = self.get_job_cards()
+                    
+                    if not cards:
+                        print("[!] No job cards found.")
+                        location_done = True
+                        break
+                    
+                    for idx, card in enumerate(cards):
+                        status = check_control()
+                        if status == "stop":
                             return
-                        print("[*] Bot resumed.")
-                    
-                    title = self.get_job_title(card)
-                    company = self.get_company_name(card)
-                    
-                    if not title_matches(title):
-                        print(f"    [-] SKIPPED (title mismatch): {title}")
-                        continue
-                    
-                    if is_title_blocked(title):
-                        print(f"    [🚫] BLOCKED (title): {title}")
-                        continue
-                    
-                    if is_company_blocked(company):
-                        print(f"    [🚫] BLOCKED (company): {company}")
-                        continue
-                    
-                    # Check for "Easily apply" badge BEFORE clicking
-                    if not self.has_easily_apply(card):
-                        print(f"    [-] SKIPPED (no Easily Apply): {title}")
-                        continue
+                        elif status == "pause":
+                            print("[*] Bot paused...")
+                            if not wait_while_paused():
+                                return
+                            print("[*] Bot resumed.")
+                        
+                        title = self.get_job_title(card)
+                        company = self.get_company_name(card)
+                        
+                        if not title_matches(title):
+                            print(f"    [-] SKIPPED (title mismatch): {title}")
+                            continue
+                        
+                        if is_title_blocked(title):
+                            print(f"    [🚫] BLOCKED (title): {title}")
+                            continue
+                        
+                        if is_company_blocked(company):
+                            print(f"    [🚫] BLOCKED (company): {company}")
+                            continue
+                        
+                        # Check for "Easily apply" badge BEFORE clicking
+                        if not self.has_easily_apply(card):
+                            print(f"    [-] SKIPPED (no Easily Apply): {title}")
+                            continue
+                        
+                        if self.successful_submits >= MAX_JOBS:
+                            break
+                        
+                        print(f"\n[*] Indeed Job {idx + 1}: {title} | {company} ✓ Easily Apply")
+                        
+                        stealth_random_pause()
+                        
+                        if self.open_job(card):
+                            speed_sleep(2, "scan")
+                            self.apply(title, company)
+                        
+                        job_cooldown()
                     
                     if self.successful_submits >= MAX_JOBS:
                         break
                     
-                    print(f"\n[*] Indeed Job {idx + 1}: {title} | {company} ✓ Easily Apply")
+                    if not self.go_to_next_page():
+                        location_done = True  # No more pages in this location
+                        break
                     
-                    stealth_random_pause()
-                    
-                    if self.open_job(card):
-                        speed_sleep(2, "scan")
-                        self.apply(title, company)
-                    
-                    job_cooldown()
+                    page += 1
                 
+                # If we've hit MAX_JOBS, break out of location loop too
                 if self.successful_submits >= MAX_JOBS:
                     break
-                
-                if not self.go_to_next_page():
-                    break
-                
-                page += 1
         
         print(f"\n[*] INDEED BOT COMPLETE — Successfully submitted {self.successful_submits} applications.")
         
