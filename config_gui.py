@@ -159,8 +159,22 @@ def get_data_dir():
 LOG_FILE = os.path.join(get_data_dir(), "log.txt")
 
 
-CONFIG_FILE = resource_path("config.json")
-CONTROL_FILE = resource_path("control.json")
+# Check for config file from command line argument (for multi-bot instances)
+if len(sys.argv) > 1:
+    CONFIG_FILE = sys.argv[1]
+    # Derive control file from config file name
+    config_dir = os.path.dirname(os.path.abspath(CONFIG_FILE))
+    script_dir = os.path.dirname(os.path.abspath(__file__))
+    config_name = os.path.basename(CONFIG_FILE).replace("_config.json", "").replace("config.json", "")
+    if config_name:
+        CONTROL_FILE = os.path.join(script_dir, f"control_{config_name}.json")
+    else:
+        CONTROL_FILE = os.path.join(script_dir, "control.json")
+    print(f"[INSTANCE] Using config file: {CONFIG_FILE}")
+    print(f"[INSTANCE] Using control file: {CONTROL_FILE}")
+else:
+    CONFIG_FILE = resource_path("config.json")
+    CONTROL_FILE = resource_path("control.json")
 
 
 # ============================================
@@ -1347,15 +1361,26 @@ class SeekMateGUI:
                 font=FONT_LABEL).pack(anchor="w", pady=(0, 8))
         
         self.job_entry = ModernEntry(inner)
+        # Job titles will be set by build_preset_chips if presets are selected
+        # Otherwise, load from config
         raw = self.config.get("JOB_TITLES", [])
-        self.job_entry.insert(0, ", ".join(raw))
+        if raw:
+            self.job_entry.insert(0, ", ".join(raw))
         self.job_entry.pack(fill="x", pady=(0, 15))
         
+        # Bind to update config when manually edited (but don't clear selected presets)
+        self.job_entry.entry.bind("<KeyRelease>", self._on_job_entry_change)
+        
         # Preset chips
-        tk.Label(inner, text="QUICK PRESETS", bg=COLORS["bg_card"], 
+        tk.Label(inner, text="QUICK PRESETS (Click to select multiple)", bg=COLORS["bg_card"], 
                 fg=COLORS["text_muted"], font=FONT_LABEL_BOLD).pack(anchor="w", pady=(10, 10))
         
         self.build_preset_chips(inner)
+        
+        # Selected presets display
+        self.selected_presets_frame = tk.Frame(inner, bg=COLORS["bg_card"])
+        self.selected_presets_frame.pack(fill="x", pady=(15, 0))
+        self._update_selected_presets_display()
         
         # Max jobs and salary row
         row = tk.Frame(inner, bg=COLORS["bg_card"])
@@ -1603,12 +1628,13 @@ class SeekMateGUI:
                 font=FONT_LABEL).pack(anchor="w", pady=(5, 0))
 
     def build_preset_chips(self, parent):
-        """Build modern chip-style preset buttons"""
+        """Build modern chip-style preset buttons with multi-select capability"""
         # Container for all chips
         chips_container = tk.Frame(parent, bg=COLORS["bg_card"])
         chips_container.pack(fill="x", pady=(0, 10))
         
-        presets = [
+        # Store presets as instance variable for later access
+        self.presets = [
             # Row 1
             ("Director", ["director", "managing director", "executive director", "general manager",
                          "head of", "chief", "vice president", "regional manager", "country manager"]),
@@ -1670,6 +1696,9 @@ class SeekMateGUI:
                                      "field researcher", "qualitative researcher", "social researcher"]),
         ]
         
+        # Initialize selected presets from config
+        self.selected_presets = set(self.config.get("SELECTED_PRESETS", []))
+        
         # Create rows of chips (4 per row) - Updated to 7 rows
         for row_idx in range(7):
             row_frame = tk.Frame(chips_container, bg=COLORS["bg_card"])
@@ -1677,36 +1706,184 @@ class SeekMateGUI:
             
             for col_idx in range(4):
                 idx = row_idx * 4 + col_idx
-                if idx < len(presets):
-                    name, titles = presets[idx]
-                    chip = self._create_chip(row_frame, name, titles)
+                if idx < len(self.presets):
+                    name, titles = self.presets[idx]
+                    chip = self._create_chip(row_frame, name, titles, name in self.selected_presets)
                     chip.pack(side="left", padx=(0, 8), pady=2)
+        
+        # Update job titles based on selected presets
+        self._update_job_titles_from_presets()
 
-    def _create_chip(self, parent, name, titles):
-        """Create a modern chip button"""
-        chip = tk.Frame(parent, bg=COLORS["border"], cursor="hand2")
+    def _create_chip(self, parent, name, titles, is_selected=False):
+        """Create a modern chip button with toggle capability"""
+        chip = tk.Frame(parent, bg=COLORS["accent_primary"] if is_selected else COLORS["border"], cursor="hand2")
         
         label = tk.Label(chip, text=name, 
-                        bg=COLORS["border"], fg=COLORS["text_secondary"],
+                        bg=COLORS["accent_primary"] if is_selected else COLORS["border"],
+                        fg=COLORS["bg_dark"] if is_selected else COLORS["text_secondary"],
                         font=FONT_CHIP, padx=12, pady=6)
         label.pack()
         
-        # Bind events
+        # Store chip state and references
+        chip.is_selected = is_selected
+        chip.name = name
+        chip.titles = titles
+        chip.label = label  # Store label reference for hover updates
+        
+        # Bind events - use chip reference directly
+        def on_click(e):
+            self._toggle_preset(chip, name, titles)
+        
+        def on_enter(e):
+            self._chip_hover(chip, label, True)
+        
+        def on_leave(e):
+            self._chip_hover(chip, label, False)
+        
         for widget in [chip, label]:
-            widget.bind("<Button-1>", lambda e, t=titles: self.set_presets(t))
-            widget.bind("<Enter>", lambda e, c=chip, l=label: self._chip_hover(c, l, True))
-            widget.bind("<Leave>", lambda e, c=chip, l=label: self._chip_hover(c, l, False))
+            widget.bind("<Button-1>", on_click)
+            widget.bind("<Enter>", on_enter)
+            widget.bind("<Leave>", on_leave)
         
         return chip
+    
+    def _toggle_preset(self, chip, name, titles):
+        """Toggle a preset on/off and update job titles"""
+        chip.is_selected = not chip.is_selected
+        
+        if chip.is_selected:
+            self.selected_presets.add(name)
+            chip.config(bg=COLORS["accent_primary"])
+            chip.label.config(bg=COLORS["accent_primary"], fg=COLORS["bg_dark"])
+        else:
+            self.selected_presets.discard(name)
+            chip.config(bg=COLORS["border"])
+            chip.label.config(bg=COLORS["border"], fg=COLORS["text_secondary"])
+        
+        # Update job titles from all selected presets
+        self._update_job_titles_from_presets()
+        
+        # Update selected presets display
+        self._update_selected_presets_display()
+        
+        # Save selected presets to config
+        self.config["SELECTED_PRESETS"] = list(self.selected_presets)
+        save_config(self.config)
+    
+    def _update_job_titles_from_presets(self):
+        """Combine all titles from selected presets and update job entry"""
+        all_titles = []
+        seen = set()
+        
+        # Get all titles from selected presets
+        for preset_name, preset_titles in self.presets:
+            if preset_name in self.selected_presets:
+                for title in preset_titles:
+                    title_lower = title.lower().strip()
+                    if title_lower not in seen:
+                        seen.add(title_lower)
+                        all_titles.append(title)
+        
+        # Update job entry
+        self.job_entry.delete(0, tk.END)
+        if all_titles:
+            self.job_entry.insert(0, ", ".join(all_titles))
+        
+        # Update config
+        self.config["JOB_TITLES"] = all_titles
+        save_config(self.config)
+    
+    def _update_selected_presets_display(self):
+        """Update the display showing selected presets and their titles"""
+        # Clear existing display
+        for widget in self.selected_presets_frame.winfo_children():
+            widget.destroy()
+        
+        if not self.selected_presets:
+            # Show message when nothing is selected
+            tk.Label(self.selected_presets_frame, 
+                    text="No presets selected. Click chips above to select job title categories.",
+                    bg=COLORS["bg_card"], fg=COLORS["text_muted"],
+                    font=("Segoe UI", 9), wraplength=600, justify="left").pack(anchor="w")
+            return
+        
+        # Header
+        header = tk.Frame(self.selected_presets_frame, bg=COLORS["bg_card"])
+        header.pack(fill="x", pady=(0, 10))
+        tk.Label(header, text=f"✅ Selected Presets ({len(self.selected_presets)}):", 
+                bg=COLORS["bg_card"], fg=COLORS["text_primary"],
+                font=FONT_LABEL_BOLD).pack(anchor="w")
+        
+        # Create scrollable frame for selected presets
+        canvas = tk.Canvas(self.selected_presets_frame, bg=COLORS["bg_card"], 
+                          highlightthickness=0, height=200)
+        scrollbar = tk.Scrollbar(self.selected_presets_frame, orient="vertical", command=canvas.yview)
+        scrollable_frame = tk.Frame(canvas, bg=COLORS["bg_card"])
+        
+        scrollable_frame.bind(
+            "<Configure>",
+            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
+        )
+        
+        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
+        canvas.configure(yscrollcommand=scrollbar.set)
+        
+        # Display each selected preset with its titles
+        for preset_name, preset_titles in self.presets:
+            if preset_name in self.selected_presets:
+                # Preset name
+                preset_frame = tk.Frame(scrollable_frame, bg=COLORS["bg_input"], relief="flat", bd=1)
+                preset_frame.pack(fill="x", pady=(0, 8), padx=(0, 5))
+                
+                preset_inner = tk.Frame(preset_frame, bg=COLORS["bg_input"])
+                preset_inner.pack(fill="x", padx=12, pady=10)
+                
+                # Preset name label
+                name_label = tk.Label(preset_inner, 
+                    text=f"📌 {preset_name}",
+                    bg=COLORS["bg_input"], fg=COLORS["accent_primary"],
+                    font=("Segoe UI", 10, "bold"), anchor="w")
+                name_label.pack(fill="x", pady=(0, 5))
+                
+                # Titles list
+                titles_text = ", ".join(preset_titles)
+                titles_label = tk.Label(preset_inner,
+                    text=f"   Titles: {titles_text}",
+                    bg=COLORS["bg_input"], fg=COLORS["text_secondary"],
+                    font=("Segoe UI", 9), anchor="w", justify="left", wraplength=700)
+                titles_label.pack(fill="x")
+        
+        canvas.pack(side="left", fill="both", expand=True)
+        scrollbar.pack(side="right", fill="y")
+        
+        # Update scroll region after all widgets are added
+        canvas.update_idletasks()
+        canvas.configure(scrollregion=canvas.bbox("all"))
+        
+        # Bind mousewheel
+        def on_mousewheel(event):
+            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+        canvas.bind_all("<MouseWheel>", on_mousewheel)
+    
+    def _on_job_entry_change(self, event=None):
+        """Handle manual edits to job entry - update config but keep selected presets"""
+        # Parse job titles from entry
+        entry_text = self.job_entry.get().strip()
+        if entry_text:
+            titles = [t.strip() for t in entry_text.split(",") if t.strip()]
+            self.config["JOB_TITLES"] = titles
+            save_config(self.config)
 
     def _chip_hover(self, chip, label, entering):
         """Handle chip hover state"""
         if entering:
-            chip.config(bg=COLORS["accent_primary"])
-            label.config(bg=COLORS["accent_primary"], fg=COLORS["bg_dark"])
+            if not chip.is_selected:
+                chip.config(bg=COLORS["accent_primary"])
+                label.config(bg=COLORS["accent_primary"], fg=COLORS["bg_dark"])
         else:
-            chip.config(bg=COLORS["border"])
-            label.config(bg=COLORS["border"], fg=COLORS["text_secondary"])
+            if not chip.is_selected:
+                chip.config(bg=COLORS["border"])
+                label.config(bg=COLORS["border"], fg=COLORS["text_secondary"])
 
     def build_speed_panel(self, parent):
         """Build the speed sliders card with collapsible section"""
@@ -1746,7 +1923,7 @@ class SeekMateGUI:
             sliders,
             label="⏳ Cooldown Between Jobs",
             min_val=0,
-            max_val=30,
+            max_val=720,  # Increased to 12 minutes for 24/7 mode
             default=self.config.get("COOLDOWN_DELAY", 5),
             unit="s",
             description="Pause between each job application (reduces detection risk)",
@@ -1778,6 +1955,31 @@ class SeekMateGUI:
             btn.pack(side="left", padx=2)
             btn.bind("<Enter>", lambda e, b=btn: b.config(bg=COLORS["border"]))
             btn.bind("<Leave>", lambda e, b=btn: b.config(bg=COLORS["bg_input"]))
+        
+        # 24/7 Mode button
+        self.mode_24_7_var = tk.BooleanVar(value=self.config.get("MODE_24_7", False))
+        mode_24_7_btn = tk.Button(preset_frame, 
+            text="🕐 24/7 MODE" if not self.mode_24_7_var.get() else "🕐 24/7: ON",
+            font=FONT_LABEL,
+            bg=COLORS["accent_primary"] if self.mode_24_7_var.get() else COLORS["bg_input"],
+            fg=COLORS["text_primary"] if self.mode_24_7_var.get() else COLORS["text_secondary"],
+            activebackground=COLORS["accent_primary"],
+            activeforeground=COLORS["text_primary"],
+            relief="flat", padx=10, pady=4, cursor="hand2",
+            command=self.toggle_24_7_mode)
+        mode_24_7_btn.pack(side="left", padx=(10, 2))
+        mode_24_7_btn.bind("<Enter>", lambda e, b=mode_24_7_btn: b.config(bg=COLORS["border"] if not self.mode_24_7_var.get() else COLORS["accent_primary"]))
+        mode_24_7_btn.bind("<Leave>", lambda e, b=mode_24_7_btn: b.config(bg=COLORS["accent_primary"] if self.mode_24_7_var.get() else COLORS["bg_input"]))
+        self.mode_24_7_btn = mode_24_7_btn
+        
+        # Apply 24/7 settings if enabled
+        if self.mode_24_7_var.get():
+            self.scan_speed_slider.set(20)
+            self.apply_speed_slider.set(20)
+            self.cooldown_slider.set(720)
+            if hasattr(self, 'max_entry'):
+                self.max_entry.delete(0, tk.END)
+                self.max_entry.insert(0, "100")
         
         # Stealth Mode toggle
         stealth_frame = tk.Frame(sliders, bg=COLORS["bg_card"])
@@ -1882,6 +2084,46 @@ class SeekMateGUI:
         self.config["STEALTH_MODE"] = new_state
         save_config(self.config)
 
+    def toggle_24_7_mode(self):
+        """Toggle 24/7 mode - throttles to ~5 jobs/hour, max 100 jobs/24h"""
+        current = self.mode_24_7_var.get()
+        new_state = not current
+        self.mode_24_7_var.set(new_state)
+        
+        if new_state:
+            # Enable 24/7 mode: slow speeds, long cooldown
+            self.mode_24_7_btn.config(
+                text="🕐 24/7: ON",
+                bg=COLORS["accent_primary"],
+                fg=COLORS["text_primary"]
+            )
+            # Set to ~5 jobs/hour: 1 job every 12 minutes = 720 seconds cooldown
+            self.scan_speed_slider.set(20)
+            self.apply_speed_slider.set(20)
+            self.cooldown_slider.set(720)  # 12 minutes
+            self.on_speed_change(None)
+            # Set MAX_JOBS to 100
+            if hasattr(self, 'max_entry'):
+                self.max_entry.delete(0, tk.END)
+                self.max_entry.insert(0, "100")
+            self.log("INFO", "🕐 24/7 MODE ENABLED - ~5 jobs/hour, max 100 jobs/24h")
+        else:
+            # Disable 24/7 mode: restore to balanced
+            self.mode_24_7_btn.config(
+                text="🕐 24/7 MODE",
+                bg=COLORS["bg_input"],
+                fg=COLORS["text_secondary"]
+            )
+            self.scan_speed_slider.set(50)
+            self.apply_speed_slider.set(50)
+            self.cooldown_slider.set(5)
+            self.on_speed_change(None)
+            self.log("INFO", "24/7 MODE DISABLED - Restored to balanced speeds")
+        
+        # Save to config
+        self.config["MODE_24_7"] = new_state
+        save_config(self.config)
+    
     def toggle_gpt_mode(self):
         """Toggle between TIGHT (GPT checks job relevance) and LOOSE (apply to all)"""
         current = self.gpt_mode_var.get()
@@ -2428,8 +2670,12 @@ class SeekMateGUI:
         return entry
 
     def set_presets(self, titles):
+        """Legacy method - now just updates job entry directly (for backward compatibility)"""
         self.job_entry.delete(0, tk.END)
         self.job_entry.insert(0, ", ".join(titles))
+        # Also update config
+        self.config["JOB_TITLES"] = titles
+        save_config(self.config)
 
     def toggle_theme(self):
         """Toggle between dark and light theme and restart app"""
@@ -3095,6 +3341,22 @@ rm "$0"
             # Check if running as bundled exe or from source
             is_bundled = getattr(sys, 'frozen', False)
             
+            # Check if this is an instance-specific config (multi-bot mode)
+            is_instance_config = "bot_instances" in CONFIG_FILE or "_config.json" in CONFIG_FILE
+            instance_env = {}
+            if is_instance_config:
+                # Extract instance name from config file path
+                config_name = os.path.basename(CONFIG_FILE).replace("_config.json", "").replace("config.json", "")
+                script_dir = os.path.dirname(os.path.abspath(__file__))
+                instance_env = {
+                    "BOT_CONFIG_FILE": os.path.abspath(CONFIG_FILE),
+                    "BOT_CONTROL_FILE": os.path.join(script_dir, f"control_{config_name}.json"),
+                    "BOT_CHROME_PROFILE": f"chrome_profile_{config_name}",
+                    "BOT_LOG_FILE": os.path.join(script_dir, f"log_{config_name}.txt"),
+                    "BOT_INSTANCE_NAME": config_name
+                }
+                self.log("INFO", f"🔧 Multi-bot instance mode: {config_name}")
+            
             # Start SEEK bot if enabled
             if use_seek:
                 self.log("INFO", "🔵 Starting SEEK bot...")
@@ -3102,6 +3364,10 @@ rm "$0"
                     self.bot_thread_stop = False
                     def run_seek_thread():
                         try:
+                            # Set environment variables for instance if needed
+                            if instance_env:
+                                for key, value in instance_env.items():
+                                    os.environ[key] = value
                             import main as bot_module
                             bot_module.main()
                         except Exception as e:
@@ -3109,8 +3375,12 @@ rm "$0"
                     self.bot_thread = threading.Thread(target=run_seek_thread, daemon=True)
                     self.bot_thread.start()
                 else:
+                    # Create environment with instance variables
+                    env = os.environ.copy()
+                    env.update(instance_env)
                     self.bot_process = subprocess.Popen(
                         [sys.executable, "main.py"],
+                        env=env,
                         creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
                     )
             
@@ -3120,6 +3390,10 @@ rm "$0"
                 if is_bundled:
                     def run_indeed_thread():
                         try:
+                            # Set environment variables for instance if needed
+                            if instance_env:
+                                for key, value in instance_env.items():
+                                    os.environ[key] = value
                             import indeed_bot
                             indeed_bot.main()
                         except Exception as e:
@@ -3127,8 +3401,12 @@ rm "$0"
                     self.indeed_thread = threading.Thread(target=run_indeed_thread, daemon=True)
                     self.indeed_thread.start()
                 else:
+                    # Create environment with instance variables
+                    env = os.environ.copy()
+                    env.update(instance_env)
                     self.indeed_process = subprocess.Popen(
                         [sys.executable, "indeed_bot.py"],
+                        env=env,
                         creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
                     )
             
@@ -3378,6 +3656,7 @@ rm "$0"
         self.config["COOLDOWN_DELAY"] = self.cooldown_slider.get()
         self.config["STEALTH_MODE"] = self.stealth_var.get()
         self.config["GPT_JOB_CHECK"] = self.gpt_mode_var.get()
+        self.config["MODE_24_7"] = self.mode_24_7_var.get()
 
         # Job settings
         self.config["JOB_TITLES"] = [

@@ -19,7 +19,7 @@ from webdriver_manager.chrome import ChromeDriverManager
 from openai import OpenAI
 import openpyxl
 from openpyxl import Workbook
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # Gmail cleanup
 try:
@@ -124,7 +124,12 @@ def get_data_dir():
 # ============================================
 # LOGGING (WORKS IN EXE)
 # ============================================
-LOG_FILE = os.path.join(get_data_dir(), "log.txt")
+# Check for multi-bot instance log file first
+if os.getenv("BOT_LOG_FILE"):
+    LOG_FILE = os.getenv("BOT_LOG_FILE")
+    print(f"[INSTANCE] Using log file: {LOG_FILE}")
+else:
+    LOG_FILE = os.path.join(get_data_dir(), "log.txt")
 _orig_print = builtins.print
 
 def print(*args, **kwargs):
@@ -140,12 +145,23 @@ def print(*args, **kwargs):
 # ============================================
 # CONFIG LOAD (FIXED FOR EXE)
 # ============================================
-CONFIG_FILE = resource_path("config.json")
-CONTROL_FILE = resource_path("control.json")
+# Check for multi-bot instance config file first
+if os.getenv("BOT_CONFIG_FILE"):
+    CONFIG_FILE = os.getenv("BOT_CONFIG_FILE")
+    print(f"[INSTANCE] Using config file: {CONFIG_FILE}")
+else:
+    CONFIG_FILE = resource_path("config.json")
+
+# Check for multi-bot instance control file
+if os.getenv("BOT_CONTROL_FILE"):
+    CONTROL_FILE = os.getenv("BOT_CONTROL_FILE")
+    print(f"[INSTANCE] Using control file: {CONTROL_FILE}")
+else:
+    CONTROL_FILE = resource_path("control.json")
 
 if not os.path.exists(CONFIG_FILE):
     raise FileNotFoundError(
-        "config.json not found. Run config_gui.exe first to create it."
+        f"Config file not found: {CONFIG_FILE}. Run config_gui.exe first to create it."
     )
 
 def check_control():
@@ -628,16 +644,42 @@ def init_browser():
     import tempfile
     
     chrome_options = Options()
-    chrome_options.add_argument("--start-maximized")
+    
+    # Check if running in headless mode (for VPS/server deployment)
+    run_headless = os.getenv("RUN_HEADLESS", "false").lower() == "true"
+    
+    if run_headless:
+        # Headless mode for server/VPS deployment
+        chrome_options.add_argument("--headless=new")  # Use new headless mode
+        chrome_options.add_argument("--no-sandbox")  # Required for Docker/some VPS
+        chrome_options.add_argument("--disable-dev-shm-usage")  # Prevents crashes
+        chrome_options.add_argument("--disable-gpu")  # GPU not needed headless
+        chrome_options.add_argument("--window-size=1920,1080")  # Set window size
+        print("[INFO] Running in HEADLESS mode (VPS/server deployment)")
+    else:
+        # Normal mode with visible browser
+        chrome_options.add_argument("--start-maximized")
+    
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
     chrome_options.add_argument("--disable-extensions")
     chrome_options.add_argument("--disable-notifications")
 
-    # Use temp directory for Chrome profile (works on macOS bundled apps)
-    # This avoids permission issues on macOS sandboxed environments
-    profile_dir = os.path.join(tempfile.gettempdir(), "seekmate_chrome_profile")
-    os.makedirs(profile_dir, exist_ok=True)
-    chrome_options.add_argument(f"--user-data-dir={profile_dir}")
+    # Check for multi-bot instance Chrome profile
+    bot_chrome_profile = os.getenv("BOT_CHROME_PROFILE")
+    if bot_chrome_profile:
+        # Use instance-specific profile directory
+        script_dir = os.path.dirname(os.path.abspath(__file__))
+        profile_dir = os.path.join(script_dir, bot_chrome_profile)
+        os.makedirs(profile_dir, exist_ok=True)
+        chrome_options.add_argument(f"--user-data-dir={profile_dir}")
+        print(f"[INSTANCE] Chrome Profile: {bot_chrome_profile}")
+        print(f"[INSTANCE] Using Chrome profile: {profile_dir}")
+    else:
+        # Use temp directory for Chrome profile (works on macOS bundled apps)
+        # This avoids permission issues on macOS sandboxed environments
+        profile_dir = os.path.join(tempfile.gettempdir(), "seekmate_chrome_profile")
+        os.makedirs(profile_dir, exist_ok=True)
+        chrome_options.add_argument(f"--user-data-dir={profile_dir}")
 
     service = Service(ChromeDriverManager().install())
     driver = webdriver.Chrome(service=service, options=chrome_options)
@@ -659,6 +701,8 @@ class SeekBot:
         self.successful_submits = 0
         self.driver = driver
         self.applied_job_titles = []  # Track job titles that were successfully applied to
+        self.job_timestamps = []  # Track timestamps for 24/7 mode
+        self.mode_24_7 = CONFIG.get("MODE_24_7", False)
         
         # WebDriverWait timeout based on speed
         if SCAN_SPEED >= 90:
@@ -933,7 +977,11 @@ class SeekBot:
 
     # ---------- GPT JOB RELEVANCE CHECK ----------
     def gpt_should_apply(self, job_title: str, job_description: str) -> bool:
-        """Use GPT to analyze if job description matches user's target roles before applying"""
+        """Use GPT to analyze if job description matches user's target roles before applying
+        
+        In TIGHT mode, this considers ALL titles from ALL selected presets.
+        Selected presets are combined into JOB_TITLES in the config GUI.
+        """
         # Check if GPT job check is enabled (TIGHT mode) or disabled (LOOSE mode)
         if not CONFIG.get("GPT_JOB_CHECK", False):
             print("    [⚡ LOOSE MODE] Skipping GPT job check - applying to all")
@@ -942,6 +990,8 @@ class SeekBot:
         if not OPENAI_API_KEY:
             return True  # If no API key, skip this check
         
+        # JOB_TITLES contains all titles from all selected presets (when using preset chips)
+        # or manually entered titles (when editing job entry directly)
         target_titles = CONFIG.get("JOB_TITLES", [])
         
         # Get related titles based on preset categories
@@ -2028,7 +2078,24 @@ Reply with ONLY the exact option text to select:"""
 
             # COUNT REAL SUBMISSION
             self.successful_submits += 1
+            current_time = datetime.now()
+            self.job_timestamps.append(current_time)
+            
+            # Clean old timestamps (older than 24 hours)
+            cutoff_time = current_time - timedelta(hours=24)
+            self.job_timestamps = [ts for ts in self.job_timestamps if ts > cutoff_time]
+            
             print(f"    [+] Successful submissions: {self.successful_submits}")
+            
+            # Check 24/7 mode limit (100 jobs per 24 hours)
+            if self.mode_24_7:
+                jobs_last_24h = len(self.job_timestamps)
+                print(f"    [24/7] Jobs in last 24h: {jobs_last_24h}/100")
+                if jobs_last_24h >= 100:
+                    print(f"    [!] 24/7 MODE: Reached 100 jobs in 24 hours. Stopping...")
+                    return False  # Signal to stop
+            
+            return None  # Normal completion
 
         except:
             print("    [-] No Submit button found.")
@@ -2189,10 +2256,23 @@ Reply with ONLY the exact option text to select:"""
                     if not job_url:
                         continue
 
+                    # Check 24/7 mode limit before applying
+                    if self.mode_24_7:
+                        cutoff_time = datetime.now() - timedelta(hours=24)
+                        self.job_timestamps = [ts for ts in self.job_timestamps if ts > cutoff_time]
+                        jobs_last_24h = len(self.job_timestamps)
+                        if jobs_last_24h >= 100:
+                            print(f"    [!] 24/7 MODE: Reached 100 jobs in 24 hours. Stopping...")
+                            self.send_summary_and_exit(run_start_time)
+                            return
+                    
                     speed_sleep(2, "scan")
 
                     try:
-                        self.apply(title, company, job_url)
+                        result = self.apply(title, company, job_url)
+                        if result is False:  # 24/7 limit reached during apply
+                            self.send_summary_and_exit(run_start_time)
+                            return
                     except Exception as e:
                         print(f"    [!] Error during apply: {e}")
 
@@ -2290,9 +2370,17 @@ Reply with ONLY the exact option text to select:"""
             return
 
         job_titles = CONFIG.get("JOB_TITLES", [])
-        primary_location = CONFIG.get("LOCATION", "Brisbane")
+        gpt_tight_mode = CONFIG.get("GPT_JOB_CHECK", False)
         
-        # Alternative locations to try if primary location has < 100 jobs (GPT TIGHT mode only)
+        # Define city rotation order: Brisbane → Gold Coast → Sydney → Melbourne
+        city_rotation = [
+            "Brisbane, Australia",
+            "Gold Coast, Australia", 
+            "Sydney, Australia",
+            "Melbourne, Australia"
+        ]
+        
+        # Alternative locations for GPT TIGHT mode (if primary has < 100 jobs)
         alternative_locations = [
             "Sydney, Australia",
             "Melbourne, Australia",
@@ -2304,9 +2392,6 @@ Reply with ONLY the exact option text to select:"""
             "Hobart, Australia",
             "Darwin, Australia",
         ]
-        
-        # Remove primary location from alternatives if it's in the list
-        alternative_locations = [loc for loc in alternative_locations if loc != primary_location]
 
         for title_index, search_title in enumerate(job_titles):
             # Check for stop signal between searches
@@ -2325,12 +2410,15 @@ Reply with ONLY the exact option text to select:"""
             print(f"    Progress: {self.successful_submits}/{MAX_JOBS} applications")
             print(f"==============================\n")
 
-            # Try primary location first
-            locations_to_try = [primary_location]
-            gpt_tight_mode = CONFIG.get("GPT_JOB_CHECK", False)
-            
-            # If GPT TIGHT mode, check job count and expand to other locations if needed
+            # Determine location strategy based on GPT mode
             if gpt_tight_mode:
+                # TIGHT mode: Use primary location, expand to alternatives if < 100 jobs
+                primary_location = CONFIG.get("LOCATION", "Brisbane, Australia")
+                locations_to_try = [primary_location]
+                
+                # Remove primary from alternatives if in list
+                alternative_locations_clean = [loc for loc in alternative_locations if loc != primary_location]
+                
                 search_url = build_search_url(search_title, primary_location)
                 print(f"[*] Opening search for: {search_title} in {primary_location}")
                 print(f"    URL: {search_url}")
@@ -2347,25 +2435,28 @@ Reply with ONLY the exact option text to select:"""
                 if total_jobs < 100:
                     print(f"[*] ⚠️  Only {total_jobs} jobs found in {primary_location}")
                     print(f"[*] 🎯 GPT TIGHT mode: Expanding search to other locations...")
-                    locations_to_try.extend(alternative_locations)
+                    locations_to_try.extend(alternative_locations_clean)
                 else:
                     print(f"[*] ✓ Found {total_jobs} jobs in {primary_location} - sufficient for GPT TIGHT mode")
             else:
-                # LOOSE mode - just use primary location
-                search_url = build_search_url(search_title, primary_location)
-                print(f"[*] Opening search for: {search_title} in {primary_location}")
-                print(f"    URL: {search_url}")
-                self.driver.get(search_url)
-                speed_sleep(3, "scan")
-                throttle()
+                # LOOSE mode: Rotate through cities in order (Brisbane → Gold Coast → Sydney → Melbourne)
+                locations_to_try = city_rotation.copy()
+                primary_location = locations_to_try[0]  # Start with Brisbane
+                
+                print(f"[*] ⚡ LOOSE MODE: Will search cities in order: {', '.join(locations_to_try)}")
+                print(f"[*] Starting with: {primary_location}")
             
             # Process jobs for each location
             for loc_index, location in enumerate(locations_to_try):
-                if loc_index > 0:  # Skip first location (already loaded if GPT TIGHT mode)
-                    if self.successful_submits >= MAX_JOBS:
-                        break
-                    
-                    print(f"\n[*] 🔄 Trying alternative location: {location}")
+                if self.successful_submits >= MAX_JOBS:
+                    break
+                
+                # For TIGHT mode, skip first location (already loaded above)
+                # For LOOSE mode, load each location
+                if gpt_tight_mode and loc_index == 0:
+                    pass  # Already loaded above for TIGHT mode
+                else:
+                    print(f"\n[*] 🌍 Searching in: {location}")
                     search_url = build_search_url(search_title, location)
                     print(f"    URL: {search_url}")
                     
@@ -2373,12 +2464,12 @@ Reply with ONLY the exact option text to select:"""
                     speed_sleep(3, "scan")
                     throttle()
                     
-                    # Check job count for this location
+                    # Check job count for this location (for info only in LOOSE mode)
                     total_jobs = self.get_total_job_count()
                     print(f"[*] Found {total_jobs} jobs in {location}")
                     
                     if total_jobs == 0:
-                        print(f"[*] ⚠️  No jobs found in {location}, skipping...")
+                        print(f"[*] ⚠️  No jobs found in {location}, moving to next city...")
                         continue
                 
                 # Process pages for this location
@@ -2453,8 +2544,21 @@ Reply with ONLY the exact option text to select:"""
 
                         speed_sleep(2, "scan")
 
+                        # Check 24/7 mode limit before applying
+                        if self.mode_24_7:
+                            cutoff_time = datetime.now() - timedelta(hours=24)
+                            self.job_timestamps = [ts for ts in self.job_timestamps if ts > cutoff_time]
+                            jobs_last_24h = len(self.job_timestamps)
+                            if jobs_last_24h >= 100:
+                                print(f"    [!] 24/7 MODE: Reached 100 jobs in 24 hours. Stopping...")
+                                self.send_summary_and_exit(run_start_time)
+                                return
+                        
                         try:
-                            self.apply(title, company, job_url)
+                            result = self.apply(title, company, job_url)
+                            if result is False:  # 24/7 limit reached during apply
+                                self.send_summary_and_exit(run_start_time)
+                                return
                         except Exception as e:
                             print(f"    [!] Error during apply: {e}")
 
@@ -2473,6 +2577,7 @@ Reply with ONLY the exact option text to select:"""
 
                     moved = self.go_to_next_page()
                     if not moved:
+                        print(f"[*] ✓ Exhausted all pages in {location}. Moving to next city...")
                         location_done = True  # No more pages in this location
                         break
 
@@ -2481,6 +2586,12 @@ Reply with ONLY the exact option text to select:"""
                 # If we've hit MAX_JOBS, break out of location loop too
                 if self.successful_submits >= MAX_JOBS:
                     break
+                
+                # In LOOSE mode, log when moving to next city
+                if not gpt_tight_mode and location_done:
+                    if loc_index < len(locations_to_try) - 1:
+                        next_city = locations_to_try[loc_index + 1]
+                        print(f"\n[*] 🔄 Moving to next city: {next_city}")
 
         print(f"\n[*] DONE — Successfully submitted {self.successful_submits} REAL applications.")
         
