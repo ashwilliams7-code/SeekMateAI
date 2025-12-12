@@ -1,0 +1,35 @@
+{
+    "OPENAI_API_KEY": "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",
+    "FULL_NAME": "Ash Williams",
+    "LOCATION": "Brisbane, Australia",
+    "BACKGROUND_BIO": "",
+    "SEEK_EMAIL": "ashawilliams988@gmail.com",
+    "JOB_TITLE": "director",
+    "CV_PATH": "",
+    "MAX_JOBS": 100,
+    "EXPECTED_SALARY": 100000,
+    "JOB_TITLES": [],
+    "SCAN_SPEED": 100,
+    "APPLY_SPEED": 62,
+    "COOLDOWN_DELAY": 0,
+    "STEALTH_MODE": false,
+    "BLOCKED_COMPANIES": [
+        "kpmg"
+    ],
+    "BLOCKED_TITLES": [
+        "sales",
+        "assistant"
+    ],
+    "THEME": "dark",
+    "NOTIFICATIONS_ENABLED": false,
+    "USE_SEEK": true,
+    "USE_INDEED": false,
+    "TWOCAPTCHA_API_KEY": "9c1786a947c2865be42c3eb3851068ad",
+    "GPT_JOB_CHECK": false,
+    "TWILIO_ACCOUNT_SID": "AC9a25747ac0d891e03296e8a27962f3e6",
+    "TWILIO_AUTH_TOKEN": "79ca81b16be79cab2c6a1a169bd2bbd3",
+    "TWILIO_WHATSAPP_FROM": "whatsapp:+14155238886",
+    "WHATSAPP_NOTIFICATIONS": true,
+    "USE_GMAIL_CLEANUP": false,
+    "SELECTED_PRESETS": []
+}

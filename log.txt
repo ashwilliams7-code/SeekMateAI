@@ -1,0 +1,967 @@
+[SPEED] Scan: 100% | Apply: 61% | Cooldown: 1s | Stealth: OFF
+[BLOCKLIST] Titles: sales
+[*] Already logged in.
+
+==============================
+🔎 SEARCHING FOR: bdm
+==============================
+
+[*] Opening search for: bdm
+    URL: https://www.seek.com.au/jobs?keywords=bdm&where=Gold%20Coast&sortmode=ListedDate
+
+===== PAGE 1 =====
+[*] Found 22 jobs on this page.
+
+[*] Job 1: Business Development Manager | Gough Recruitment QLD
+    [+] Opened: https://www.seek.com.au/job/88801229?type=standard&ref=search-standalone&origin=cardTitle#sol=b30425a5b9f83230eeb979b9d306d68d20875eee
+    [+] Clicked apply button: //*[self::button or self::a][.//*[contains(text(),'Quick apply')]]
+    [+] Cover letter added (overwrite protection).
+    [+] Continue → Page 2
+    [+] Continue
+    [+] SUBMITTED.
+    [+] Logged to Excel → Business Development Manager @ Gough Recruitment QLD
+    [+] Successful submissions: 1
+    [*] Cooldown: waiting 1s before next job...
+    [-] SKIPPED (title mismatch): Used Car Manager
+    [-] SKIPPED (title mismatch): Territory Manager - Gold Coast South
+    [🚫] BLOCKED (title): Sales & Key Accounts Manager
+    [-] SKIPPED (title mismatch): Digital and Marketing Manager
+    [🚫] BLOCKED (title): Team Manager | Prestige Sales Agent
+    [🚫] BLOCKED (title): Area Sales Manager | Gold Coast South
+
+[*] Job 8: Account Manager - Gold Coast | EatClub
+    [+] Opened: https://www.seek.com.au/job/88789338?type=standard&ref=search-standalone&origin=cardTitle#sol=40dd8a454ef4adc12b287803c87a100263cf1ff0
+    [+] Clicked apply button: //*[self::button or self::a][.//*[contains(text(),'Quick apply')]]
+    [+] Cover letter added (overwrite protection).
+    [+] Continue → Page 2
+    [+] Continue
+    [+] SUBMITTED.
+    [+] Logged to Excel → Account Manager - Gold Coast @ EatClub
+    [+] Successful submissions: 2
+    [*] Cooldown: waiting 1s before next job...
+    [🚫] BLOCKED (title): Sales Estimator - Residential Project Builder
+    [🚫] BLOCKED (title): Commercial Sales Manager
+
+[*] Job 11: Senior Business Development Manager – Australia & ANZ | Proceed Group
+    [+] Opened: https://www.seek.com.au/job/88690250?type=standard&ref=search-standalone&origin=cardTitle#sol=d7855e82a77fe180032e9cbafade4e71fd2d1cd3
+    [+] Clicked apply button: //*[self::button or self::a][.//*[contains(text(),'Quick apply')]]
+    [+] Cover letter added (overwrite protection).
+    [+] Continue → Page 2
+    [+] Selected: Australian citizen
+    [+] Continue
+    [+] Continue
+    [+] SUBMITTED.
+    [+] Logged to Excel → Senior Business Development Manager – Australia & ANZ @ Proceed Group
+    [+] Successful submissions: 3
+    [*] Cooldown: waiting 1s before next job...
+    [-] SKIPPED (title mismatch): Business Manager - SEE
+    [-] SKIPPED (title mismatch): Account Executive
+    [-] SKIPPED (title mismatch): Retail Store Business Manager
+    [-] SKIPPED (title mismatch): Ecomm & Merchandise Manager
+    [-] SKIPPED (title mismatch): Assistant Relationship Manager / Developing RM - Gold Coast
+    [-] SKIPPED (title mismatch): Snr Commercial Banker - Gold Coast
+    [🚫] BLOCKED (title): Sales Representative
+    [-] SKIPPED (title mismatch): Client Relationship Manager
+    [🚫] BLOCKED (title): Sales Consultant
+    [-] SKIPPED (title mismatch): Customer Service Consultant
+    [🚫] BLOCKED (title): General Sales Manager
+[*] Next page clicked.
+
+===== PAGE 2 =====
+[*] Found 0 jobs on this page.
+[!] No job cards found.
+
+==============================
+🔎 SEARCHING FOR: business development
+==============================
+
+[*] Opening search for: business development
+    URL: https://www.seek.com.au/jobs?keywords=business%20development&where=Gold%20Coast&sortmode=ListedDate
+
+===== PAGE 1 =====
+[*] Found 22 jobs on this page.
+    [-] SKIPPED (title mismatch): Real Estate Investment Associate
+    [-] SKIPPED (title mismatch): Appointment Setter
+    [-] SKIPPED (title mismatch): Operations Manager
+
+[*] Job 4: Business Development Manager | Gough Recruitment QLD
+    [+] Opened: https://www.seek.com.au/job/88801229?type=standard&ref=search-standalone&origin=cardTitle#sol=6cdc9c48c0490c9090e92988e7ac6cbda53ff8db
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [🚫] BLOCKED (title): Senior Sales Administrator | Up to $90k + super
+    [-] SKIPPED (title mismatch): Used Car Manager
+    [-] SKIPPED (title mismatch): Assistant Operations Manager
+    [-] SKIPPED (title mismatch): Territory Manager - Gold Coast South
+    [-] SKIPPED (title mismatch): Unit Business Manager- Ecology
+    [🚫] BLOCKED (title): Sales & Key Accounts Manager
+    [-] SKIPPED (title mismatch): Digital and Marketing Manager
+    [🚫] BLOCKED (title): Team Manager | Prestige Sales Agent
+    [-] SKIPPED (title mismatch): Primary Care Representative
+    [🚫] BLOCKED (title): Area Sales Manager | Gold Coast South
+
+[*] Job 15: Account Manager - Gold Coast | EatClub
+    [+] Opened: https://www.seek.com.au/job/88789338?type=standard&ref=search-standalone&origin=cardTitle#sol=8f7fbbd639070828584583a924f66dff6a2e66a5
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [🚫] BLOCKED (title): Sales Estimator - Residential Project Builder
+    [-] SKIPPED (title mismatch): Associate / Senior Associate – Commercial Lawyer
+    [🚫] BLOCKED (title): Commercial Sales Manager
+    [🚫] BLOCKED (title): Sales Support & Projects Administration - Experienced
+    [🚫] BLOCKED (title): SOLAR SALES SPECIALISTS. Verified and Qualified Appointments Supplied!!
+
+[*] Job 21: Insurance Broking Senior Account Manager | Gap Recruitment
+    [+] Opened: https://www.seek.com.au/job/88778002?type=standard&ref=search-standalone&origin=cardTitle#sol=b82386edf1b84028b9beb869761937343ab8abc5
+    [+] Clicked apply button: //*[self::button or self::a][.//*[contains(text(),'Quick apply')]]
+    [+] Cover letter added (overwrite protection).
+    [+] Continue → Page 2
+    [+] Continue
+    [+] SUBMITTED.
+    [+] Logged to Excel → Insurance Broking Senior Account Manager @ Gap Recruitment
+    [+] Successful submissions: 4
+    [*] Cooldown: waiting 1s before next job...
+    [-] SKIPPED (title mismatch): Store Manager
+[*] Next page clicked.
+
+===== PAGE 2 =====
+[*] Found 0 jobs on this page.
+[!] No job cards found.
+
+==============================
+🔎 SEARCHING FOR: sales
+==============================
+
+[*] Opening search for: sales
+    URL: https://www.seek.com.au/jobs?keywords=sales&where=Gold%20Coast&sortmode=ListedDate
+
+===== PAGE 1 =====
+[*] Found 22 jobs on this page.
+    [-] SKIPPED (title mismatch): Appointment Setter
+    [-] SKIPPED (title mismatch): Used Car Manager
+    [-] SKIPPED (title mismatch): Territory Manager - Gold Coast South
+    [🚫] BLOCKED (title): Sales & Key Accounts Manager
+    [🚫] BLOCKED (title): Area Sales Manager | Gold Coast South
+
+[*] Job 6: Account Manager - Gold Coast | EatClub
+    [+] Opened: https://www.seek.com.au/job/88789338?type=standard&ref=search-standalone&origin=cardTitle#sol=73328de04f7f3bd4d6e960595e2b83b96cf813a2
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [-] SKIPPED (title mismatch): Finance & Insurance Consultant
+    [🚫] BLOCKED (title): Commercial Sales Manager
+    [🚫] BLOCKED (title): SOLAR SALES SPECIALISTS. Verified and Qualified Appointments Supplied!!
+
+[*] Job 10: Senior Business Development Manager – Australia & ANZ | Proceed Group
+    [+] Opened: https://www.seek.com.au/job/88690250?type=standard&ref=search-standalone&origin=cardTitle#sol=cce1d38433ced98cfeb0db455e6921a2f2d14d99
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [🚫] BLOCKED (title): Automotive Sales Consultant
+    [🚫] BLOCKED (title): Internal Sales
+    [🚫] BLOCKED (title): Sales Representative
+    [🚫] BLOCKED (title): Fleet Sales Consultant
+    [-] SKIPPED (title mismatch): Client Relationship Manager
+    [🚫] BLOCKED (title): Sales Support Representative Hope Island
+    [-] SKIPPED (title mismatch): Floor Manager - Pacific Fair
+
+[*] Job 18: Customer Success Specialist | Odoo
+    [+] Opened: https://www.seek.com.au/job/88744266?type=standard&ref=search-standalone&origin=cardTitle#sol=60ef3ffc1b61d53f47e1f37fd13fdd6749151b83
+    [+] Clicked apply button: //*[self::button or self::a][.//*[contains(text(),'Quick apply')]]
+    [+] Cover letter added (overwrite protection).
+    [+] Continue → Page 2
+    [+] Selected: Australian citizen
+    [+] Continue
+    [+] Continue
+    [+] SUBMITTED.
+    [+] Logged to Excel → Customer Success Specialist @ Odoo
+    [+] Successful submissions: 5
+    [*] Cooldown: waiting 1s before next job...
+    [🚫] BLOCKED (title): Sales Consultant
+    [🚫] BLOCKED (title): Trainee Sales Consultant
+    [🚫] BLOCKED (title): Salesperson - Bathroom and Tiles
+    [🚫] BLOCKED (title): Internal Sales
+[*] Next page clicked.
+
+===== PAGE 2 =====
+[*] Found 22 jobs on this page.
+    [🚫] BLOCKED (title): General Sales Manager
+    [🚫] BLOCKED (title): Assistant Sales Leader - Varsity Lakes
+    [🚫] BLOCKED (title): Car Sales Consultants
+
+[*] Job 4: Pharmacy Account Manager | VEC LTD
+    [+] Opened: https://www.seek.com.au/job/88734652?type=standard&ref=search-standalone&origin=cardTitle#sol=6b69e32ba6783228bc5c1d78e044766993df497a
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [🚫] BLOCKED (title): Sales Operations Manager
+    [🚫] BLOCKED (title): Sales Manager - Varsity Lakes
+
+[*] Job 7: Business Development Manager | ACE Rental
+    [+] Opened: https://www.seek.com.au/job/88733212?type=standard&ref=search-standalone&origin=cardTitle#sol=7b64c3b8c0fe3ff532582399b993a77c69c5f0b0
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [🚫] BLOCKED (title): Internal Sales
+    [🚫] BLOCKED (title): Sales Consultant – Bathroom & Balcony Leakage Solutions
+
+[*] Job 10: Business Development Manager | Alloggio Pty Ltd
+    [+] Opened: https://www.seek.com.au/job/88727486?type=standard&ref=search-standalone&origin=cardTitle#sol=d9354f2a7ecf69ff6e0293b1d3bc36198aad0076
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [🚫] BLOCKED (title): NEW HINO TRUCK SALES CONSULTANT – NERANG, GOLD COAST
+    [🚫] BLOCKED (title): Sales & Marketing Manager
+
+[*] Job 13: Business Development Manager (Waste Treatment Services) | HiQ Group
+    [+] Opened: https://www.seek.com.au/job/88719076?type=standard&ref=search-standalone&origin=cardTitle#sol=28372369af013e73ceb6dd0d1eb3cd2975fe8437
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+
+[*] Job 14: Business Development Manager | Roc Consulting
+    [+] Opened: https://www.seek.com.au/job/88717207?type=standard&ref=search-standalone&origin=cardTitle#sol=ba674d90efefda181c7c9debfc84f060face99b8
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [🚫] BLOCKED (title): Gold Coast Sales Rep - Entry/Mid Level.
+    [-] SKIPPED (title mismatch): eCommerce & Pricing Associate
+    [🚫] BLOCKED (title): Sales Travel Consultant - Elanora, QLD
+
+[*] Job 18: Account Manager - Bunzl Safety & Lifting Yatala | Bunzl Australasia Limited
+    [+] Opened: https://www.seek.com.au/job/88703779?type=standard&ref=search-standalone&origin=cardTitle#sol=ed371b5d09b15a37257bf06e5d98e2bed163d432
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [🚫] BLOCKED (title): Hands-On Sales Manager – $90–$100k Base + Bonuses
+    [🚫] BLOCKED (title): Memebership Sales & Front Desk Consultant-Martial Arts Centre
+    [🚫] BLOCKED (title): Sales Consultant - Finance / Lending
+    [🚫] BLOCKED (title): Casual Retail Sales Assistant
+[*] Next page clicked.
+
+===== PAGE 3 =====
+[*] Found 22 jobs on this page.
+    [🚫] BLOCKED (title): Want a fresh start before 2026 kicks off? Join a high-performing sales team now.
+    [-] SKIPPED (title mismatch): Customer Service Representative Stapylton
+
+[*] Job 3: Business Development Executive - QLD | Crommelin Recruitment
+    [+] Opened: https://www.seek.com.au/job/88679223?type=standard&ref=search-standalone&origin=cardTitle#sol=02fa0c908a57480636c5cb148b9a29869399a55d
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [-] SKIPPED (title mismatch): Guest Experience Host & Face to Face Lead Generator
+
+[*] Job 5: Business Development Manager | JPS Sales Recruitment
+    [+] Opened: https://www.seek.com.au/job/88678870?type=standard&ref=search-standalone&origin=cardTitle#sol=5f151903d0a16749185379e10afbeaf675c2fa56
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+
+[*] Job 6: Relationship Manager / Business Development Manager, Dental | Henry Schein
+    [+] Opened: https://www.seek.com.au/job/88678840?type=standard&ref=search-standalone&origin=cardTitle#sol=a5d8c79310ae226762672d865566f1ca70f3c5a4
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [🚫] BLOCKED (title): Sales Manager
+
+[*] Job 8: Business Development Executive | Secure Parking Pty Ltd.
+    [+] Opened: https://www.seek.com.au/job/88673276?type=standard&ref=search-standalone&origin=cardTitle#sol=dcfcbc4965c8ef66743294be2f2686bcd958ba0c
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [🚫] BLOCKED (title): Residential Sales Representative Gold Coast and Northern NSW
+
+[*] Job 10: Customer Success Account Manager | NewBook
+    [+] Opened: https://www.seek.com.au/job/88667460?type=standard&ref=search-standalone&origin=cardTitle#sol=83ff15cb264538c52c9ab0cea43b6bfc74307723
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+
+[*] Job 11: Business Development Coordinator | Early Learning Management
+    [+] Opened: https://www.seek.com.au/job/88650743?type=standard&ref=search-standalone&origin=cardTitle#sol=3076be55e58f76ca31ec5fd283de79b4a2874313
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [-] SKIPPED (title mismatch): Territory Manager
+    [🚫] BLOCKED (title): Sales Consultant – Property Investment
+    [-] SKIPPED (title mismatch): Solar & Battery Appointment Setter
+    [🚫] BLOCKED (title): New Home Sales Consultant
+    [🚫] BLOCKED (title): Executive Consultant - Start Your Sales Career with Us!
+    [🚫] BLOCKED (title): Car Sales Consultant
+    [-] SKIPPED (title mismatch): Member Support Consultant | Robina (full time)
+    [-] SKIPPED (title mismatch): Building Consultant - Gold Coast Area
+    [🚫] BLOCKED (title): Sales Consultant
+    [-] SKIPPED (title mismatch): Holiday and Lifestyle Representative
+    [🚫] BLOCKED (title): Sales Representative – Gold Coast
+[*] Next page clicked.
+
+===== PAGE 4 =====
+[*] Found 22 jobs on this page.
+    [🚫] BLOCKED (title): Sales Consultant
+    [🚫] BLOCKED (title): Sales Representative
+    [-] SKIPPED (title mismatch): Car Care Consultant - Gold Coast
+    [-] SKIPPED (title mismatch): Guest Experience Host & Face to Face Lead Generator
+    [🚫] BLOCKED (title): Gold Coast Sales Representative - Industrial Fasteners
+    [🚫] BLOCKED (title): Sales consultant
+    [🚫] BLOCKED (title): Territory Sales Manager - Gold Coast, QLD
+    [🚫] BLOCKED (title): Sales Travel Consultant - Southport, QLD
+    [-] SKIPPED (title mismatch): Building and Design Consultant
+
+[*] Job 10: Account Manager | Empire Office Furniture
+    [+] Opened: https://www.seek.com.au/job/88586283?type=standard&ref=search-standalone&origin=cardTitle#sol=e854a58ae1db5e9bb82bb435bccee032d194c975
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [-] SKIPPED (title mismatch): Brand Ambassador
+    [🚫] BLOCKED (title): Director of Sales and Marketing
+    [🚫] BLOCKED (title): Sales Consultant - Vietnamese Team
+    [🚫] BLOCKED (title): Sales Executive
+    [🚫] BLOCKED (title): Salesperson - 4WD Accessories Industry
+    [🚫] BLOCKED (title): Sales Representative
+    [🚫] BLOCKED (title): SOLAR SALES CONSULTANTS
+    [🚫] BLOCKED (title): Sales Consultants - Used Vehicles
+    [🚫] BLOCKED (title): National Sales & Admissions Manager
+    [🚫] BLOCKED (title): Property & course sales strategist
+    [-] SKIPPED (title mismatch): Student Marketeer - Bond University Gold Coast
+    [-] SKIPPED (title mismatch): Student Marketeer - Griffith University Gold Coast
+[*] Next page clicked.
+
+===== PAGE 5 =====
+[*] Found 22 jobs on this page.
+    [-] SKIPPED (title mismatch): Retail Consultant
+    [🚫] BLOCKED (title): Sales Professional – Gold Coast Region (Coomera | Robina | Tweed | Pimpama)
+    [🚫] BLOCKED (title): Sales Consultant
+    [🚫] BLOCKED (title): Patient Experience & Sales Specialist
+    [🚫] BLOCKED (title): Meat Sales Specialist
+    [🚫] BLOCKED (title): Sales Associate
+    [🚫] BLOCKED (title): Kitchen Sales Consultant
+    [🚫] BLOCKED (title): Sales Consultant Gold Coast
+    [-] SKIPPED (title mismatch): Energy Manager
+    [🚫] BLOCKED (title): Pre-Owned Vehicle Sales Specialist
+    [🚫] BLOCKED (title): Luxury Car Sales Executive
+    [🚫] BLOCKED (title): Automotive - Motorcycle Salesperson - TeamMoto Nerang
+    [🚫] BLOCKED (title): Sales Representative
+    [🚫] BLOCKED (title): Sales and Marketing Coordinator | The Bower Estate
+    [🚫] BLOCKED (title): New Vehicle Sales Manager TOYOTA
+    [🚫] BLOCKED (title): Sales Representative
+    [🚫] BLOCKED (title): Sales Consultant - Southport
+    [🚫] BLOCKED (title): Car Sales Traineeship
+    [-] SKIPPED (title mismatch): In Home Energy Consultant - $250k Plus
+    [🚫] BLOCKED (title): Vehicle Sales Consultants - Experienced and Trainees!
+    [-] SKIPPED (title mismatch): Vehicle Buyer
+    [🚫] BLOCKED (title): Sales Representative (Queensland, Australia)
+[*] Next page clicked.
+
+===== PAGE 6 =====
+[*] Found 0 jobs on this page.
+[!] No job cards found.
+
+==============================
+🔎 SEARCHING FOR: account manager
+==============================
+
+[*] Opening search for: account manager
+    URL: https://www.seek.com.au/jobs?keywords=account%20manager&where=Gold%20Coast&sortmode=ListedDate
+
+===== PAGE 1 =====
+[*] Found 22 jobs on this page.
+    [-] SKIPPED (title mismatch): Operations Manager
+
+[*] Job 2: Business Development Manager | Gough Recruitment QLD
+    [+] Opened: https://www.seek.com.au/job/88801229?type=standard&ref=search-standalone&origin=cardTitle#sol=ccde47b3649aae8d18d757ddff517b35d99a20e3
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [-] SKIPPED (title mismatch): Used Car Manager
+    [-] SKIPPED (title mismatch): Territory Manager - Gold Coast South
+    [🚫] BLOCKED (title): Sales & Key Accounts Manager
+    [🚫] BLOCKED (title): Team Manager | Prestige Sales Agent
+    [-] SKIPPED (title mismatch): Accounts Manager
+    [🚫] BLOCKED (title): Area Sales Manager | Gold Coast South
+
+[*] Job 9: Account Manager - Gold Coast | EatClub
+    [+] Opened: https://www.seek.com.au/job/88789338?type=standard&ref=search-standalone&origin=cardTitle#sol=002fd690524d1e7374c76cf8bb66f629ca29782d
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [🚫] BLOCKED (title): Commercial Sales Manager
+
+[*] Job 11: Insurance Broking Senior Account Manager | Gap Recruitment
+    [+] Opened: https://www.seek.com.au/job/88778002?type=standard&ref=search-standalone&origin=cardTitle#sol=9069631e6fed6b9ff39daa4f1a0efe8fc0759e08
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+
+[*] Job 12: Senior Business Development Manager – Australia & ANZ | Proceed Group
+    [+] Opened: https://www.seek.com.au/job/88690250?type=standard&ref=search-standalone&origin=cardTitle#sol=cf5e476314b2895a6cfcafc1608179926cfaf95f
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [-] SKIPPED (title mismatch): Business Manager - SEE
+    [-] SKIPPED (title mismatch): Account Executive
+    [-] SKIPPED (title mismatch): Sportscraft & JAG - Concession Manager - MYER Robina
+    [-] SKIPPED (title mismatch): Assistant Relationship Manager / Developing RM - Gold Coast
+    [-] SKIPPED (title mismatch): Snr Commercial Banker - Gold Coast
+    [-] SKIPPED (title mismatch): Territory Manager
+    [-] SKIPPED (title mismatch): Client Relationship Manager
+    [🚫] BLOCKED (title): Sales Support Representative Hope Island
+
+[*] Job 21: Customer Success Specialist | Odoo
+    [+] Opened: https://www.seek.com.au/job/88744266?type=standard&ref=search-standalone&origin=cardTitle#sol=70cea15b188a192b07faa621b8b2976a049bfe35
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [🚫] BLOCKED (title): Sales and Logistics Administrator
+[*] Next page clicked.
+
+===== PAGE 2 =====
+[*] Found 22 jobs on this page.
+    [-] SKIPPED (title mismatch): Customer Service Consultant
+
+[*] Job 2: Pharmacy Account Manager | VEC LTD
+    [+] Opened: https://www.seek.com.au/job/88734652?type=standard&ref=search-standalone&origin=cardTitle#sol=207e16a1dd011d4987d488e134bb4a6b92164f23
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [-] SKIPPED (title mismatch): Centre Manager
+
+[*] Job 4: Business Development Manager | ACE Rental
+    [+] Opened: https://www.seek.com.au/job/88733212?type=standard&ref=search-standalone&origin=cardTitle#sol=8fdd4f15ee0779cfc2a0c5c3b147c0d560c8f93c
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+
+[*] Job 5: Business Development Manager | Alloggio Pty Ltd
+    [+] Opened: https://www.seek.com.au/job/88727486?type=standard&ref=search-standalone&origin=cardTitle#sol=4786bde56d55cdb048415f6528a8ddff969c4578
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+
+[*] Job 6: Business Development Manager | Roc Consulting
+    [+] Opened: https://www.seek.com.au/job/88717207?type=standard&ref=search-standalone&origin=cardTitle#sol=a4f2033590e8d3172e128551f0c785035cac4e4e
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [🚫] BLOCKED (title): Sales & Service Manager - Pacific Fair
+    [-] SKIPPED (title mismatch): General Manager
+
+[*] Job 9: Account Manager - Bunzl Safety & Lifting Yatala | Bunzl Australasia Limited
+    [+] Opened: https://www.seek.com.au/job/88703779?type=standard&ref=search-standalone&origin=cardTitle#sol=a2ad41933cc289183476b09f182c1776d56d658a
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+
+[*] Job 10: Business Development Executive - QLD | Crommelin Recruitment
+    [+] Opened: https://www.seek.com.au/job/88679223?type=standard&ref=search-standalone&origin=cardTitle#sol=4255347ae004f453a23bdfe228d49d7f72f14e72
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+
+[*] Job 11: Business Development Manager | JPS Sales Recruitment
+    [+] Opened: https://www.seek.com.au/job/88678870?type=standard&ref=search-standalone&origin=cardTitle#sol=6a078f8d67ae6148c375d3eef60cb1931e46fd65
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+
+[*] Job 12: Relationship Manager / Business Development Manager, Dental | Henry Schein
+    [+] Opened: https://www.seek.com.au/job/88678840?type=standard&ref=search-standalone&origin=cardTitle#sol=3d93a4c94c637761a6fdce08cee42f631d99ab32
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [🚫] BLOCKED (title): Sales Manager
+
+[*] Job 14: Business Development Executive | Secure Parking Pty Ltd.
+    [+] Opened: https://www.seek.com.au/job/88673276?type=standard&ref=search-standalone&origin=cardTitle#sol=7d0e9683ea89d98a9888359c82cfe329b20baf25
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [🚫] BLOCKED (title): Residential Sales Representative Gold Coast and Northern NSW
+
+[*] Job 16: Customer Success Account Manager | NewBook
+    [+] Opened: https://www.seek.com.au/job/88667460?type=standard&ref=search-standalone&origin=cardTitle#sol=47bbe850747633f9dfd807e83c5b05c578e4869d
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [🚫] BLOCKED (title): Service & Sales Manager
+    [🚫] BLOCKED (title): Sales / Estimating Manager
+
+[*] Job 19: Business Development Coordinator | Early Learning Management
+    [+] Opened: https://www.seek.com.au/job/88650743?type=standard&ref=search-standalone&origin=cardTitle#sol=b60bbf0a4a9a7d914d5736e6b3893b7dfced7a49
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [-] SKIPPED (title mismatch): Office & Accounts Manager
+    [-] SKIPPED (title mismatch): Customer Care Manager
+    [-] SKIPPED (title mismatch): Territory Manager
+[*] Next page clicked.
+
+===== PAGE 3 =====
+[*] Found 22 jobs on this page.
+    [-] SKIPPED (title mismatch): Area Manager - QLD
+
+[*] Job 2: Business Development Manager | Solutions+
+    [+] Opened: https://www.seek.com.au/job/88626526?type=standard&ref=search-standalone&origin=cardTitle#sol=4cf924956fb3b04a204f4f2962dff93cb6b6f36d
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [🚫] BLOCKED (title): Sales & Marketing Manager - Luxury Residential Property, Gold Coast
+    [🚫] BLOCKED (title): Sales Representative – Gold Coast
+    [-] SKIPPED (title mismatch): Industry Development Specialist
+
+[*] Job 6: Business Development Manager - Hybrid WFH | G'day Group
+    [+] Opened: https://www.seek.com.au/job/88598413?type=standard&ref=search-standalone&origin=cardTitle#sol=0c208003f58831badc7552dd07e1c303848d6f69
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [🚫] BLOCKED (title): Gold Coast Sales Representative - Industrial Fasteners
+    [🚫] BLOCKED (title): Territory Sales Manager - Gold Coast, QLD
+
+[*] Job 9: Client Manager | Aon Corporation
+    [+] Opened: https://www.seek.com.au/job/88590062?type=standard&ref=search-standalone&origin=cardTitle#sol=ea6977e6d9234e9aa4a76f255b8b9d8b0e68b3d2
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+
+[*] Job 10: Account Manager | Empire Office Furniture
+    [+] Opened: https://www.seek.com.au/job/88586283?type=standard&ref=search-standalone&origin=cardTitle#sol=a66f2637e7fefb41acb255981a5ce375ef213c1a
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [🚫] BLOCKED (title): Sales Executive
+    [-] SKIPPED (title mismatch): Area Manager
+    [-] SKIPPED (title mismatch): Operations Manager
+
+[*] Job 14: Manager, Regional School Industry Partnership (RSIP) - South East Region | Queensland Department of Education
+    [+] Opened: https://www.seek.com.au/job/88546014?type=standard&ref=search-standalone&origin=cardTitle#sol=4e690784841616ab90e9fc141fcdbb3e2a81ecba
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [-] SKIPPED (title mismatch): Area Manager - Gold Coast
+    [🚫] BLOCKED (title): Conference & Events Sales Manager
+
+[*] Job 17: Business Development Manager | W Recruitment Group Australia
+    [+] Opened: https://www.seek.com.au/job/88533756?type=standard&ref=search-standalone&origin=cardTitle#sol=11cd6dbb78ae5801a7c69a3dbe63094ccbc9e931
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [-] SKIPPED (title mismatch): Relationship Manager
+    [🚫] BLOCKED (title): Sales Consultant
+    [-] SKIPPED (title mismatch): Cruise Product Manager - Broadbeach, QLD
+    [-] SKIPPED (title mismatch): Property Management Operations
+    [-] SKIPPED (title mismatch): Energy Manager
+[*] Next page clicked.
+
+===== PAGE 4 =====
+[*] Found 22 jobs on this page.
+    [🚫] BLOCKED (title): New Vehicle Sales Manager TOYOTA
+
+[*] Job 2: Customer Success Manager (Maternity Cover) | Veracross
+    [+] Opened: https://www.seek.com.au/job/88498728?type=standard&ref=search-standalone&origin=cardTitle#sol=30372a108ebb3cd080e6296976afd8cb83c47676
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [🚫] BLOCKED (title): Sales Representative
+    [-] SKIPPED (title mismatch): Store Manager
+    [-] SKIPPED (title mismatch): Trust Account and General Accounts Officer
+    [🚫] BLOCKED (title): Sales Representative (Queensland, Australia)
+
+[*] Job 7: Partnerships Account Manager | TorFX Pty Ltd
+    [+] Opened: https://www.seek.com.au/job/88475286?type=standard&ref=search-standalone&origin=cardTitle#sol=162e091d9ffa29feccd28e265e9762fdf2c15d82
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [-] SKIPPED (title mismatch): Operations Manager – Mitch Harrop Team
+    [🚫] BLOCKED (title): My Holidays Future Sales Team Leader - Broadbeach, QLD
+    [-] SKIPPED (title mismatch): Trade Manager
+
+[*] Job 11: Business Partnership Manager – Conferences Registrations & Sponsorships | AST Management
+    [+] Opened: https://www.seek.com.au/job/88452948?type=standard&ref=search-standalone&origin=cardTitle#sol=2dc94502b71b6cbe8c7cb80a6f1690cd7c57de0f
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+
+[*] Job 12: Business Development Manager | Gallery Homes
+    [+] Opened: https://www.seek.com.au/job/88451772?type=standard&ref=search-standalone&origin=cardTitle#sol=b2bac2a359225fc81c3b3348c3e559aa62ce18e2
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+
+[*] Job 13: Business Development Manager | Azzet Inc.
+    [+] Opened: https://www.seek.com.au/job/88450119?type=standard&ref=search-standalone&origin=cardTitle#sol=2c6d4cc0de1597a6a153a908e877e7e66605d836
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [🚫] BLOCKED (title): Used Vehicle Sales Manager - Beaudesert
+
+[*] Job 15: Business Development Manager | Village Roadshow Theme Parks Pty Ltd
+    [+] Opened: https://www.seek.com.au/job/88441850?type=standard&ref=search-standalone&origin=cardTitle#sol=ccd3af6feb145455f65c93f279706a56afb5a3f9
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [🚫] BLOCKED (title): Sales Rep
+    [-] SKIPPED (title mismatch): Retail Manager - Guzman Y Gomez
+    [🚫] BLOCKED (title): Strategic Sales Executive (HVAC/R Products)
+
+[*] Job 19: Business Development Manager - Gold Coast | Vision Intelligence
+    [+] Opened: https://www.seek.com.au/job/88424138?type=standard&ref=search-standalone&origin=cardTitle#sol=4547e5ed8a7088c13fc988ebbb9a51c6e63da5bb
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [-] SKIPPED (title mismatch): Senior Brand Manager
+    [🚫] BLOCKED (title): Automotive Business Manager - Finance and Insurance Sales
+    [-] SKIPPED (title mismatch): Wealth Solutions Partner, Northern NSW
+[*] Next page clicked.
+
+===== PAGE 5 =====
+[*] Found 0 jobs on this page.
+[!] No job cards found.
+
+==============================
+🔎 SEARCHING FOR: customer success
+==============================
+
+[*] Opening search for: customer success
+    URL: https://www.seek.com.au/jobs?keywords=customer%20success&where=Gold%20Coast&sortmode=ListedDate
+
+===== PAGE 1 =====
+[*] Found 22 jobs on this page.
+    [-] SKIPPED (title mismatch): Production Team Members
+    [-] SKIPPED (title mismatch): Data Engineer
+    [-] SKIPPED (title mismatch): Maintenance Technician
+    [-] SKIPPED (title mismatch): Junior Accounts Clerk
+    [-] SKIPPED (title mismatch): Territory Manager - Gold Coast South
+    [-] SKIPPED (title mismatch): Unit Business Manager- Ecology
+    [🚫] BLOCKED (title): Casual Sales Consultant
+    [🚫] BLOCKED (title): Casual Sales Consultant
+    [-] SKIPPED (title mismatch): Primary Care Representative
+    [-] SKIPPED (title mismatch): LVMH Fashion Group - Client Advisor - Gold Coast
+
+[*] Job 11: Account Manager - Gold Coast | EatClub
+    [+] Opened: https://www.seek.com.au/job/88789338?type=standard&ref=search-standalone&origin=cardTitle#sol=80bf08d428e9297a2ff5d3eb44d66a65191b65f1
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [🚫] BLOCKED (title): Sales Estimator - Residential Project Builder
+    [-] SKIPPED (title mismatch): Receptionist - Southport
+    [-] SKIPPED (title mismatch): Warehouse Assistant
+    [-] SKIPPED (title mismatch): Customer Service Representative
+    [-] SKIPPED (title mismatch): Store Manager
+
+[*] Job 17: Senior Business Development Manager – Australia & ANZ | Proceed Group
+    [+] Opened: https://www.seek.com.au/job/88690250?type=standard&ref=search-standalone&origin=cardTitle#sol=b182dd1db26fb6bdb4c4b03492771d12ed9b286d
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [-] SKIPPED (title mismatch): Parts Interpreter / Trainee Parts Interpreter | Automotive
+    [-] SKIPPED (title mismatch): Assistant Store Manager | Prouds Pacific Fair 2
+    [-] SKIPPED (title mismatch): Sportscraft & JAG - Concession Manager - MYER Robina
+    [-] SKIPPED (title mismatch): Retail Stock Coordinator
+    [🚫] BLOCKED (title): Internal Sales
+[*] Next page clicked.
+
+===== PAGE 2 =====
+[*] Found 0 jobs on this page.
+[!] No job cards found.
+
+==============================
+🔎 SEARCHING FOR: client manager
+==============================
+
+[*] Opening search for: client manager
+    URL: https://www.seek.com.au/jobs?keywords=client%20manager&where=Gold%20Coast&sortmode=ListedDate
+
+===== PAGE 1 =====
+[*] Found 22 jobs on this page.
+    [-] SKIPPED (title mismatch): Unit Business Manager- Ecology
+
+[*] Job 2: Insurance Broking Senior Account Manager | Gap Recruitment
+    [+] Opened: https://www.seek.com.au/job/88778002?type=standard&ref=search-standalone&origin=cardTitle#sol=50ba630fdca53581cb225abc2b6384cc0a9b8cf7
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+
+[*] Job 3: Senior Business Development Manager – Australia & ANZ | Proceed Group
+    [+] Opened: https://www.seek.com.au/job/88690250?type=standard&ref=search-standalone&origin=cardTitle#sol=8ff45679bfa4f82c7302ef16b8b637a1492ece1c
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [-] SKIPPED (title mismatch): Strata Manager
+    [-] SKIPPED (title mismatch): Business Manager - SEE
+    [-] SKIPPED (title mismatch): Assistant Relationship Manager / Developing RM - Gold Coast
+    [-] SKIPPED (title mismatch): Refurbishment Project Delivery Manager
+    [-] SKIPPED (title mismatch): Marketing and Client Relations Manager
+    [-] SKIPPED (title mismatch): Client Services Manager
+    [-] SKIPPED (title mismatch): Client Relationship Manager
+    [-] SKIPPED (title mismatch): Floor Manager - Pacific Fair
+    [-] SKIPPED (title mismatch): Centre Manager
+
+[*] Job 13: Business Development Manager | Alloggio Pty Ltd
+    [+] Opened: https://www.seek.com.au/job/88727486?type=standard&ref=search-standalone&origin=cardTitle#sol=f9de6cc2984bbb71e64e04030f203171fc7b2450
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [-] SKIPPED (title mismatch): Beverage Mgr, Dual Site Role, Premium Restaurant Group, Jan 26 Start, to 90K+S
+
+[*] Job 15: Business Development Manager (Waste Treatment Services) | HiQ Group
+    [+] Opened: https://www.seek.com.au/job/88719076?type=standard&ref=search-standalone&origin=cardTitle#sol=98e2ed75d9de4ee717502293e201bdd8a164ef37
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [-] SKIPPED (title mismatch): Client Services Officer
+    [-] SKIPPED (title mismatch): Assistant Commercial Property Manager
+
+[*] Job 18: Business Development Manager | JPS Sales Recruitment
+    [+] Opened: https://www.seek.com.au/job/88678870?type=standard&ref=search-standalone&origin=cardTitle#sol=f7e2c4b2edfe3cc39a928740f5a1d190cc15a384
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+
+[*] Job 19: Customer Success Account Manager | NewBook
+    [+] Opened: https://www.seek.com.au/job/88667460?type=standard&ref=search-standalone&origin=cardTitle#sol=427ec6b3127e98219d0048f3bee9bdecdcf615fe
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [-] SKIPPED (title mismatch): Commercial Manager
+
+[*] Job 21: Business Development Coordinator | Early Learning Management
+    [+] Opened: https://www.seek.com.au/job/88650743?type=standard&ref=search-standalone&origin=cardTitle#sol=03d9bb5291e8ce439a097caad264ab1431ea5277
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [-] SKIPPED (title mismatch): Client Services Officer
+[*] Next page clicked.
+
+===== PAGE 2 =====
+[*] Found 22 jobs on this page.
+    [-] SKIPPED (title mismatch): Customer Care Manager
+
+[*] Job 2: Business Development Manager | Solutions+
+    [+] Opened: https://www.seek.com.au/job/88626526?type=standard&ref=search-standalone&origin=cardTitle#sol=cdd28ff2cc10fd9a7c285b8776ff4f1466327573
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [-] SKIPPED (title mismatch): CSO / CSM
+    [-] SKIPPED (title mismatch): Assistant Strata Manager
+    [-] SKIPPED (title mismatch): Box Office Manager
+
+[*] Job 6: Client Manager | Aon Corporation
+    [+] Opened: https://www.seek.com.au/job/88590062?type=standard&ref=search-standalone&origin=cardTitle#sol=01e4ef1ffbe8bf43a272c3031c47d933f2cf8b95
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [-] SKIPPED (title mismatch): Recruitment Team Leader - Aged Care
+
+[*] Job 8: Account Manager | Empire Office Furniture
+    [+] Opened: https://www.seek.com.au/job/88586283?type=standard&ref=search-standalone&origin=cardTitle#sol=556afc40ca68855e09912f6924f467008dae2f22
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [-] SKIPPED (title mismatch): Client Experience Representatives
+    [-] SKIPPED (title mismatch): Client Services & Administration Officer
+    [🚫] BLOCKED (title): National Sales & Admissions Manager
+    [🚫] BLOCKED (title): Conference & Events Sales Manager
+
+[*] Job 13: Business Development Manager | W Recruitment Group Australia
+    [+] Opened: https://www.seek.com.au/job/88533756?type=standard&ref=search-standalone&origin=cardTitle#sol=5a14c37ee50eabfa40667331cc7328adca4ee076
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [-] SKIPPED (title mismatch): Relationship Manager
+    [-] SKIPPED (title mismatch): Assistant Manager / Manager - Business Advisory Services & Tax
+    [-] SKIPPED (title mismatch): Energy Manager
+    [-] SKIPPED (title mismatch): Client Service Officer
+
+[*] Job 18: Customer Success Manager (Maternity Cover) | Veracross
+    [+] Opened: https://www.seek.com.au/job/88498728?type=standard&ref=search-standalone&origin=cardTitle#sol=e7411e889be4594ab96f5424c1315dbc394e06b6
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [-] SKIPPED (title mismatch): Financial Advisor/Paraplanner
+
+[*] Job 20: Partnerships Account Manager | TorFX Pty Ltd
+    [+] Opened: https://www.seek.com.au/job/88475286?type=standard&ref=search-standalone&origin=cardTitle#sol=2b4220f3597e3364a38b45e407bca02f6de23584
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [-] SKIPPED (title mismatch): Consulting Suites Manager
+    [-] SKIPPED (title mismatch): Client Services Officer, Accounting
+[*] Next page clicked.
+
+===== PAGE 3 =====
+[*] Found 0 jobs on this page.
+[!] No job cards found.
+
+==============================
+🔎 SEARCHING FOR: partnership
+==============================
+
+[*] Opening search for: partnership
+    URL: https://www.seek.com.au/jobs?keywords=partnership&where=Gold%20Coast&sortmode=ListedDate
+
+===== PAGE 1 =====
+[*] Found 22 jobs on this page.
+    [-] SKIPPED (title mismatch): Territory Manager - Gold Coast South
+    [-] SKIPPED (title mismatch): Unit Business Manager- Ecology
+    [-] SKIPPED (title mismatch): Social Responsibility Engagement Lead
+
+[*] Job 4: Senior Business Development Manager – Australia & ANZ | Proceed Group
+    [+] Opened: https://www.seek.com.au/job/88690250?type=standard&ref=search-standalone&origin=cardTitle#sol=6924b801451479f857c465609e0194f9c128ea26
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [-] SKIPPED (title mismatch): Digital Marketing Coordinator
+    [-] SKIPPED (title mismatch): Assistant Relationship Manager / Developing RM - Gold Coast
+    [-] SKIPPED (title mismatch): Marketing and Client Relations Manager
+    [-] SKIPPED (title mismatch): Client Services Manager
+    [-] SKIPPED (title mismatch): Accountant
+    [-] SKIPPED (title mismatch): Centre Manager
+    [-] SKIPPED (title mismatch): Principal Advisor (Real-time Network Management)
+
+[*] Job 12: Business Development Manager | Alloggio Pty Ltd
+    [+] Opened: https://www.seek.com.au/job/88727486?type=standard&ref=search-standalone&origin=cardTitle#sol=82d42fbd03f554993c23d60cd6753af2497755df
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+
+[*] Job 13: Growth Marketing Manager | Gybe Consulting
+    [+] Opened: https://www.seek.com.au/job/88726388?type=standard&ref=search-standalone&origin=cardTitle#sol=46cdd42e8695b9f332ac057f70cde2fbaf34bf48
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [-] SKIPPED (title mismatch): RN Cosmetic Nurse
+
+[*] Job 15: Business Development Manager (Waste Treatment Services) | HiQ Group
+    [+] Opened: https://www.seek.com.au/job/88719076?type=standard&ref=search-standalone&origin=cardTitle#sol=63fde008e80ca9583c6751c5710af12d147fb36f
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [-] SKIPPED (title mismatch): Industrial Relations Advisor
+    [-] SKIPPED (title mismatch): Senior Advisor (Subcontractor and Supplier Engagement)
+    [-] SKIPPED (title mismatch): Marketing Data Operations Specialist
+    [-] SKIPPED (title mismatch): SENIOR ACCOUNTANT | ROBINA | UP TO $110K + SUPER
+
+[*] Job 20: Business Development Manager | JPS Sales Recruitment
+    [+] Opened: https://www.seek.com.au/job/88678870?type=standard&ref=search-standalone&origin=cardTitle#sol=95b2f8c8ca5cfb470d6b8157053d599a7e14327b
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+
+[*] Job 21: Relationship Manager / Business Development Manager, Dental | Henry Schein
+    [+] Opened: https://www.seek.com.au/job/88678840?type=standard&ref=search-standalone&origin=cardTitle#sol=9abc4608108820dacd4f37c45a96c0804bd77ec4
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [-] SKIPPED (title mismatch): Event Operations Manager
+[*] Next page clicked.
+
+===== PAGE 2 =====
+[*] Found 0 jobs on this page.
+[!] No job cards found.
+
+==============================
+🔎 SEARCHING FOR: growth
+==============================
+
+[*] Opening search for: growth
+    URL: https://www.seek.com.au/jobs?keywords=growth&where=Gold%20Coast&sortmode=ListedDate
+
+===== PAGE 1 =====
+[*] Found 22 jobs on this page.
+    [-] SKIPPED (title mismatch): Finance Manager
+    [-] SKIPPED (title mismatch): Data Engineer
+    [-] SKIPPED (title mismatch): Real Estate Investment Associate
+    [-] SKIPPED (title mismatch): Appointment Setter
+    [-] SKIPPED (title mismatch): Operations Manager
+    [-] SKIPPED (title mismatch): Occupational Therapist & Speech Pathologist | Tailored Caseloads + Company Car
+
+[*] Job 7: Business Development Manager | Gough Recruitment QLD
+    [+] Opened: https://www.seek.com.au/job/88801229?type=standard&ref=search-standalone&origin=cardTitle#sol=69e3544258ed333f60044cacb8fe9cb51df4e97f
+    [-] No apply button found.
+    [*] Cooldown: waiting 1s before next job...
+    [-] SKIPPED (title mismatch): Used Car Manager
+    [-] SKIPPED (title mismatch): Mental Health Support Worker Gold Coast
+    [🚫] BLOCKED (title): Sales Associate | High Performing Team
+    [-] SKIPPED (title mismatch): Territory Manager - Gold Coast South
+    [-] SKIPPED (title mismatch): Unit Business Manager- Ecology
+    [🚫] BLOCKED (title): Sales & Key Accounts Manager
+    [-] SKIPPED (title mismatch): Digital and Marketing Manager
+    [🚫] BLOCKED (title): Team Manager | Prestige Sales Agent
+    [-] SKIPPED (title mismatch): General Manager
+    [-] SKIPPED (title mismatch): Disability Supports Facilitator
+    [-] SKIPPED (title mismatch): Director of Teaching and Learning
+    [-] SKIPPED (title mismatch): Web Developer
+    [🚫] BLOCKED (title): Casual Sales Consultant
+    [🚫] BLOCKED (title): Casual Sales Consultant
+    [-] SKIPPED (title mismatch): Housing Case Manager
+[*] Next page clicked.
+
+===== PAGE 2 =====
+[*] Found 0 jobs on this page.
+[!] No job cards found.
+
+[*] DONE — Successfully submitted 5 REAL applications.
+[INDEED BOT] Scan: 50% | Apply: 50% | Cooldown: 5s | Stealth: OFF
+[*] Starting Indeed bot...
+
+==================================================
+🟣 INDEED BOT STARTED
+==================================================
+Target: 100 applications
+Location: Brisbane, Australia
+Job Titles: project manager, program manager, delivery manager, project lead, scrum master, agile, transformation
+==================================================
+
+[*] Indeed: Already logged in.
+
+==============================
+🟣 INDEED: Searching for 'project manager'
+==============================
+
+[*] URL: https://au.indeed.com/jobs?q=project+manager&l=Brisbane&sort=date
+
+===== PAGE 1 =====
+[*] Found 16 Indeed jobs on this page.
+    [-] SKIPPED (no Easily Apply): GAZ - APS 4 - QLD - Project Administrator - Federal Court of Australia
+    [-] SKIPPED (no Easily Apply): Project Director
+    [-] SKIPPED (no Easily Apply): Senior Project Manager | Power Projects
+    [-] SKIPPED (no Easily Apply): Project Information Manager
+    [🚫] BLOCKED (title): Assistant Project Manager
+
+[*] Indeed Job 6: Civil Project Manager | JK Williams ✓ Easily Apply
+    [+] Found Apply now button
+    [🤖 GPT] Job check: YES - Civil Project Manager role aligns with project, delivery, and transformation management in construction.
+    [+] Clicked Indeed Apply button
+    [*] Switched to apply window
+    [*] Cloudflare verification detected, waiting...
+    [+] Verification completed
+    [*] Cloudflare verification detected, waiting...
+    [+] Verification completed
+    [+] Logged to Excel → Civil Project Manager @ JK Williams (Indeed)
+    [+] SUBMITTED to Indeed!
+    [+] Successful submissions: 1
+    [*] Cooldown: waiting 5s before next job...
+    [-] SKIPPED (no Easily Apply): Project Manager - Part-time
+
+[*] Indeed Job 8: Survey Project Manager - Spatial | Bennett + Bennett ✓ Easily Apply
+    [+] Found Apply now button
+    [🤖 GPT] Job check: YES - Role involves leading project delivery, suitable for project, program, delivery managers, and agile roles.
+    [+] Clicked Indeed Apply button
+    [*] Switched to apply window
+    [*] Cloudflare verification detected, waiting...
+    [+] Verification completed
+    [*] Cloudflare verification detected, waiting...
+    [+] Verification completed
+    [+] Logged to Excel → Survey Project Manager - Spatial @ Bennett + Bennett (Indeed)
+    [+] SUBMITTED to Indeed!
+    [+] Successful submissions: 2
+    [*] Cooldown: waiting 5s before next job...
+
+[*] Indeed Job 9: Renovation Manager (Project Manager) | Marine Online (Singapore) ✓ Easily Apply
+    [+] Found Apply now button
+    [🤖 GPT] Job check: YES - Role involves project management, coordination, and delivery in renovation projects, aligning with target roles.
+    [+] Clicked Indeed Apply button
+    [*] Switched to apply window
+    [*] Cloudflare verification detected, waiting...
+    [+] Verification completed
+    [*] Cloudflare verification detected, waiting...
+    [+] Verification completed
+    [+] Logged to Excel → Renovation Manager (Project Manager) @ Marine Online (Singapore) (Indeed)
+    [+] SUBMITTED to Indeed!
+    [+] Successful submissions: 3
+    [*] Cooldown: waiting 5s before next job...
+    [-] SKIPPED (no Easily Apply): Electrical Project Manager
+    [-] SKIPPED (no Easily Apply): Renewables Project Manager
+    [-] SKIPPED (no Easily Apply): Project Manager
+    [-] SKIPPED (title mismatch): Unknown
+    [-] SKIPPED (no Easily Apply): Electrical Project Manager
+    [-] SKIPPED (no Easily Apply): Senior Project Manager - Client Side
+
+[*] Indeed Job 16: Project Manager | Ezidebit AUS ✓ Easily Apply
+    [+] Found Apply now button
+    [🤖 GPT] Job check: YES - Role is Project Manager, aligns with project, program, delivery management, and transformation focus.
+    [+] Clicked Indeed Apply button
+    [*] Switched to apply window
+    [*] Cloudflare verification detected, waiting...
+    [!] Indeed apply form error: Message: invalid session id; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#invalidsessionidexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0xc70d23
+	0xc70d64
+	0xa5e52b
+	0xa9c635
+	0xacb3a6
+	0xac6ed1
+	0xac6846
+	0xa2ebfd
+	0xa2f18e
+	0xa2f65d
+	0xec4d64
+	0xec031b
+	0xedcbfa
+	0xc8ac28
+	0xc92c2d
+	0xa2e7ab
+	0xa2ddf7
+	0x10111ff
+	0x76af5d49
+	0x7714d6cb
+	0x7714d651
+
+[!] Indeed bot error: Message: invalid session id; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#invalidsessionidexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0xc70d23
+	0xc70d64
+	0xa5e52b
+	0xa9c635
+	0xacb3a6
+	0xac6ed1
+	0xac6846
+	0xa2ebfd
+	0xa2f18e
+	0xa2f65d
+	0xec4d64
+	0xec031b
+	0xedcbfa
+	0xc8ac28
+	0xc92c2d
+	0xa2e7ab
+	0xa2ddf7
+	0x10111ff
+	0x76af5d49
+	0x7714d6cb
+	0x7714d651
+

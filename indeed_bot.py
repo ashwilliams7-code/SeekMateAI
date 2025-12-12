@@ -323,7 +323,22 @@ def build_indeed_url(job_title, location):
 def init_browser():
     """Initialize Chrome for Indeed"""
     chrome_options = Options()
-    chrome_options.add_argument("--start-maximized")
+    
+    # Check if running in headless mode (for VPS/server deployment)
+    run_headless = os.getenv("RUN_HEADLESS", "false").lower() == "true"
+    
+    if run_headless:
+        # Headless mode for server/VPS deployment
+        chrome_options.add_argument("--headless=new")  # Use new headless mode
+        chrome_options.add_argument("--no-sandbox")  # Required for Docker/some VPS
+        chrome_options.add_argument("--disable-dev-shm-usage")  # Prevents crashes
+        chrome_options.add_argument("--disable-gpu")  # GPU not needed headless
+        chrome_options.add_argument("--window-size=1920,1080")  # Set window size
+        print("[INFO] Running in HEADLESS mode (VPS/server deployment)")
+    else:
+        # Normal mode with visible browser
+        chrome_options.add_argument("--start-maximized")
+    
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
     chrome_options.add_experimental_option("excludeSwitches", ["enable-automation"])
     chrome_options.add_experimental_option("useAutomationExtension", False)

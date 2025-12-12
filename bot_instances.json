@@ -1,0 +1,16 @@
+{
+    "ASH 1": {
+        "config_file": "C:\\Users\\user\\Documents\\SeekMateAI\\bot_instances\\ASH 1_config.json",
+        "chrome_profile": "chrome_profile_ASH 1",
+        "log_file": "C:\\Users\\user\\Documents\\SeekMateAI\\log_ASH 1.txt",
+        "control_file": "C:\\Users\\user\\Documents\\SeekMateAI\\control_ASH 1.json",
+        "status": "stopped"
+    },
+    "Ash 2": {
+        "config_file": "C:\\Users\\user\\Documents\\SeekMateAI\\bot_instances\\Ash 2_config.json",
+        "chrome_profile": "chrome_profile_Ash 2",
+        "log_file": "C:\\Users\\user\\Documents\\SeekMateAI\\log_Ash 2.txt",
+        "control_file": "C:\\Users\\user\\Documents\\SeekMateAI\\control_Ash 2.json",
+        "status": "stopped"
+    }
+}

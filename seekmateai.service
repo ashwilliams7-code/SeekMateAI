@@ -1,0 +1,26 @@
+[Unit]
+Description=SeekMateAI Continuous Runner - 24/7 Job Application Bot
+After=network.target
+
+[Service]
+Type=simple
+User=seekmate
+Group=seekmate
+WorkingDirectory=/home/seekmate/seekmateai
+Environment="PATH=/home/seekmate/seekmateai/venv/bin:/usr/local/bin:/usr/bin:/bin"
+Environment="RUN_HEADLESS=true"
+Environment="DISPLAY=:99"
+
+ExecStart=/home/seekmate/seekmateai/venv/bin/python /home/seekmate/seekmateai/run_continuous.py
+Restart=always
+RestartSec=10
+StandardOutput=journal
+StandardError=journal
+
+# Security settings
+NoNewPrivileges=true
+PrivateTmp=true
+
+[Install]
+WantedBy=multi-user.target
+

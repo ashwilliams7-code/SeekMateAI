@@ -1,0 +1,894 @@
+  File "C:\Users\user\Documents\SeekMateAI\bot_instances\ASH 1_runner.py", line 9
+    os.environ['BOT_LOG_FILE'] = 'C:\Users\user\Documents\SeekMateAI\log_ASH 1.txt'
+                                                                                   ^
+SyntaxError: (unicode error) 'unicodeescape' codec can't decode bytes in position 2-3: truncated \UXXXXXXXX escape
+[INSTANCE] Running as instance: ASH 1
+[INSTANCE] Config: C:\\Users\\user\\Documents\\SeekMateAI\\bot_instances\\ASH 1_config.json
+[INSTANCE] Chrome Profile: chrome_profile_ASH 1
+[INSTANCE] Log: C:\\Users\\user\\Documents\\SeekMateAI\\log_ASH 1.txt
+[CONFIG RELOADED] Scan: 8% | Apply: 8% | Cooldown: 5s | Stealth: OFF
+[CONFIG RELOADED] Max Jobs: 100 | Location: Brisbane, Australia
+[BLOCKLIST] Companies: kpmg
+[BLOCKLIST] Titles: sales, assistant
+[CONFIG RELOADED] Scan: 8% | Apply: 8% | Cooldown: 5s | Stealth: OFF
+[CONFIG RELOADED] Max Jobs: 100 | Location: Brisbane, Australia
+[INSTANCE] Using Chrome profile: C:\Users\user\Documents\SeekMateAI\chrome_profile_ASH 1
+[INSTANCE] Remote debugging port: 10123
+[Gmail] Gmail cleanup is disabled in config
+[CONFIG RELOADED] Scan: 8% | Apply: 8% | Cooldown: 5s | Stealth: OFF
+[CONFIG RELOADED] Max Jobs: 100 | Location: Brisbane, Australia
+[!] Not logged in. Log in manually...
+Press ENTER after logging in...Traceback (most recent call last):
+  File "C:\Users\user\Documents\SeekMateAI\bot_instances\ASH 1_runner.py", line 15, in <module>
+    main.main()
+  File "C:\\Users\\user\\Documents\\SeekMateAI\main.py", line 2600, in main
+    bot.run()
+  File "C:\\Users\\user\\Documents\\SeekMateAI\main.py", line 2366, in run
+    self.ensure_logged_in()
+  File "C:\\Users\\user\\Documents\\SeekMateAI\main.py", line 826, in ensure_logged_in
+    input("Press ENTER after logging in...")
+EOFError: EOF when reading a line
+[INSTANCE] Running as instance: ASH 1
+[INSTANCE] Config: C:\\Users\\user\\Documents\\SeekMateAI\\bot_instances\\ASH 1_config.json
+[INSTANCE] Chrome Profile: chrome_profile_ASH 1
+[INSTANCE] Log: C:\\Users\\user\\Documents\\SeekMateAI\\log_ASH 1.txt
+[CONFIG RELOADED] Scan: 8% | Apply: 8% | Cooldown: 5s | Stealth: OFF
+[CONFIG RELOADED] Max Jobs: 100 | Location: Brisbane, Australia
+[BLOCKLIST] Companies: kpmg
+[BLOCKLIST] Titles: sales, assistant
+[CONFIG RELOADED] Scan: 8% | Apply: 8% | Cooldown: 5s | Stealth: OFF
+[CONFIG RELOADED] Max Jobs: 100 | Location: Brisbane, Australia
+[INSTANCE] Using Chrome profile: C:\Users\user\Documents\SeekMateAI\chrome_profile_ASH 1
+[INSTANCE] Remote debugging port: 9861
+[Gmail] Gmail cleanup is disabled in config
+[CONFIG RELOADED] Scan: 8% | Apply: 8% | Cooldown: 5s | Stealth: OFF
+[CONFIG RELOADED] Max Jobs: 100 | Location: Brisbane, Australia
+Traceback (most recent call last):
+  File "C:\Users\user\Documents\SeekMateAI\bot_instances\ASH 1_runner.py", line 15, in <module>
+    main.main()
+  File "C:\\Users\\user\\Documents\\SeekMateAI\main.py", line 2614, in main
+    bot.run()
+  File "C:\\Users\\user\\Documents\\SeekMateAI\main.py", line 2380, in run
+    self.ensure_logged_in()
+  File "C:\\Users\\user\\Documents\\SeekMateAI\main.py", line 823, in ensure_logged_in
+    sign_in = self.driver.find_elements(By.XPATH, "//a[contains(., 'Sign in')]")
+  File "C:\Users\user\AppData\Local\Programs\Python\Python310\lib\site-packages\selenium\webdriver\remote\webdriver.py", line 967, in find_elements
+    return self.execute(Command.FIND_ELEMENTS, {"using": by, "value": value})["value"] or []
+  File "C:\Users\user\AppData\Local\Programs\Python\Python310\lib\site-packages\selenium\webdriver\remote\webdriver.py", line 458, in execute
+    self.error_handler.check_response(response)
+  File "C:\Users\user\AppData\Local\Programs\Python\Python310\lib\site-packages\selenium\webdriver\remote\errorhandler.py", line 233, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.InvalidSessionIdException: Message: invalid session id: session deleted as the browser has closed the connection
+from disconnected: not connected to DevTools
+  (Session info: chrome=143.0.7499.41); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#invalidsessionidexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x3d0d13
+	0x3d0d54
+	0x1be6dd
+	0x1ad99e
+	0x1cc4e6
+	0x2321d8
+	0x24d44c
+	0x22b2e6
+	0x1fd321
+	0x1fe1d4
+	0x624d54
+	0x62030b
+	0x63cbea
+	0x3eac18
+	0x3f2c1d
+	0x3d9018
+	0x3d91d9
+	0x3c3568
+	0x76375d49
+	0x7714d6cb
+	0x7714d651
+	0
+
+[INSTANCE] Running as instance: ASH 1
+[INSTANCE] Config: C:\\Users\\user\\Documents\\SeekMateAI\\bot_instances\\ASH 1_config.json
+[INSTANCE] Chrome Profile: chrome_profile_ASH 1
+[INSTANCE] Log: C:\\Users\\user\\Documents\\SeekMateAI\\log_ASH 1.txt
+[CONFIG RELOADED] Scan: 8% | Apply: 8% | Cooldown: 5s | Stealth: OFF
+[CONFIG RELOADED] Max Jobs: 100 | Location: Brisbane, Australia
+[BLOCKLIST] Companies: kpmg
+[BLOCKLIST] Titles: sales, assistant
+[CONFIG RELOADED] Scan: 8% | Apply: 8% | Cooldown: 5s | Stealth: OFF
+[CONFIG RELOADED] Max Jobs: 100 | Location: Brisbane, Australia
+[INSTANCE] Using Chrome profile: C:\Users\user\Documents\SeekMateAI\chrome_profile_ASH 1
+[INSTANCE] Remote debugging port: 9769
+[Gmail] Gmail cleanup is disabled in config
+[CONFIG RELOADED] Scan: 8% | Apply: 8% | Cooldown: 5s | Stealth: OFF
+[CONFIG RELOADED] Max Jobs: 100 | Location: Brisbane, Australia
+Traceback (most recent call last):
+  File "C:\Users\user\Documents\SeekMateAI\bot_instances\ASH 1_runner.py", line 15, in <module>
+    main.main()
+  File "C:\\Users\\user\\Documents\\SeekMateAI\main.py", line 2614, in main
+    bot.run()
+  File "C:\\Users\\user\\Documents\\SeekMateAI\main.py", line 2380, in run
+    self.ensure_logged_in()
+  File "C:\\Users\\user\\Documents\\SeekMateAI\main.py", line 823, in ensure_logged_in
+    sign_in = self.driver.find_elements(By.XPATH, "//a[contains(., 'Sign in')]")
+  File "C:\Users\user\AppData\Local\Programs\Python\Python310\lib\site-packages\selenium\webdriver\remote\webdriver.py", line 967, in find_elements
+    return self.execute(Command.FIND_ELEMENTS, {"using": by, "value": value})["value"] or []
+  File "C:\Users\user\AppData\Local\Programs\Python\Python310\lib\site-packages\selenium\webdriver\remote\webdriver.py", line 458, in execute
+    self.error_handler.check_response(response)
+  File "C:\Users\user\AppData\Local\Programs\Python\Python310\lib\site-packages\selenium\webdriver\remote\errorhandler.py", line 233, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.InvalidSessionIdException: Message: invalid session id: session deleted as the browser has closed the connection
+from disconnected: not connected to DevTools
+  (Session info: chrome=143.0.7499.41); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#invalidsessionidexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x3d0d13
+	0x3d0d54
+	0x1be6dd
+	0x1ad99e
+	0x1cc4e6
+	0x2321d8
+	0x24d44c
+	0x22b2e6
+	0x1fd321
+	0x1fe1d4
+	0x624d54
+	0x62030b
+	0x63cbea
+	0x3eac18
+	0x3f2c1d
+	0x3d9018
+	0x3d91d9
+	0x3c3568
+	0x76375d49
+	0x7714d6cb
+	0x7714d651
+	0
+
+[INSTANCE] Running as instance: ASH 1
+[INSTANCE] Config: C:\\Users\\user\\Documents\\SeekMateAI\\bot_instances\\ASH 1_config.json
+[INSTANCE] Chrome Profile: chrome_profile_ASH 1
+[INSTANCE] Log: C:\\Users\\user\\Documents\\SeekMateAI\\log_ASH 1.txt
+[CONFIG RELOADED] Scan: 8% | Apply: 8% | Cooldown: 5s | Stealth: OFF
+[CONFIG RELOADED] Max Jobs: 100 | Location: Brisbane, Australia
+[BLOCKLIST] Companies: kpmg
+[BLOCKLIST] Titles: sales, assistant
+[CONFIG RELOADED] Scan: 8% | Apply: 8% | Cooldown: 5s | Stealth: OFF
+[CONFIG RELOADED] Max Jobs: 100 | Location: Brisbane, Australia
+[INSTANCE] Using Chrome profile: C:\Users\user\Documents\SeekMateAI\chrome_profile_ASH 1
+[INSTANCE] Remote debugging port: 10027
+[Gmail] Gmail cleanup is disabled in config
+[CONFIG RELOADED] Scan: 8% | Apply: 8% | Cooldown: 5s | Stealth: OFF
+[CONFIG RELOADED] Max Jobs: 100 | Location: Brisbane, Australia
+Traceback (most recent call last):
+  File "C:\Users\user\Documents\SeekMateAI\bot_instances\ASH 1_runner.py", line 15, in <module>
+    main.main()
+  File "C:\\Users\\user\\Documents\\SeekMateAI\main.py", line 2614, in main
+    bot.run()
+  File "C:\\Users\\user\\Documents\\SeekMateAI\main.py", line 2380, in run
+    self.ensure_logged_in()
+  File "C:\\Users\\user\\Documents\\SeekMateAI\main.py", line 823, in ensure_logged_in
+    sign_in = self.driver.find_elements(By.XPATH, "//a[contains(., 'Sign in')]")
+  File "C:\Users\user\AppData\Local\Programs\Python\Python310\lib\site-packages\selenium\webdriver\remote\webdriver.py", line 967, in find_elements
+    return self.execute(Command.FIND_ELEMENTS, {"using": by, "value": value})["value"] or []
+  File "C:\Users\user\AppData\Local\Programs\Python\Python310\lib\site-packages\selenium\webdriver\remote\webdriver.py", line 458, in execute
+    self.error_handler.check_response(response)
+  File "C:\Users\user\AppData\Local\Programs\Python\Python310\lib\site-packages\selenium\webdriver\remote\errorhandler.py", line 233, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.InvalidSessionIdException: Message: invalid session id: session deleted as the browser has closed the connection
+from disconnected: not connected to DevTools
+  (Session info: chrome=143.0.7499.41); For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#invalidsessionidexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x3d0d13
+	0x3d0d54
+	0x1be6dd
+	0x1ad99e
+	0x1cc4e6
+	0x2321d8
+	0x24d44c
+	0x22b2e6
+	0x1fd321
+	0x1fe1d4
+	0x624d54
+	0x62030b
+	0x63cbea
+	0x3eac18
+	0x3f2c1d
+	0x3d9018
+	0x3d91d9
+	0x3c3568
+	0x76375d49
+	0x7714d6cb
+	0x7714d651
+	0
+
+[INSTANCE] Using log file: C:\\Users\\user\\Documents\\SeekMateAI\\log_ASH 1.txt
+[INSTANCE] Using config file: C:\\Users\\user\\Documents\\SeekMateAI\\bot_instances\\ASH 1_config.json
+[INSTANCE] Using control file: C:\\Users\\user\\Documents\\SeekMateAI\\control_ASH 1.json
+[CONFIG RELOADED] Scan: 8% | Apply: 8% | Cooldown: 5s | Stealth: OFF
+[CONFIG RELOADED] Max Jobs: 100 | Location: Brisbane, Australia
+[BLOCKLIST] Companies: kpmg
+[BLOCKLIST] Titles: sales, assistant
+[CONFIG RELOADED] Scan: 8% | Apply: 8% | Cooldown: 5s | Stealth: OFF
+[CONFIG RELOADED] Max Jobs: 100 | Location: Brisbane, Australia
+[INSTANCE] Chrome Profile: chrome_profile_ASH 1
+[INSTANCE] Using Chrome profile: C:\Users\user\Documents\SeekMateAI\chrome_profile_ASH 1
+[Gmail] Gmail cleanup is disabled in config
+[CONFIG RELOADED] Scan: 8% | Apply: 8% | Cooldown: 5s | Stealth: OFF
+[CONFIG RELOADED] Max Jobs: 100 | Location: Brisbane, Australia
+[!] Not logged in. Log in manually...
+Press ENTER after logging in...[INSTANCE] Using config file: C:\Users\user\Documents\SeekMateAI\bot_instances\ASH 1_config.json
+[INSTANCE] Using control file: C:\Users\user\Documents\SeekMateAI\control_ASH 1.json
+[CONFIG RELOADED] Scan: 100% | Apply: 62% | Cooldown: 0s | Stealth: OFF
+[CONFIG RELOADED] Max Jobs: 100 | Location: Brisbane, Australia
+[BLOCKLIST] Companies: kpmg
+[BLOCKLIST] Titles: sales, assistant
+[CONFIG RELOADED] Scan: 100% | Apply: 62% | Cooldown: 0s | Stealth: OFF
+[CONFIG RELOADED] Max Jobs: 100 | Location: Brisbane, Australia
+[INSTANCE] Chrome Profile: chrome_profile_ASH 1
+[INSTANCE] Using Chrome profile: C:\Users\user\Documents\SeekMateAI\chrome_profile_ASH 1
+[Gmail] Gmail cleanup is disabled in config
+[CONFIG RELOADED] Scan: 100% | Apply: 62% | Cooldown: 0s | Stealth: OFF
+[CONFIG RELOADED] Max Jobs: 100 | Location: Brisbane, Australia
+[!] Not logged in. Log in manually...
+[INSTANCE] Using config file: C:\Users\user\Documents\SeekMateAI\bot_instances\ASH 1_config.json
+[INSTANCE] Using control file: C:\Users\user\Documents\SeekMateAI\control_ASH 1.json
+[CONFIG RELOADED] Scan: 100% | Apply: 62% | Cooldown: 0s | Stealth: OFF
+[CONFIG RELOADED] Max Jobs: 100 | Location: Brisbane, Australia
+[BLOCKLIST] Companies: kpmg
+[BLOCKLIST] Titles: sales, assistant
+[CONFIG RELOADED] Scan: 100% | Apply: 62% | Cooldown: 0s | Stealth: OFF
+[CONFIG RELOADED] Max Jobs: 100 | Location: Brisbane, Australia
+[INSTANCE] Chrome Profile: chrome_profile_ASH 1
+[INSTANCE] Using Chrome profile: C:\Users\user\Documents\SeekMateAI\chrome_profile_ASH 1
+[Gmail] Gmail cleanup is disabled in config
+[CONFIG RELOADED] Scan: 100% | Apply: 62% | Cooldown: 0s | Stealth: OFF
+[CONFIG RELOADED] Max Jobs: 100 | Location: Brisbane, Australia
+[*] Already logged in.
+
+==============================
+🔎 SEARCHING: director (1/43)
+    Progress: 0/100 applications
+==============================
+
+[*] ⚡ LOOSE MODE: Will search cities in order: Brisbane, Australia, Gold Coast, Australia, Sydney, Australia, Melbourne, Australia
+[*] Starting with: Brisbane, Australia
+
+[*] 🌍 Searching in: Brisbane, Australia
+    URL: https://www.seek.com.au/jobs?keywords=director&where=Brisbane&sortmode=ListedDate
+[*] Found 1418 jobs in Brisbane, Australia
+
+===== PAGE 1 =====
+[*] Found 22 jobs on this page.
+    [-] SKIPPED (title mismatch): Consultant - Accreditation
+
+[*] Job 2: Educators and Lead Educators | Harmony Early Education PTY LTD
+    [+] Opened: https://www.seek.com.au/job/89104355?type=standard&ref=search-standalone&origin=cardTitle#sol=762a235e2832c3f0f0bba2f8423f6b156a84ed86
+    [-] No apply button found.
+
+[*] Job 3: Faculty Position - Brain & Mental Health Program | QIMR Berghofer Medical Research Institute
+    [+] Opened: https://www.seek.com.au/job/89104299?type=standard&ref=search-standalone&origin=cardTitle#sol=feccda123636603b17068e54c5d5237333d3bd76
+    [-] No apply button found.
+
+[*] Job 4: Senior Project Manager | Akura
+    [+] Opened: https://www.seek.com.au/job/89104270?type=standard&ref=search-standalone&origin=cardTitle#sol=612bcda5582f1e8d75b9130f9774e82e0469b3b9
+    [⚡ LOOSE MODE] Skipping GPT job check - applying to all
+    [+] Clicked apply button: //*[self::button or self::a][.//*[contains(text(),'Quick apply')]]
+    [+] Document options: Resume: Select saved, Cover letter: Write
+    [+] Cover letter added (overwrite protection).
+    [!] No selection criteria textarea found
+    [+] Continue → Page 2
+    [+] Continue
+    [+] SUBMITTED.
+    💰 Cha-ching!
+    [+] Logged to Excel → Senior Project Manager @ Akura
+    [+] Successful submissions: 1
+    [-] SKIPPED (title mismatch): 2nd Early Childhood Teacher
+
+[*] Job 6: Early Childhood Lead Educator (3-4 years room) | Amaze Early Education Centre
+    [+] Opened: https://www.seek.com.au/job/87810660?type=standard&ref=search-standalone&origin=cardTitle#sol=cc44ec1f67efd1ea5f6c5b9c1bdbaea3665def3e
+    [⚡ LOOSE MODE] Skipping GPT job check - applying to all
+    [+] Clicked apply button: //*[self::button or self::a][.//*[contains(text(),'Quick apply')]]
+    [+] Document options: Resume: Select saved, Cover letter: Write
+    [+] Cover letter added (overwrite protection).
+    [!] No selection criteria textarea found
+    [+] Continue → Page 2
+    [+] Selected: Australian citizen
+    [+] Continue
+    [+] Continue
+    [+] SUBMITTED.
+    💰 Cha-ching!
+    [+] Logged to Excel → Early Childhood Lead Educator (3-4 years room) @ Amaze Early Education Centre
+    [+] Successful submissions: 2
+
+[*] Job 7: AO7 Senior Project Manager | empire group
+    [+] Opened: https://www.seek.com.au/job/89104156?type=standard&ref=search-standalone&origin=cardTitle#sol=e8713fbaec3bee0140666ade3928c6f00e336828
+    [⚡ LOOSE MODE] Skipping GPT job check - applying to all
+    [+] Clicked apply button: //*[self::button or self::a][.//*[contains(text(),'Quick apply')]]
+    [+] Document options: Resume: Select saved, Cover letter: Write
+    [+] Cover letter added (overwrite protection).
+    [!] No selection criteria textarea found
+    [+] Continue → Page 2
+    [+] Continue
+    [+] SUBMITTED.
+    💰 Cha-ching!
+    [+] Logged to Excel → AO7 Senior Project Manager @ empire group
+    [+] Successful submissions: 3
+
+[*] Job 8: Manager - Business Support | Charterhouse
+    [+] Opened: https://www.seek.com.au/job/89104074?type=standard&ref=search-standalone&origin=cardTitle#sol=68ac3891f172bc9a07e70894e8cc7918cec84c97
+    [⚡ LOOSE MODE] Skipping GPT job check - applying to all
+    [+] Clicked apply button: //*[self::button or self::a][.//*[contains(text(),'Quick apply')]]
+    [+] Document options: Resume: Select saved, Cover letter: Write
+    [!] Error during apply: HTTPConnectionPool(host='localhost', port=58987): Max retries exceeded with url: /session/00f4414cb5c2d27445c711ffc8cb7494/elements (Caused by NewConnectionError('<urllib3.connection.HTTPConnection object at 0x00000000009B11B0>: Failed to establish a new connection: [WinError 10061] No connection could be made because the target machine actively refused it'))
+[INSTANCE] Using config file: C:\Users\user\Documents\SeekMateAI\bot_instances\ASH 1_config.json
+[INSTANCE] Using control file: C:\Users\user\Documents\SeekMateAI\control_ASH 1.json
+[CONFIG RELOADED] Scan: 100% | Apply: 62% | Cooldown: 0s | Stealth: OFF
+[CONFIG RELOADED] Max Jobs: 100 | Location: Brisbane, Australia
+[BLOCKLIST] Companies: kpmg
+[BLOCKLIST] Titles: sales, assistant
+[CONFIG RELOADED] Scan: 100% | Apply: 62% | Cooldown: 0s | Stealth: OFF
+[CONFIG RELOADED] Max Jobs: 100 | Location: Brisbane, Australia
+[INSTANCE] Chrome Profile: chrome_profile_ASH 1
+[INSTANCE] Using Chrome profile: C:\Users\user\Documents\SeekMateAI\chrome_profile_ASH 1
+[INSTANCE] Using log file: C:\\Users\\user\\Documents\\SeekMateAI\\log_ASH 1.txt
+[INSTANCE] Using config file: C:\\Users\\user\\Documents\\SeekMateAI\\bot_instances\\ASH 1_config.json
+[INSTANCE] Using control file: C:\\Users\\user\\Documents\\SeekMateAI\\control_ASH 1.json
+[CONFIG RELOADED] Scan: 100% | Apply: 62% | Cooldown: 0s | Stealth: OFF
+[CONFIG RELOADED] Max Jobs: 100 | Location: Brisbane, Australia
+[BLOCKLIST] Companies: kpmg
+[BLOCKLIST] Titles: sales, assistant
+[CONFIG RELOADED] Scan: 100% | Apply: 62% | Cooldown: 0s | Stealth: OFF
+[CONFIG RELOADED] Max Jobs: 100 | Location: Brisbane, Australia
+[INSTANCE] Chrome Profile: chrome_profile_ASH 1
+[INSTANCE] Using Chrome profile: C:\Users\user\Documents\SeekMateAI\chrome_profile_ASH 1
+[Gmail] Gmail cleanup is disabled in config
+[CONFIG RELOADED] Scan: 100% | Apply: 62% | Cooldown: 0s | Stealth: OFF
+[CONFIG RELOADED] Max Jobs: 100 | Location: Brisbane, Australia
+[*] Already logged in.
+
+==============================
+🔎 SEARCHING: director (1/43)
+    Progress: 0/100 applications
+==============================
+
+[*] ⚡ LOOSE MODE: Will search cities in order: Brisbane, Australia, Gold Coast, Australia, Sydney, Australia, Melbourne, Australia
+[*] Starting with: Brisbane, Australia
+
+[*] 🌍 Searching in: Brisbane, Australia
+    URL: https://www.seek.com.au/jobs?keywords=director&where=Brisbane&sortmode=ListedDate
+[*] Found 0 jobs on this page.
+[*] Found 0 jobs in Brisbane, Australia
+[*] ⚠️  No jobs found in Brisbane, Australia, moving to next city...
+
+[*] 🌍 Searching in: Gold Coast, Australia
+    URL: https://www.seek.com.au/jobs?keywords=director&where=Gold%20Coast&sortmode=ListedDate
+[*] Found 198 jobs in Gold Coast, Australia
+
+===== PAGE 1 =====
+[*] Found 22 jobs on this page.
+
+[*] Job 1: HSEQ Manager | Dedicated Staffing Solutions
+    [+] Opened: https://www.seek.com.au/job/89103872?type=standard&ref=search-standalone&origin=cardTitle#sol=e36c6fb4e86940f93eb6bf4c142bd15b2ff4f906
+    [⚡ LOOSE MODE] Skipping GPT job check - applying to all
+    [+] Clicked apply button: //*[self::button or self::a][.//*[contains(text(),'Quick apply')]]
+    [+] Document options: Resume: Select saved, Cover letter: Write
+    [+] Cover letter added (overwrite protection).
+    [!] No selection criteria textarea found
+    [+] Continue → Page 2
+    [+] Work eligibility: i am an australian citizen
+    [+] Continue
+    [+] Continue
+    [!] Form validation errors detected!
+    [+] SUBMITTED.
+    💰 Cha-ching!
+    [+] Logged to Excel → HSEQ Manager @ Dedicated Staffing Solutions
+    [+] Successful submissions: 1
+
+[*] Job 2: Alumni Engagement Officer | Griffith University
+    [+] Opened: https://www.seek.com.au/job/89102788?type=standard&ref=search-standalone&origin=cardTitle#sol=360faf9e4dcf72ba21ed29da08e0771990e99b03
+    [-] No apply button found.
+
+[*] Job 3: Head of Department (Curriculum) - Coomera Springs State School, Education | Queensland Department of Education
+    [+] Opened: https://www.seek.com.au/job/89099162?type=standard&ref=search-standalone&origin=cardTitle#sol=25155178c66e65fadd48366746e27ae200601d11
+    [-] No apply button found.
+
+[*] Job 4: Social Content Lead | Princess Polly E-Boutique
+    [+] Opened: https://www.seek.com.au/job/89090464?type=standard&ref=search-standalone&origin=cardTitle#sol=6465b4b16a7199c7821b319bc7d7fe981564f61f
+    [⚡ LOOSE MODE] Skipping GPT job check - applying to all
+    [+] Clicked apply button: //*[self::button or self::a][.//*[contains(text(),'Quick apply')]]
+    [+] Document options: Resume: Select saved, Cover letter: Write
+    [+] Cover letter added (overwrite protection).
+    [!] No selection criteria textarea found
+    [+] Continue → Page 2
+    [+] Selected: Australian citizen
+    [+] Salary selected: $100k
+    [+] Continue
+    [+] Continue
+    [+] SUBMITTED.
+    💰 Cha-ching!
+    [+] Logged to Excel → Social Content Lead @ Princess Polly E-Boutique
+    [+] Successful submissions: 2
+
+[*] Job 5: Operations Director | eCom Capital Pty Ltd
+    [+] Opened: https://www.seek.com.au/job/89082768?type=standard&ref=search-standalone&origin=cardTitle#sol=1e1bd2617fd766dbd91a108081f3608ebe277245
+    [⚡ LOOSE MODE] Skipping GPT job check - applying to all
+    [+] Clicked apply button: //*[self::button or self::a][.//*[contains(text(),'Quick apply')]]
+    [+] Document options: Resume: Select saved, Cover letter: Write
+    [+] Cover letter added (overwrite protection).
+    [!] No selection criteria textarea found
+    [+] Continue → Page 2
+    [+] Selected: Australian citizen
+    [+] Continue
+    [+] Continue
+    [+] SUBMITTED.
+    💰 Cha-ching!
+    [+] Logged to Excel → Operations Director @ eCom Capital Pty Ltd
+    [+] Successful submissions: 3
+    [-] SKIPPED (title mismatch): Operations Assistant
+
+[*] Job 7: General Manager | Watmar Electrical Contractors
+    [+] Opened: https://www.seek.com.au/job/89081325?type=standard&ref=search-standalone&origin=cardTitle#sol=745ab8aa6ae350c34ffc79a99575ea9e9b61487e
+    [⚡ LOOSE MODE] Skipping GPT job check - applying to all
+    [+] Clicked apply button: //*[self::button or self::a][.//*[contains(text(),'Quick apply')]]
+    [+] Document options: Resume: Select saved, Cover letter: Write
+    [+] Cover letter added (overwrite protection).
+    [!] No selection criteria textarea found
+    [+] Continue → Page 2
+    [+] Selected: Australian citizen
+    [+] Continue
+    [+] Continue
+    [+] SUBMITTED.
+    💰 Cha-ching!
+    [+] Logged to Excel → General Manager @ Watmar Electrical Contractors
+    [+] Successful submissions: 4
+
+[*] Job 8: Compliance Coordinator | G8 Education Limited
+    [+] Opened: https://www.seek.com.au/job/89081314?type=standard&ref=search-standalone&origin=cardTitle#sol=7a83acdd46f8c442a757ebc8cbea64ed3edad210
+    [-] No apply button found.
+    [-] SKIPPED (title mismatch): Early Childhood Teacher
+
+[*] Job 10: Site Manager | JPS Construction Recruitment
+    [+] Opened: https://www.seek.com.au/job/89066597?type=standard&ref=search-standalone&origin=cardTitle#sol=a7c8ab1f9836cccd52dc51f7b7b270335874a0ff
+    [⚡ LOOSE MODE] Skipping GPT job check - applying to all
+    [+] Clicked apply button: //*[self::button or self::a][.//*[contains(text(),'Quick apply')]]
+    [+] Document options: Resume: Select saved, Cover letter: Write
+    [+] Cover letter added (overwrite protection).
+    [!] No selection criteria textarea found
+    [+] Continue → Page 2
+    [+] Continue
+    [+] SUBMITTED.
+    💰 Cha-ching!
+    [+] Logged to Excel → Site Manager @ JPS Construction Recruitment
+    [+] Successful submissions: 5
+
+[*] Job 11: SENIOR ACCOUNTANT | VARSITY LAKES | $100K + SUPER | Roc Consulting
+    [+] Opened: https://www.seek.com.au/job/89064606?type=standard&ref=search-standalone&origin=cardTitle#sol=2ccce9fddb3f7ef160a48e19b3e4253c99d322be
+    [⚡ LOOSE MODE] Skipping GPT job check - applying to all
+    [+] Clicked apply button: //*[self::button or self::a][.//*[contains(text(),'Quick apply')]]
+    [+] Document options: Resume: Select saved, Cover letter: Write
+    [+] Cover letter added (overwrite protection).
+    [!] No selection criteria textarea found
+    [+] Continue → Page 2
+    [+] Continue
+    [+] SUBMITTED.
+    💰 Cha-ching!
+    [+] Logged to Excel → SENIOR ACCOUNTANT | VARSITY LAKES | $100K + SUPER @ Roc Consulting
+    [+] Successful submissions: 6
+
+[*] Job 12: SENIOR MANAGER | SOUTHERN GC | $160-200K + SUPER | Roc Consulting
+    [+] Opened: https://www.seek.com.au/job/89064461?type=standard&ref=search-standalone&origin=cardTitle#sol=b3011a62121f6b3835bb0575ab6ad205305572e5
+    [⚡ LOOSE MODE] Skipping GPT job check - applying to all
+    [+] Clicked apply button: //*[self::button or self::a][.//*[contains(text(),'Quick apply')]]
+    [+] Document options: Resume: Select saved, Cover letter: Write
+    [+] Cover letter added (overwrite protection).
+    [!] No selection criteria textarea found
+    [+] Continue → Page 2
+    [+] Continue
+    [+] SUBMITTED.
+    💰 Cha-ching!
+    [+] Logged to Excel → SENIOR MANAGER | SOUTHERN GC | $160-200K + SUPER @ Roc Consulting
+    [+] Successful submissions: 7
+    [🚫] BLOCKED (title): Assistant Principal
+    [🚫] BLOCKED (title): Assistant Operations Manager
+
+[*] Job 15: Non-Executive Director | Scout Talent
+    [+] Opened: https://www.seek.com.au/job/89062754?type=standard&ref=search-standalone&origin=cardTitle#sol=10867c3523c787e9532c6f20adc1b47b7dab367b
+    [-] No apply button found.
+    [🚫] BLOCKED (title): Commercial/Industrial Sales and Leasing Manager
+
+[*] Job 17: Regional Manager- Gold Coast | Camp Australia
+    [+] Opened: https://www.seek.com.au/job/89057508?type=standard&ref=search-standalone&origin=cardTitle#sol=ab3126e411d6c426d6e320cb306ba2834e29cb40
+    [-] No apply button found.
+
+[*] Job 18: Centre Manager | Scholars Consulting Pty Ltd
+    [+] Opened: https://www.seek.com.au/job/89054686?type=standard&ref=search-standalone&origin=cardTitle#sol=196f949973c15b9e3395bed76cea5390b84906ec
+    [⚡ LOOSE MODE] Skipping GPT job check - applying to all
+    [+] Clicked apply button: //*[self::button or self::a][.//*[contains(text(),'Quick apply')]]
+    [+] Document options: Resume: Select saved, Cover letter: Write
+    [+] Cover letter added (overwrite protection).
+    [!] No selection criteria textarea found
+    [+] Continue → Page 2
+    [+] Selected: Australian citizen
+    [+] Continue
+    [+] Continue
+    [+] SUBMITTED.
+    💰 Cha-ching!
+    [+] Logged to Excel → Centre Manager @ Scholars Consulting Pty Ltd
+    [+] Successful submissions: 8
+    [-] SKIPPED (title mismatch): Associate Dean (Education Partnerships) – Faculty of Education
+    [🚫] BLOCKED (title): Executive Assistant to the Director of Business and Operations
+
+[*] Job 21: Operations Manager - Financial Planning | Gold Coast | Up to $150k | Jenner Recruitment Pty Ltd
+    [+] Opened: https://www.seek.com.au/job/89039678?type=standard&ref=search-standalone&origin=cardTitle#sol=d5a6e28030a3aedcaa056494b434a78f016fae0f
+    [⚡ LOOSE MODE] Skipping GPT job check - applying to all
+    [+] Clicked apply button: //*[self::button or self::a][.//*[contains(text(),'Quick apply')]]
+    [+] Document options: Resume: Select saved, Cover letter: Write
+    [+] Cover letter added (overwrite protection).
+    [!] No selection criteria textarea found
+    [+] Continue → Page 2
+    [+] Continue
+    [+] SUBMITTED.
+    💰 Cha-ching!
+    [+] Logged to Excel → Operations Manager - Financial Planning | Gold Coast | Up to $150k @ Jenner Recruitment Pty Ltd
+    [+] Successful submissions: 9
+
+[*] Job 22: Senior Project Manager | Hays | Construction
+    [+] Opened: https://www.seek.com.au/job/89038608?type=standard&ref=search-standalone&origin=cardTitle#sol=c1e400054aca7bde2fd55e7d480d02c2a18639a5
+    [⚡ LOOSE MODE] Skipping GPT job check - applying to all
+    [+] Clicked apply button: //*[self::button or self::a][.//*[contains(text(),'Quick apply')]]
+    [+] Document options: Resume: Select saved, Cover letter: Write
+    [+] Cover letter added (overwrite protection).
+    [!] No selection criteria textarea found
+    [+] Continue → Page 2
+    [+] Continue
+    [+] SUBMITTED.
+    💰 Cha-ching!
+    [+] Logged to Excel → Senior Project Manager @ Hays | Construction
+    [+] Successful submissions: 10
+[*] Next page clicked.
+
+===== PAGE 2 =====
+[*] Found 22 jobs on this page.
+
+[*] Job 1: General Manager - Mid-Sized Company (Gold Coast) | PBAT Pty Ltd
+    [+] Opened: https://www.seek.com.au/job/89037329?type=standard&ref=search-standalone&origin=cardTitle#sol=99e6e90568683580db700ea26627b4a4029bf47e
+    [⚡ LOOSE MODE] Skipping GPT job check - applying to all
+    [+] Clicked apply button: //*[self::button or self::a][.//*[contains(text(),'Quick apply')]]
+    [+] Document options: Resume: Select saved, Cover letter: Write
+    [+] Cover letter added (overwrite protection).
+    [!] No selection criteria textarea found
+    [+] Continue → Page 2
+    [+] Selected: Australian citizen
+    [+] Salary selected: $100k
+    [+] Continue
+    [+] Continue
+    [+] SUBMITTED.
+    💰 Cha-ching!
+    [+] Logged to Excel → General Manager - Mid-Sized Company (Gold Coast) @ PBAT Pty Ltd
+    [+] Successful submissions: 11
+    [🚫] BLOCKED (title): Executive Assistant to the General Manager
+
+[*] Job 3: Senior Marketing Manager | Voomie Pty Ltd
+    [-] Failed to open job tab.
+    [-] SKIPPED (title mismatch): Unknown
+    [-] SKIPPED (title mismatch): Unknown
+    [-] SKIPPED (title mismatch): Unknown
+    [-] SKIPPED (title mismatch): Unknown
+    [-] SKIPPED (title mismatch): Unknown
+    [-] SKIPPED (title mismatch): Unknown
+    [-] SKIPPED (title mismatch): Unknown
+    [-] SKIPPED (title mismatch): Unknown
+    [-] SKIPPED (title mismatch): Unknown
+    [-] SKIPPED (title mismatch): Unknown
+    [-] SKIPPED (title mismatch): Unknown
+    [-] SKIPPED (title mismatch): Unknown
+    [-] SKIPPED (title mismatch): Unknown
+    [-] SKIPPED (title mismatch): Unknown
+    [-] SKIPPED (title mismatch): Unknown
+    [-] SKIPPED (title mismatch): Unknown
+    [-] SKIPPED (title mismatch): Unknown
+    [-] SKIPPED (title mismatch): Unknown
+    [-] SKIPPED (title mismatch): Unknown
+[!] Next page button not found.
+[*] ✓ Exhausted all pages in Gold Coast, Australia. Moving to next city...
+
+[*] 🔄 Moving to next city: Sydney, Australia
+
+[*] 🌍 Searching in: Sydney, Australia
+    URL: https://www.seek.com.au/jobs?keywords=director&where=Sydney&sortmode=ListedDate
+Traceback (most recent call last):
+  File "C:\Users\user\Documents\SeekMateAI\bot_instances\ASH 1_runner.py", line 15, in <module>
+    main.main()
+  File "C:\\Users\\user\\Documents\\SeekMateAI\main.py", line 2560, in main
+    bot.run()
+  File "C:\\Users\\user\\Documents\\SeekMateAI\main.py", line 2425, in run
+    self.driver.get(search_url)
+  File "C:\Users\user\AppData\Local\Programs\Python\Python310\lib\site-packages\selenium\webdriver\remote\webdriver.py", line 483, in get
+    self.execute(Command.GET, {"url": url})
+  File "C:\Users\user\AppData\Local\Programs\Python\Python310\lib\site-packages\selenium\webdriver\remote\webdriver.py", line 458, in execute
+    self.error_handler.check_response(response)
+  File "C:\Users\user\AppData\Local\Programs\Python\Python310\lib\site-packages\selenium\webdriver\remote\errorhandler.py", line 233, in check_response
+    raise exception_class(message, screen, stacktrace)
+selenium.common.exceptions.InvalidSessionIdException: Message: invalid session id; For documentation on this error, please visit: https://www.selenium.dev/documentation/webdriver/troubleshooting/errors#invalidsessionidexception
+Stacktrace:
+Symbols not available. Dumping unresolved backtrace:
+	0x3d0d13
+	0x3d0d54
+	0x1be52b
+	0x1fc635
+	0x22b3a6
+	0x226ed1
+	0x226846
+	0x18ebfd
+	0x18f18e
+	0x18f65d
+	0x624d54
+	0x62030b
+	0x63cbea
+	0x3eac18
+	0x3f2c1d
+	0x18e7ab
+	0x18ddf7
+	0x7711ef
+	0x76375d49
+	0x7714d6cb
+	0x7714d651
+	0
+
+[INSTANCE] Using config file: C:\\Users\\user\\Documents\\SeekMateAI\\bot_instances\\ASH 1_config.json
+[INSTANCE] Using control file: C:\\Users\\user\\Documents\\SeekMateAI\\control_ASH 1.json
+[CONFIG RELOADED] Scan: 100% | Apply: 62% | Cooldown: 0s | Stealth: OFF
+[CONFIG RELOADED] Max Jobs: 100 | Location: Brisbane, Australia
+[BLOCKLIST] Companies: kpmg
+[BLOCKLIST] Titles: sales, assistant
+[CONFIG RELOADED] Scan: 100% | Apply: 62% | Cooldown: 0s | Stealth: OFF
+[CONFIG RELOADED] Max Jobs: 100 | Location: Brisbane, Australia
+[INSTANCE] Chrome Profile: chrome_profile_ASH 1
+[INSTANCE] Using Chrome profile: C:\Users\user\Documents\SeekMateAI\chrome_profile_ASH 1
+[Gmail] Gmail cleanup is disabled in config
+[CONFIG RELOADED] Scan: 100% | Apply: 62% | Cooldown: 0s | Stealth: OFF
+[CONFIG RELOADED] Max Jobs: 100 | Location: Brisbane, Australia
+[*] Already logged in.
+
+==============================
+🔎 SEARCHING: director (1/43)
+    Progress: 0/100 applications
+==============================
+
+[*] ⚡ LOOSE MODE: Will search cities in order: Brisbane, Australia, Gold Coast, Australia, Sydney, Australia, Melbourne, Australia
+[*] Starting with: Brisbane, Australia
+
+[*] 🌍 Searching in: Brisbane, Australia
+    URL: https://www.seek.com.au/jobs?keywords=director&where=Brisbane&sortmode=ListedDate
+[*] Found 1417 jobs in Brisbane, Australia
+
+===== PAGE 1 =====
+[*] Found 21 jobs on this page.
+    [-] SKIPPED (title mismatch): Consultant - Accreditation
+
+[*] Job 2: Educators and Lead Educators | Harmony Early Education PTY LTD
+    [+] Opened: https://www.seek.com.au/job/89104355?type=standard&ref=search-standalone&origin=cardTitle#sol=51d93cdd5f3045b234749b08b39f29d581e853d2
+    [-] No apply button found.
+
+[*] Job 3: Faculty Position - Brain & Mental Health Program | QIMR Berghofer Medical Research Institute
+    [+] Opened: https://www.seek.com.au/job/89104299?type=standard&ref=search-standalone&origin=cardTitle#sol=bf62fb5b2791857c9aa2e9ce126c9ec6cbabfbfc
+    [-] No apply button found.
+
+[*] Job 4: Senior Project Manager | Akura
+    [+] Opened: https://www.seek.com.au/job/89104270?type=standard&ref=search-standalone&origin=cardTitle#sol=60635b759afdbe5eea94699ffc07b227d241a548
+    [-] No apply button found.
+    [-] SKIPPED (title mismatch): 2nd Early Childhood Teacher
+
+[*] Job 6: Early Childhood Lead Educator (3-4 years room) | Amaze Early Education Centre
+    [+] Opened: https://www.seek.com.au/job/87810660?type=standard&ref=search-standalone&origin=cardTitle#sol=e67aa464e09dd38c97535e811016e877ef16399c
+    [-] No apply button found.
+
+[*] Job 7: AO7 Senior Project Manager | empire group
+    [+] Opened: https://www.seek.com.au/job/89104156?type=standard&ref=search-standalone&origin=cardTitle#sol=046f936fc10fee4bed6a6c4ed4d96f8fd1489391
+    [-] No apply button found.
+
+[*] Job 8: Manager - Business Support | Charterhouse
+    [+] Opened: https://www.seek.com.au/job/89104074?type=standard&ref=search-standalone&origin=cardTitle#sol=9c494f225ba260b35905a19b141f12f45354e0a2
+    [⚡ LOOSE MODE] Skipping GPT job check - applying to all
+    [+] Clicked apply button: //*[self::button or self::a][.//*[contains(text(),'Quick apply')]]
+    [+] Document options: Resume: Select saved, Cover letter: Write
+    [+] Cover letter added (overwrite protection).
+    [!] No selection criteria textarea found
+    [+] Continue → Page 2
+    [+] Continue
+    [+] SUBMITTED.
+    💰 Cha-ching!
+    [+] Logged to Excel → Manager - Business Support @ Charterhouse
+    [+] Successful submissions: 1
+
+[*] Job 9: Manager Indigenous Partnerships | Powerlink Queensland
+    [+] Opened: https://www.seek.com.au/job/89103942?type=standard&ref=search-standalone&origin=cardTitle#sol=2218d0f7dab7dc244ec35b0d87fd0570c75e9e55
+    [-] No apply button found.
+
+[*] Job 10: Centre Manager | Scholars Consulting Pty Ltd
+    [+] Opened: https://www.seek.com.au/job/89103891?type=standard&ref=search-standalone&origin=cardTitle#sol=5e9cdbcbeb7049f39233c2de0ded9f32946664a3
+    [⚡ LOOSE MODE] Skipping GPT job check - applying to all
+    [+] Clicked apply button: //*[self::button or self::a][.//*[contains(text(),'Quick apply')]]
+    [+] Document options: Resume: Select saved, Cover letter: Write
+    [+] Cover letter added (overwrite protection).
+    [!] No selection criteria textarea found
+    [+] Continue → Page 2
+    [+] Selected: Australian citizen
+    [+] Continue
+    [!] Form validation errors detected!
+    [!] Validation errors detected. Using GPT to answer...
+    [!] Could not identify unanswered questions.
+    [+] Selected: Australian citizen
+    [+] Continue
+    [+] Continue
+    [+] SUBMITTED.
+    💰 Cha-ching!
+    [+] Logged to Excel → Centre Manager @ Scholars Consulting Pty Ltd
+    [+] Successful submissions: 2
+
+[*] Job 11: Early Childhood Lead Educator (3-4 years room) | Amaze Early Education Centre
+    [+] Opened: https://www.seek.com.au/job/89103833?type=standard&ref=search-standalone&origin=cardTitle#sol=bd719efb0ddc3418ce3ee8d4101733060ce79af3
+    [⚡ LOOSE MODE] Skipping GPT job check - applying to all
+    [+] Clicked apply button: //*[self::button or self::a][.//*[contains(text(),'Quick apply')]]
+    [+] Document options: Resume: Select saved, Cover letter: Write
+    [+] Cover letter added (overwrite protection).
+    [!] No selection criteria textarea found
+    [+] Continue → Page 2
+    [+] Selected: Australian citizen
+    [+] Continue
+    [!] Form validation errors detected!
+    [!] Validation errors detected. Using GPT to answer...
+    [!] Could not identify unanswered questions.
+    [+] Selected: Australian citizen
+    [+] Continue
+    [+] Continue
+    [+] SUBMITTED.
+    💰 Cha-ching!
+    [+] Logged to Excel → Early Childhood Lead Educator (3-4 years room) @ Amaze Early Education Centre
+    [+] Successful submissions: 3
+
+[*] Job 12: Senior Manager - Privacy and Information Access | The University of Queensland
+    [+] Opened: https://www.seek.com.au/job/89103817?type=standard&ref=search-standalone&origin=cardTitle#sol=13fc2464a6a7709dd4dde59bc4b6453f2ce84ac6
+    [-] No apply button found.
+
+[*] Job 13: Campus Manager | Little Scholars
+    [+] Opened: https://www.seek.com.au/job/89103562?type=standard&ref=search-standalone&origin=cardTitle#sol=f87c900ab4e67e75939888cd84148fcf59faafae
+    [⚡ LOOSE MODE] Skipping GPT job check - applying to all
+    [+] Clicked apply button: //*[self::button or self::a][.//*[contains(text(),'Quick apply')]]
+    [+] Document options: Resume: Select saved, Cover letter: Write
+    [+] Cover letter added (overwrite protection).
+    [!] No selection criteria textarea found
+    [+] Continue → Page 2
+    [+] Selected: Australian citizen
+    [+] Continue
+    [!] Form validation errors detected!
+    [!] Validation errors detected. Using GPT to answer...
+    [!] Could not identify unanswered questions.
+    [+] Selected: Australian citizen
+    [+] Continue
+    [+] Continue
+    [+] SUBMITTED.
+    💰 Cha-ching!
+    [+] Logged to Excel → Campus Manager @ Little Scholars
+    [+] Successful submissions: 4
+    [-] SKIPPED (title mismatch): Architectural Lead/Senior Architect
+
+[*] Job 15: Program Coordinator OSHC- Graceville | School Plus
+    [+] Opened: https://www.seek.com.au/job/89103251?type=standard&ref=search-standalone&origin=cardTitle#sol=3b71ace8115455b6331bf81be7c53dbddd162463
+    [-] No apply button found.
+
+[*] Job 16: Commercial Development Manager | Brothers Rugby Club
+    [+] Opened: https://www.seek.com.au/job/89103006?type=standard&ref=search-standalone&origin=cardTitle#sol=03a2133e3f12c3851d5d1d0cc6f3c5e9203167c6
+    [⚡ LOOSE MODE] Skipping GPT job check - applying to all
+    [+] Clicked apply button: //*[self::button or self::a][.//*[contains(text(),'Quick apply')]]
+    [+] Document options: Resume: Select saved, Cover letter: Write
+    [+] Cover letter added (overwrite protection).
+    [!] No selection criteria textarea found
+    [+] Continue → Page 2
+    [+] Selected: Australian citizen
+    [+] Continue
+    [+] Continue
+    [+] SUBMITTED.
+    💰 Cha-ching!
+    [+] Logged to Excel → Commercial Development Manager @ Brothers Rugby Club
+    [+] Successful submissions: 5
+
+[*] Job 17: Safety Manager | Civitas Talent
+    [+] Opened: https://www.seek.com.au/job/89102891?type=standard&ref=search-standalone&origin=cardTitle#sol=5935433a489939bd4ab13e0ad2e097e7147341c9
+    [⚡ LOOSE MODE] Skipping GPT job check - applying to all
+    [+] Clicked apply button: //*[self::button or self::a][.//*[contains(text(),'Quick apply')]]
+    [+] Document options: Resume: Select saved, Cover letter: Write
+    [+] Cover letter added (overwrite protection).
+    [!] No selection criteria textarea found
+    [+] Continue → Page 2
+    [+] Selected: Australian citizen
+    [+] Continue
+    [+] Continue
+    [+] SUBMITTED.
+    💰 Cha-ching!
+    [+] Logged to Excel → Safety Manager @ Civitas Talent
+    [+] Successful submissions: 6
+
+[*] Job 18: ASD EL2 Director - Mission and Planning | Australian Signals Directorate
+    [+] Opened: https://www.seek.com.au/job/89102805?type=standard&ref=search-standalone&origin=cardTitle#sol=2c87e99e7af47357e24027ea31154f1241eab3a2
+    [-] No apply button found.
+
+[*] Job 19: Program Lead | $90K- $95K + Super | Anila Recruitment Pty Ltd
+    [+] Opened: https://www.seek.com.au/job/89102694?type=standard&ref=search-standalone&origin=cardTitle#sol=c72e532483ee55e072f8a42eeea0db5d8e3dbea2
+    [⚡ LOOSE MODE] Skipping GPT job check - applying to all
+    [+] Clicked apply button: //*[self::button or self::a][.//*[contains(text(),'Quick apply')]]
+    [+] Document options: Resume: Select saved, Cover letter: Write
+    [+] Cover letter added (overwrite protection).
+    [!] No selection criteria textarea found
+    [+] Continue → Page 2
+    [+] Continue
+    [+] SUBMITTED.
+    💰 Cha-ching!
+    [+] Logged to Excel → Program Lead | $90K- $95K + Super @ Anila Recruitment Pty Ltd
+    [+] Successful submissions: 7
+    [🚫] BLOCKED (title): Assistant Director
+
+[*] Job 21: Manager Finance and Administration | Woodforde Group
+    [+] Opened: https://www.seek.com.au/job/89102352?type=standard&ref=search-standalone&origin=cardTitle#sol=778422922ca3ad515df79c25bcd0ed37fe7ee8b0
+    [⚡ LOOSE MODE] Skipping GPT job check - applying to all
+    [+] Clicked apply button: //*[self::button or self::a][.//*[contains(text(),'Quick apply')]]
+    [+] Document options: Resume: Select saved, Cover letter: Write
+    [+] Cover letter added (overwrite protection).
+    [!] No selection criteria textarea found
+    [+] Continue → Page 2
+    [+] Continue
+    [+] SUBMITTED.
+    💰 Cha-ching!
+    [+] Logged to Excel → Manager Finance and Administration @ Woodforde Group
+    [+] Successful submissions: 8
+[*] Next page clicked.
+
+===== PAGE 2 =====
+[*] Found 22 jobs on this page.
+
+[*] Job 1: State Director Building Consultancy - Brisbane | CBRE Advisory
+    [+] Opened: https://www.seek.com.au/job/89102290?type=standard&ref=search-standalone&origin=cardTitle#sol=1805987fe45af6b32c302ac784f27887eeaf237b
+    [-] No apply button found.
+
+[*] Job 2: Senior Director, Infrastructure Planning and Delivery | Department of Health - Queensland
+    [+] Opened: https://www.seek.com.au/job/89102145?type=standard&ref=search-standalone&origin=cardTitle#sol=ca16b5e19ed0488e014eb55fde7fac8e3fc21c4f
+    [-] No apply button found.
+    [🚫] BLOCKED (title): Assistant Director, Serious Incident Assessment
+
+[*] Job 4: EOI - Head of Special Education Services (H01) - Brassall State School -... | Queensland Department of Education
+    [+] Opened: https://www.seek.com.au/job/89101457?type=standard&ref=search-standalone&origin=cardTitle#sol=583d54888a6b3eae5b378e90a3fc1bf92a154151
+    [-] No apply button found.
+
+[*] Job 5: Director, Digital Transformation | Department of Justice
+    [+] Opened: https://www.seek.com.au/job/89098962?type=standard&ref=search-standalone&origin=cardTitle#sol=d6550c4c8d045a5534be6cf29657063d631158bd
+    [-] No apply button found.
+
+[*] Job 6: Project Manager | Talenza
+    [+] Opened: https://www.seek.com.au/job/89097406?type=standard&ref=search-standalone&origin=cardTitle#sol=cb55fe2c5ec44a791158c7d4ef6e70c74dfcf348
+    [⚡ LOOSE MODE] Skipping GPT job check - applying to all
+    [+] Clicked apply button: //*[self::button or self::a][.//*[contains(text(),'Quick apply')]]
+    [+] Document options: Resume: Select saved, Cover letter: Write
+    [+] Cover letter added (overwrite protection).
+    [!] No selection criteria textarea found
+    [+] Continue → Page 2
+    [+] Continue
+    [+] SUBMITTED.
+    💰 Cha-ching!
+    [+] Logged to Excel → Project Manager @ Talenza
+    [+] Successful submissions: 9
+
+[*] Job 7: Manager - Restructuring and Recovery | VINCENTS
+    [+] Opened: https://www.seek.com.au/job/89097124?type=standard&ref=search-standalone&origin=cardTitle#sol=275f2787bc20dca7838f34268fa10ab00ab9dedb
+    [-] No apply button found.
+
+[*] Job 8: Tactical Project Lead | Virgin Australia
+    [+] Opened: https://www.seek.com.au/job/89092115?type=standard&ref=search-standalone&origin=cardTitle#sol=b401afe9bde9656222a5b361de349e0d98c9ecf7
+    [-] No apply button found.
+
+[*] Job 9: Project Director - Olympic Lead | JLL
+    [+] Opened: https://www.seek.com.au/job/89099116?type=standard&ref=search-standalone&origin=cardTitle#sol=26ff29ae71bc361f2e0601ddca57660f51a966bc
+    [-] No apply button found.
+
+[*] Job 10: Project Manager | Titan ICT Pty Ltd
+    [+] Opened: https://www.seek.com.au/job/89091671?type=standard&ref=search-standalone&origin=cardTitle#sol=3fcc582dba03eecd98f4f1b7d389150bb0729493

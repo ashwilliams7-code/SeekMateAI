@@ -108,14 +108,26 @@ class GmailCleanup:
             
             chrome_options = Options()
             
+            # Check if running in headless mode (for VPS/server deployment)
+            run_headless = os.getenv("RUN_HEADLESS", "false").lower() == "true"
+            
             # Use separate profile directory to avoid conflicts
             # This allows Gmail to be logged in if the main bot is using the same account
             chrome_options.add_argument(f"--user-data-dir={gmail_profile_dir}")
             
-            # Window settings - make sure it's visible
-            chrome_options.add_argument("--start-maximized")
-            chrome_options.add_argument("--window-size=1200,800")
-            chrome_options.add_argument("--window-position=100,100")  # Position it so it's visible
+            if run_headless:
+                # Headless mode for server/VPS deployment
+                chrome_options.add_argument("--headless=new")
+                chrome_options.add_argument("--no-sandbox")
+                chrome_options.add_argument("--disable-dev-shm-usage")
+                chrome_options.add_argument("--disable-gpu")
+                chrome_options.add_argument("--window-size=1920,1080")
+                print("[Gmail] Running in HEADLESS mode (VPS/server deployment)")
+            else:
+                # Window settings - make sure it's visible
+                chrome_options.add_argument("--start-maximized")
+                chrome_options.add_argument("--window-size=1200,800")
+                chrome_options.add_argument("--window-position=100,100")  # Position it so it's visible
             
             # Other options
             chrome_options.add_argument("--disable-blink-features=AutomationControlled")
