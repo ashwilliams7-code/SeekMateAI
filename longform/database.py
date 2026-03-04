@@ -229,6 +229,37 @@ class Database:
 
         return stats
 
+    def get_recent_jobs(self, limit=50):
+        """Get recent jobs with application data for dashboard display."""
+        cursor = self.conn.cursor()
+        try:
+            cursor.execute("""
+                SELECT j.id, j.title, j.company, j.location, j.job_url, j.status,
+                       j.date_discovered, j.date_applied,
+                       a.ats_portal, a.duration_seconds, a.pages_completed,
+                       a.submission_status, a.failure_reason, a.captcha_triggered,
+                       a.resume_used
+                FROM jobs j
+                LEFT JOIN applications a ON a.job_id = j.id
+                ORDER BY j.date_discovered DESC
+                LIMIT ?
+            """, (limit,))
+            rows = cursor.fetchall()
+            return [dict(row) for row in rows]
+        except sqlite3.Error as e:
+            print(f"    [DB] Error getting recent jobs: {e}")
+            return []
+
+    def get_status_counts(self):
+        """Get count of jobs by each status."""
+        cursor = self.conn.cursor()
+        try:
+            cursor.execute("SELECT status, COUNT(*) as count FROM jobs GROUP BY status")
+            return {row["status"]: row["count"] for row in cursor.fetchall()}
+        except sqlite3.Error as e:
+            print(f"    [DB] Error getting status counts: {e}")
+            return {}
+
     def job_already_applied(self, job_url):
         """Check if a job URL has already been applied to."""
         cursor = self.conn.cursor()

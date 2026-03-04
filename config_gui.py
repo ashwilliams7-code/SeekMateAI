@@ -1160,6 +1160,7 @@ class SeekMateGUI:
             ("Jobs", "💼"),
             ("Speed", "⚡"),
             ("API", "🔑"),
+            ("Long-Form", "🌐"),
         ]
         self.tab_bar = PremiumTabBar(left, tabs, on_change=self.on_tab_change)
         self.tab_bar.pack(fill="x")
@@ -1198,6 +1199,7 @@ class SeekMateGUI:
         self._build_jobs_tab()
         self._build_speed_tab()
         self._build_api_tab()
+        self._build_longform_tab()
         
         # Show first tab
         self.on_tab_change(0)
@@ -1220,10 +1222,15 @@ class SeekMateGUI:
             widget.pack_forget()
         
         # Show the selected tab
-        tab_names = ["profile", "jobs", "speed", "api"]
+        tab_names = ["profile", "jobs", "speed", "api", "longform"]
         if index < len(tab_names) and tab_names[index] in self.tab_frames:
             self.tab_frames[tab_names[index]].pack(fill="both", expand=True)
-        
+
+        # Refresh longform stats when switching to that tab
+        if index < len(tab_names) and tab_names[index] == "longform":
+            self._refresh_longform_stats()
+            self._refresh_longform_history()
+
         # Scroll to top
         self.tab_canvas.yview_moveto(0)
 
@@ -1626,6 +1633,613 @@ class SeekMateGUI:
         tk.Label(twilio_inner, text="💡 Default is Twilio Sandbox: whatsapp:+14155238886",
                 bg=COLORS["bg_card"], fg=COLORS["text_muted"],
                 font=FONT_LABEL).pack(anchor="w", pady=(5, 0))
+
+    # ========== LONG-FORM TAB ==========
+
+    def _build_longform_tab(self):
+        """Build Long-Form Application Engine tab with config + dashboard"""
+        frame = tk.Frame(self.tab_scroll_frame, bg=COLORS["bg_dark"])
+        self.tab_frames["longform"] = frame
+
+        # --- Enable Toggle ---
+        enable_card = tk.Frame(frame, bg=COLORS["bg_card"])
+        enable_card.pack(fill="x", pady=(0, 15))
+
+        enable_inner = tk.Frame(enable_card, bg=COLORS["bg_card"])
+        enable_inner.pack(fill="x", padx=25, pady=20)
+
+        tk.Label(enable_inner, text="🌐  Long-Form Application Engine",
+                bg=COLORS["bg_card"], fg=COLORS["text_primary"],
+                font=FONT_SUBHEADER).pack(anchor="w", pady=(0, 5))
+        tk.Label(enable_inner, text="Handle external job applications on employer ATS portals",
+                bg=COLORS["bg_card"], fg=COLORS["text_muted"],
+                font=FONT_LABEL).pack(anchor="w", pady=(0, 15))
+
+        self.longform_var = tk.BooleanVar(value=self.config.get("ENABLE_LONGFORM", False))
+
+        lf_toggle_row = tk.Frame(enable_inner, bg=COLORS["bg_card"])
+        lf_toggle_row.pack(fill="x")
+
+        self.longform_btn = tk.Button(lf_toggle_row,
+            text="🌐 LONG-FORM: ON" if self.longform_var.get() else "🌐 LONG-FORM: OFF",
+            font=FONT_BOLD,
+            bg=COLORS["success"] if self.longform_var.get() else COLORS["bg_input"],
+            fg=COLORS["text_primary"] if self.longform_var.get() else COLORS["text_secondary"],
+            activebackground=COLORS["border"],
+            activeforeground=COLORS["text_primary"],
+            relief="flat", padx=15, pady=8, cursor="hand2",
+            command=self.toggle_longform)
+        self.longform_btn.pack(side="left")
+
+        tk.Label(lf_toggle_row,
+            text="  Instead of skipping external sites, complete the full application",
+            bg=COLORS["bg_card"], fg=COLORS["text_muted"],
+            font=FONT_LABEL).pack(side="left", padx=(15, 0))
+
+        # --- Stats Section ---
+        stats_card = tk.Frame(frame, bg=COLORS["bg_card"])
+        stats_card.pack(fill="x", pady=(0, 15))
+
+        stats_inner = tk.Frame(stats_card, bg=COLORS["bg_card"])
+        stats_inner.pack(fill="x", padx=25, pady=20)
+
+        stats_header = tk.Frame(stats_inner, bg=COLORS["bg_card"])
+        stats_header.pack(fill="x", pady=(0, 15))
+
+        tk.Label(stats_header, text="📊  Application Stats",
+                bg=COLORS["bg_card"], fg=COLORS["text_primary"],
+                font=FONT_SUBHEADER).pack(side="left")
+
+        refresh_btn = tk.Button(stats_header, text="🔄 Refresh",
+            font=FONT_LABEL_BOLD, bg=COLORS["bg_input"], fg=COLORS["text_secondary"],
+            activebackground=COLORS["border"], activeforeground=COLORS["text_primary"],
+            relief="flat", padx=10, pady=4, cursor="hand2",
+            command=lambda: [self._refresh_longform_stats(), self._refresh_longform_history()])
+        refresh_btn.pack(side="right")
+
+        # 4 stat cards in a row
+        stat_row = tk.Frame(stats_inner, bg=COLORS["bg_card"])
+        stat_row.pack(fill="x", pady=(0, 15))
+        stat_row.columnconfigure((0, 1, 2, 3), weight=1)
+
+        # Submitted
+        self.lf_stat_submitted = self._build_stat_mini_card(stat_row, "Submitted", "0", COLORS["success"])
+        self.lf_stat_submitted.grid(row=0, column=0, sticky="nsew", padx=(0, 5))
+
+        # Failed
+        self.lf_stat_failed = self._build_stat_mini_card(stat_row, "Failed", "0", COLORS["danger"])
+        self.lf_stat_failed.grid(row=0, column=1, sticky="nsew", padx=5)
+
+        # Success Rate
+        self.lf_stat_rate = self._build_stat_mini_card(stat_row, "Success Rate", "0%", COLORS["accent_primary"])
+        self.lf_stat_rate.grid(row=0, column=2, sticky="nsew", padx=5)
+
+        # Avg Duration
+        self.lf_stat_duration = self._build_stat_mini_card(stat_row, "Avg Duration", "0s", COLORS["accent_secondary"])
+        self.lf_stat_duration.grid(row=0, column=3, sticky="nsew", padx=(5, 0))
+
+        # Status breakdown row
+        self.lf_status_frame = tk.Frame(stats_inner, bg=COLORS["bg_card"])
+        self.lf_status_frame.pack(fill="x", pady=(0, 10))
+
+        self.lf_status_label = tk.Label(self.lf_status_frame,
+            text="No application data yet",
+            bg=COLORS["bg_card"], fg=COLORS["text_muted"], font=FONT_LABEL,
+            wraplength=500, justify="left")
+        self.lf_status_label.pack(anchor="w")
+
+        # Failure types row
+        self.lf_failures_label = tk.Label(stats_inner,
+            text="", bg=COLORS["bg_card"], fg=COLORS["text_muted"], font=FONT_LABEL)
+        self.lf_failures_label.pack(anchor="w")
+
+        # --- Recent Applications Section ---
+        history_card = tk.Frame(frame, bg=COLORS["bg_card"])
+        history_card.pack(fill="x", pady=(0, 15))
+
+        history_inner = tk.Frame(history_card, bg=COLORS["bg_card"])
+        history_inner.pack(fill="x", padx=25, pady=20)
+
+        tk.Label(history_inner, text="📋  Recent Applications",
+                bg=COLORS["bg_card"], fg=COLORS["text_primary"],
+                font=FONT_SUBHEADER).pack(anchor="w", pady=(0, 10))
+
+        # Search filter
+        search_row = tk.Frame(history_inner, bg=COLORS["bg_card"])
+        search_row.pack(fill="x", pady=(0, 10))
+
+        tk.Label(search_row, text="🔍", bg=COLORS["bg_card"],
+                fg=COLORS["text_muted"], font=FONT_NORMAL).pack(side="left")
+
+        self.lf_search_var = tk.StringVar()
+        self.lf_search_var.trace_add("write", lambda *a: self._refresh_longform_history())
+        search_entry = ModernEntry(search_row)
+        search_entry.pack(side="left", fill="x", expand=True, padx=(8, 0))
+        self.lf_search_entry = search_entry
+
+        # Scrollable history list
+        self.lf_history_frame = tk.Frame(history_inner, bg=COLORS["bg_card"])
+        self.lf_history_frame.pack(fill="x")
+
+        self.lf_history_label = tk.Label(self.lf_history_frame,
+            text="No applications yet. Enable Long-Form and run the bot.",
+            bg=COLORS["bg_card"], fg=COLORS["text_muted"], font=FONT_LABEL)
+        self.lf_history_label.pack(anchor="w", pady=10)
+
+        # --- Documents Section ---
+        docs_card = tk.Frame(frame, bg=COLORS["bg_card"])
+        docs_card.pack(fill="x", pady=(0, 15))
+
+        docs_inner = tk.Frame(docs_card, bg=COLORS["bg_card"])
+        docs_inner.pack(fill="x", padx=25, pady=20)
+
+        tk.Label(docs_inner, text="📁  Documents",
+                bg=COLORS["bg_card"], fg=COLORS["text_primary"],
+                font=FONT_SUBHEADER).pack(anchor="w", pady=(0, 5))
+        tk.Label(docs_inner, text="Configure document paths for resume upload",
+                bg=COLORS["bg_card"], fg=COLORS["text_muted"],
+                font=FONT_LABEL).pack(anchor="w", pady=(0, 15))
+
+        # Documents Directory
+        tk.Label(docs_inner, text="DOCUMENTS DIRECTORY", bg=COLORS["bg_card"],
+                fg=COLORS["text_muted"], font=FONT_LABEL_BOLD).pack(anchor="w", pady=(0, 8))
+
+        docs_dir_row = tk.Frame(docs_inner, bg=COLORS["bg_card"])
+        docs_dir_row.pack(fill="x", pady=(0, 15))
+
+        self.lf_docs_dir_entry = ModernEntry(docs_dir_row)
+        self.lf_docs_dir_entry.insert(0, self.config.get("DOCUMENTS_DIR", "./documents"))
+        self.lf_docs_dir_entry.pack(side="left", fill="x", expand=True)
+
+        browse_btn = tk.Button(docs_dir_row, text="📂 Browse",
+            font=FONT_LABEL_BOLD, bg=COLORS["bg_input"], fg=COLORS["text_secondary"],
+            activebackground=COLORS["border"], relief="flat", padx=10, pady=6, cursor="hand2",
+            command=self._browse_docs_dir)
+        browse_btn.pack(side="right", padx=(10, 0))
+
+        # Default Resume
+        tk.Label(docs_inner, text="DEFAULT RESUME FILENAME", bg=COLORS["bg_card"],
+                fg=COLORS["text_muted"], font=FONT_LABEL_BOLD).pack(anchor="w", pady=(0, 8))
+
+        self.lf_resume_entry = ModernEntry(docs_inner)
+        self.lf_resume_entry.insert(0, self.config.get("DEFAULT_RESUME", ""))
+        self.lf_resume_entry.pack(fill="x", pady=(0, 10))
+
+        tk.Label(docs_inner, text="💡 Place resume files in the documents/resumes/ folder",
+                bg=COLORS["bg_card"], fg=COLORS["text_muted"],
+                font=FONT_LABEL).pack(anchor="w", pady=(0, 10))
+
+        # Available documents display
+        self.lf_docs_list_label = tk.Label(docs_inner,
+            text="", bg=COLORS["bg_card"], fg=COLORS["text_muted"],
+            font=FONT_LABEL, justify="left", wraplength=500)
+        self.lf_docs_list_label.pack(anchor="w")
+        self._refresh_docs_list()
+
+        # --- Email Verification Section ---
+        email_card = tk.Frame(frame, bg=COLORS["bg_card"])
+        email_card.pack(fill="x", pady=(0, 15))
+
+        email_inner = tk.Frame(email_card, bg=COLORS["bg_card"])
+        email_inner.pack(fill="x", padx=25, pady=20)
+
+        tk.Label(email_inner, text="📧  Email Verification",
+                bg=COLORS["bg_card"], fg=COLORS["text_primary"],
+                font=FONT_SUBHEADER).pack(anchor="w", pady=(0, 5))
+        tk.Label(email_inner, text="IMAP access for automatic email verification during ATS registration",
+                bg=COLORS["bg_card"], fg=COLORS["text_muted"],
+                font=FONT_LABEL).pack(anchor="w", pady=(0, 15))
+
+        # IMAP Server
+        tk.Label(email_inner, text="IMAP SERVER", bg=COLORS["bg_card"],
+                fg=COLORS["text_muted"], font=FONT_LABEL_BOLD).pack(anchor="w", pady=(0, 8))
+
+        self.lf_imap_entry = ModernEntry(email_inner)
+        self.lf_imap_entry.insert(0, self.config.get("EMAIL_IMAP_SERVER", "imap.gmail.com"))
+        self.lf_imap_entry.pack(fill="x", pady=(0, 15))
+
+        # App Password
+        tk.Label(email_inner, text="EMAIL APP PASSWORD", bg=COLORS["bg_card"],
+                fg=COLORS["text_muted"], font=FONT_LABEL_BOLD).pack(anchor="w", pady=(0, 8))
+
+        email_pw_row = tk.Frame(email_inner, bg=COLORS["bg_card"])
+        email_pw_row.pack(fill="x", pady=(0, 10))
+
+        self.lf_email_pw_entry = ModernEntry(email_pw_row, show="•")
+        self.lf_email_pw_entry.insert(0, self.config.get("EMAIL_APP_PASSWORD", ""))
+        self.lf_email_pw_entry.pack(side="left", fill="x", expand=True)
+
+        self.show_email_pw_btn = ModernButton(email_pw_row, text="👁",
+            command=self.toggle_email_password, style="dark", width=45)
+        self.show_email_pw_btn.pack(side="right", padx=(10, 0))
+
+        tk.Label(email_inner, text="💡 For Gmail: Use an App Password (Settings > Security > App Passwords)",
+                bg=COLORS["bg_card"], fg=COLORS["text_muted"],
+                font=FONT_LABEL).pack(anchor="w")
+
+        # --- Master Profile Section ---
+        profile_card = tk.Frame(frame, bg=COLORS["bg_card"])
+        profile_card.pack(fill="x", pady=(0, 15))
+
+        profile_inner = tk.Frame(profile_card, bg=COLORS["bg_card"])
+        profile_inner.pack(fill="x", padx=25, pady=20)
+
+        tk.Label(profile_inner, text="👤  Master Profile",
+                bg=COLORS["bg_card"], fg=COLORS["text_primary"],
+                font=FONT_SUBHEADER).pack(anchor="w", pady=(0, 5))
+        tk.Label(profile_inner, text="Structured profile data for AI-powered form filling",
+                bg=COLORS["bg_card"], fg=COLORS["text_muted"],
+                font=FONT_LABEL).pack(anchor="w", pady=(0, 15))
+
+        # Profile Path
+        tk.Label(profile_inner, text="PROFILE FILE PATH", bg=COLORS["bg_card"],
+                fg=COLORS["text_muted"], font=FONT_LABEL_BOLD).pack(anchor="w", pady=(0, 8))
+
+        profile_path_row = tk.Frame(profile_inner, bg=COLORS["bg_card"])
+        profile_path_row.pack(fill="x", pady=(0, 15))
+
+        self.lf_profile_path_entry = ModernEntry(profile_path_row)
+        self.lf_profile_path_entry.insert(0, self.config.get("MASTER_PROFILE_PATH", "./master_profile.json"))
+        self.lf_profile_path_entry.pack(side="left", fill="x", expand=True)
+
+        edit_profile_btn = tk.Button(profile_path_row, text="📝 Edit",
+            font=FONT_LABEL_BOLD, bg=COLORS["bg_input"], fg=COLORS["text_secondary"],
+            activebackground=COLORS["border"], relief="flat", padx=10, pady=6, cursor="hand2",
+            command=self._open_profile_editor)
+        edit_profile_btn.pack(side="right", padx=(10, 0))
+
+        # Profile preview
+        self.lf_profile_preview = tk.Label(profile_inner,
+            text="", bg=COLORS["bg_elevated"], fg=COLORS["text_secondary"],
+            font=FONT_LABEL, justify="left", wraplength=500, padx=15, pady=10, anchor="nw")
+        self.lf_profile_preview.pack(fill="x", pady=(0, 5))
+        self._refresh_profile_preview()
+
+        # --- Advanced Settings Section ---
+        adv_card = tk.Frame(frame, bg=COLORS["bg_card"])
+        adv_card.pack(fill="x", pady=(0, 15))
+
+        adv_inner = tk.Frame(adv_card, bg=COLORS["bg_card"])
+        adv_inner.pack(fill="x", padx=25, pady=20)
+
+        tk.Label(adv_inner, text="⚙️  Advanced Settings",
+                bg=COLORS["bg_card"], fg=COLORS["text_primary"],
+                font=FONT_SUBHEADER).pack(anchor="w", pady=(0, 15))
+
+        # Max Pages slider
+        self.lf_max_pages_slider = ModernSlider(adv_inner,
+            label="Max Pages per Application", min_val=1, max_val=20,
+            default=self.config.get("LONGFORM_MAX_PAGES", 10))
+        self.lf_max_pages_slider.pack(fill="x", pady=(0, 15))
+
+        # Retry Limit slider
+        self.lf_retry_slider = ModernSlider(adv_inner,
+            label="Retry Limit", min_val=1, max_val=5,
+            default=self.config.get("LONGFORM_RETRY_LIMIT", 3))
+        self.lf_retry_slider.pack(fill="x", pady=(0, 15))
+
+        # Timeout slider
+        self.lf_timeout_slider = ModernSlider(adv_inner,
+            label="Timeout (seconds)", min_val=30, max_val=600,
+            default=self.config.get("LONGFORM_TIMEOUT", 180))
+        self.lf_timeout_slider.pack(fill="x", pady=(0, 15))
+
+        # DB Path
+        tk.Label(adv_inner, text="DATABASE FILE PATH", bg=COLORS["bg_card"],
+                fg=COLORS["text_muted"], font=FONT_LABEL_BOLD).pack(anchor="w", pady=(0, 8))
+
+        self.lf_db_path_entry = ModernEntry(adv_inner)
+        self.lf_db_path_entry.insert(0, self.config.get("LONGFORM_DB_PATH", "./seekmate.db"))
+        self.lf_db_path_entry.pack(fill="x")
+
+    def _build_stat_mini_card(self, parent, title, value, color):
+        """Build a small stat card for the longform dashboard"""
+        card = tk.Frame(parent, bg=COLORS["bg_elevated"], padx=12, pady=10)
+
+        tk.Label(card, text=title, bg=COLORS["bg_elevated"],
+                fg=COLORS["text_muted"], font=FONT_LABEL).pack(anchor="w")
+
+        val_label = tk.Label(card, text=value, bg=COLORS["bg_elevated"],
+                fg=color, font=(FONT_FAMILY, 22, "bold"))
+        val_label.pack(anchor="w")
+
+        card._value_label = val_label
+        return card
+
+    def _refresh_longform_stats(self):
+        """Refresh the longform stats dashboard from SQLite"""
+        try:
+            import os
+            db_path = self.config.get("LONGFORM_DB_PATH", "seekmate.db")
+            if not os.path.exists(db_path):
+                return
+
+            from longform.database import Database
+            db = Database(db_path)
+            stats = db.get_stats()
+            status_counts = db.get_status_counts()
+            db.close()
+
+            submitted = stats.get("total_submitted", 0)
+            failed = stats.get("total_failed", 0)
+            total = submitted + failed
+            rate = f"{round(submitted / total * 100)}%" if total > 0 else "N/A"
+            avg_dur = stats.get("avg_duration_seconds", 0)
+            dur_text = f"{avg_dur:.0f}s" if avg_dur else "N/A"
+
+            self.lf_stat_submitted._value_label.config(text=str(submitted))
+            self.lf_stat_failed._value_label.config(text=str(failed))
+            self.lf_stat_rate._value_label.config(text=rate)
+            self.lf_stat_duration._value_label.config(text=dur_text)
+
+            # Status breakdown
+            if status_counts:
+                parts = []
+                status_colors = {
+                    "discovered": "🔵", "opened": "🟡", "attempted": "🟠",
+                    "applied": "🟢", "failed": "🔴", "skipped": "⚪"
+                }
+                for status, count in status_counts.items():
+                    icon = status_colors.get(status, "⚫")
+                    parts.append(f"{icon} {status.title()}: {count}")
+                self.lf_status_label.config(text="  |  ".join(parts))
+            else:
+                self.lf_status_label.config(text="No application data yet")
+
+            # Failure types
+            failures = stats.get("failures_by_type", {})
+            if failures:
+                fail_parts = [f"{t}: {c}" for t, c in failures.items()]
+                captcha_count = stats.get("captcha_count", 0)
+                fail_text = "Failures: " + " | ".join(fail_parts)
+                if captcha_count:
+                    fail_text += f"  |  🔒 CAPTCHAs: {captcha_count}"
+                self.lf_failures_label.config(text=fail_text)
+            else:
+                self.lf_failures_label.config(text="")
+
+        except Exception as e:
+            pass  # Silently handle if DB doesn't exist yet
+
+    def _refresh_longform_history(self):
+        """Refresh the recent applications list from SQLite"""
+        # Clear existing entries
+        for widget in self.lf_history_frame.winfo_children():
+            widget.destroy()
+
+        try:
+            import os
+            db_path = self.config.get("LONGFORM_DB_PATH", "seekmate.db")
+            if not os.path.exists(db_path):
+                tk.Label(self.lf_history_frame,
+                    text="No applications yet. Enable Long-Form and run the bot.",
+                    bg=COLORS["bg_card"], fg=COLORS["text_muted"], font=FONT_LABEL).pack(anchor="w", pady=10)
+                return
+
+            from longform.database import Database
+            db = Database(db_path)
+            jobs = db.get_recent_jobs(limit=50)
+            db.close()
+
+            if not jobs:
+                tk.Label(self.lf_history_frame,
+                    text="No applications yet. Enable Long-Form and run the bot.",
+                    bg=COLORS["bg_card"], fg=COLORS["text_muted"], font=FONT_LABEL).pack(anchor="w", pady=10)
+                return
+
+            # Apply search filter
+            search = ""
+            if hasattr(self, 'lf_search_entry'):
+                search = self.lf_search_entry.get().strip().lower()
+
+            count = 0
+            for job in jobs:
+                title = job.get("title", "Unknown")
+                company = job.get("company", "Unknown")
+
+                if search and search not in title.lower() and search not in company.lower():
+                    continue
+
+                count += 1
+                if count > 30:
+                    break
+
+                status = job.get("status", "unknown")
+                ats = job.get("ats_portal", "")
+                duration = job.get("duration_seconds")
+                pages = job.get("pages_completed", 0)
+                job_url = job.get("job_url", "")
+
+                # Status badge colors
+                status_colors = {
+                    "applied": COLORS["success"],
+                    "failed": COLORS["danger"],
+                    "attempted": COLORS["warning"],
+                    "opened": COLORS["accent_secondary"],
+                    "discovered": COLORS["text_muted"],
+                    "skipped": COLORS["text_muted"],
+                }
+                status_color = status_colors.get(status, COLORS["text_muted"])
+
+                # Job card
+                job_card = tk.Frame(self.lf_history_frame, bg=COLORS["bg_elevated"],
+                                    cursor="hand2" if job_url else "")
+                job_card.pack(fill="x", pady=(0, 6))
+
+                card_inner = tk.Frame(job_card, bg=COLORS["bg_elevated"])
+                card_inner.pack(fill="x", padx=12, pady=8)
+
+                # Top row: title + status badge
+                top_row = tk.Frame(card_inner, bg=COLORS["bg_elevated"])
+                top_row.pack(fill="x")
+
+                tk.Label(top_row, text=f"💼 {title}",
+                        bg=COLORS["bg_elevated"], fg=COLORS["text_primary"],
+                        font=FONT_BOLD).pack(side="left")
+
+                tk.Label(top_row, text=f" {status.upper()} ",
+                        bg=status_color, fg=COLORS["text_primary"] if status in ("applied", "failed", "attempted") else COLORS["bg_dark"],
+                        font=FONT_CHIP, padx=6, pady=1).pack(side="right")
+
+                # Bottom row: company + metadata
+                meta_parts = [f"🏢 {company}"]
+                if ats:
+                    meta_parts.append(f"🔗 {ats}")
+                if duration:
+                    meta_parts.append(f"⏱ {duration:.0f}s")
+                if pages:
+                    meta_parts.append(f"📄 {pages} pages")
+
+                tk.Label(card_inner, text="  |  ".join(meta_parts),
+                        bg=COLORS["bg_elevated"], fg=COLORS["text_muted"],
+                        font=FONT_LABEL).pack(anchor="w", pady=(2, 0))
+
+                # Click to open URL
+                if job_url:
+                    job_card.bind("<Button-1>", lambda e, url=job_url: self._open_url(url))
+                    for child in job_card.winfo_children():
+                        child.bind("<Button-1>", lambda e, url=job_url: self._open_url(url))
+                        for grandchild in child.winfo_children():
+                            grandchild.bind("<Button-1>", lambda e, url=job_url: self._open_url(url))
+
+            if count == 0:
+                tk.Label(self.lf_history_frame,
+                    text="No matching applications found.",
+                    bg=COLORS["bg_card"], fg=COLORS["text_muted"], font=FONT_LABEL).pack(anchor="w", pady=10)
+
+        except Exception as e:
+            tk.Label(self.lf_history_frame,
+                text=f"Error loading history: {e}",
+                bg=COLORS["bg_card"], fg=COLORS["danger"], font=FONT_LABEL).pack(anchor="w", pady=10)
+
+    def toggle_longform(self):
+        """Toggle long-form engine on/off"""
+        current = self.longform_var.get()
+        new_state = not current
+        self.longform_var.set(new_state)
+
+        if new_state:
+            self.longform_btn.config(
+                text="🌐 LONG-FORM: ON",
+                bg=COLORS["success"],
+                fg=COLORS["text_primary"]
+            )
+            self.log("INFO", "🌐 Long-Form engine ENABLED - external applications will be attempted")
+        else:
+            self.longform_btn.config(
+                text="🌐 LONG-FORM: OFF",
+                bg=COLORS["bg_input"],
+                fg=COLORS["text_secondary"]
+            )
+            self.log("INFO", "🌐 Long-Form engine DISABLED - external sites will be skipped")
+
+        self.config["ENABLE_LONGFORM"] = new_state
+        save_config(self.config)
+
+    def toggle_email_password(self):
+        """Toggle email app password visibility"""
+        current_show = self.lf_email_pw_entry.cget("show")
+        if current_show == "•":
+            self.lf_email_pw_entry.config(show="")
+        else:
+            self.lf_email_pw_entry.config(show="•")
+
+    def _browse_docs_dir(self):
+        """Open folder browser for documents directory"""
+        from tkinter import filedialog
+        folder = filedialog.askdirectory(title="Select Documents Directory")
+        if folder:
+            self.lf_docs_dir_entry.delete(0, "end")
+            self.lf_docs_dir_entry.insert(0, folder)
+            self._refresh_docs_list()
+
+    def _refresh_docs_list(self):
+        """Refresh the available documents display"""
+        import os
+        docs_dir = self.config.get("DOCUMENTS_DIR", "./documents")
+        if hasattr(self, 'lf_docs_dir_entry'):
+            docs_dir = self.lf_docs_dir_entry.get().strip() or docs_dir
+
+        parts = []
+        for subfolder in ["resumes", "cover_letters", "certificates"]:
+            folder_path = os.path.join(docs_dir, subfolder)
+            if os.path.exists(folder_path):
+                files = [f for f in os.listdir(folder_path)
+                         if not f.startswith(".") and os.path.isfile(os.path.join(folder_path, f))]
+                if files:
+                    parts.append(f"📂 {subfolder}/: {', '.join(files)}")
+                else:
+                    parts.append(f"📂 {subfolder}/: (empty)")
+            else:
+                parts.append(f"📂 {subfolder}/: (not found)")
+
+        self.lf_docs_list_label.config(text="\n".join(parts) if parts else "Documents directory not found")
+
+    def _open_profile_editor(self):
+        """Open master_profile.json in the system's default editor"""
+        import os, subprocess, sys
+        path = self.lf_profile_path_entry.get().strip() or "./master_profile.json"
+        abs_path = os.path.abspath(path)
+        if not os.path.exists(abs_path):
+            self.log("ERROR", f"Profile not found: {abs_path}")
+            return
+        try:
+            if sys.platform == "win32":
+                os.startfile(abs_path)
+            elif sys.platform == "darwin":
+                subprocess.Popen(["open", abs_path])
+            else:
+                subprocess.Popen(["xdg-open", abs_path])
+            self.log("INFO", f"📝 Opened profile: {abs_path}")
+        except Exception as e:
+            self.log("ERROR", f"Could not open profile: {e}")
+
+    def _refresh_profile_preview(self):
+        """Load and display a summary of the master profile"""
+        import os, json
+        path = self.config.get("MASTER_PROFILE_PATH", "./master_profile.json")
+        if hasattr(self, 'lf_profile_path_entry'):
+            path = self.lf_profile_path_entry.get().strip() or path
+
+        if not os.path.exists(path):
+            self.lf_profile_preview.config(text="Profile file not found. Click 'Edit' to create one.")
+            return
+
+        try:
+            with open(path, "r", encoding="utf-8") as f:
+                data = json.load(f)
+
+            personal = data.get("personal", {})
+            name = personal.get("full_name", "") or self.config.get("FULL_NAME", "")
+            location = personal.get("location", "") or self.config.get("LOCATION", "")
+            skills = data.get("skills", [])
+            work = data.get("work_history", [])
+            edu = data.get("education", [])
+            certs = data.get("certifications", [])
+
+            lines = []
+            if name:
+                lines.append(f"Name: {name}")
+            if location:
+                lines.append(f"Location: {location}")
+            lines.append(f"Work History: {len(work)} entries")
+            lines.append(f"Education: {len(edu)} entries")
+            if skills:
+                lines.append(f"Skills: {len(skills)} ({', '.join(skills[:5])}{'...' if len(skills) > 5 else ''})")
+            if certs:
+                lines.append(f"Certifications: {len(certs)}")
+
+            self.lf_profile_preview.config(text="\n".join(lines) if lines else "Profile is empty - click Edit to fill it in")
+        except Exception as e:
+            self.lf_profile_preview.config(text=f"Error reading profile: {e}")
+
+    def _open_url(self, url):
+        """Open a URL in the default browser"""
+        import webbrowser
+        try:
+            webbrowser.open(url)
+        except Exception:
+            pass
 
     def build_preset_chips(self, parent):
         """Build modern chip-style preset buttons with multi-select capability"""
@@ -3706,6 +4320,28 @@ rm "$0"
         
         # Theme preference (already saved elsewhere, but ensure consistency)
         self.config["THEME"] = getattr(self, 'current_theme', 'dark')
+
+        # Long-Form settings
+        if hasattr(self, 'longform_var'):
+            self.config["ENABLE_LONGFORM"] = self.longform_var.get()
+        if hasattr(self, 'lf_docs_dir_entry'):
+            self.config["DOCUMENTS_DIR"] = self.lf_docs_dir_entry.get().strip()
+        if hasattr(self, 'lf_resume_entry'):
+            self.config["DEFAULT_RESUME"] = self.lf_resume_entry.get().strip()
+        if hasattr(self, 'lf_imap_entry'):
+            self.config["EMAIL_IMAP_SERVER"] = self.lf_imap_entry.get().strip()
+        if hasattr(self, 'lf_email_pw_entry'):
+            self.config["EMAIL_APP_PASSWORD"] = self.lf_email_pw_entry.get().strip()
+        if hasattr(self, 'lf_profile_path_entry'):
+            self.config["MASTER_PROFILE_PATH"] = self.lf_profile_path_entry.get().strip()
+        if hasattr(self, 'lf_max_pages_slider'):
+            self.config["LONGFORM_MAX_PAGES"] = self.lf_max_pages_slider.get()
+        if hasattr(self, 'lf_retry_slider'):
+            self.config["LONGFORM_RETRY_LIMIT"] = self.lf_retry_slider.get()
+        if hasattr(self, 'lf_timeout_slider'):
+            self.config["LONGFORM_TIMEOUT"] = self.lf_timeout_slider.get()
+        if hasattr(self, 'lf_db_path_entry'):
+            self.config["LONGFORM_DB_PATH"] = self.lf_db_path_entry.get().strip()
 
         save_config(self.config)
         self.log("INFO", "💾 All settings saved!")
