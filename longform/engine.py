@@ -94,11 +94,16 @@ class LongFormEngine:
         print(f"\n    [LongForm] Starting external application for: {job_title} @ {company}")
 
         try:
-            # Step 1: Click external apply button and switch to new tab
-            if not self._click_external_and_switch(external_button, original_windows):
-                result["reason"] = "Failed to open external application page"
-                self._finalize(job_id, result, start_time, original_window)
-                return result
+            # Step 1: Navigate to external page
+            if external_button is not None:
+                # Called from SeekBot hook — need to click button and switch tabs
+                if not self._click_external_and_switch(external_button, original_windows):
+                    result["reason"] = "Failed to open external application page"
+                    self._finalize(job_id, result, start_time, original_window)
+                    return result
+            else:
+                # Called from standalone longform_bot — already on external page
+                print("    [LongForm] Already on external portal (standalone mode)")
 
             # Record external URL
             external_url = self.driver.current_url

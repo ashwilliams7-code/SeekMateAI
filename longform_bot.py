@@ -300,6 +300,8 @@ def build_search_url(job_title, location):
 # BROWSER INIT
 # ============================================
 def init_browser():
+    import shutil
+
     chrome_options = Options()
     run_headless = os.getenv("RUN_HEADLESS", "false").lower() == "true"
 
@@ -316,14 +318,53 @@ def init_browser():
     chrome_options.add_argument("--disable-blink-features=AutomationControlled")
     chrome_options.add_argument("--disable-extensions")
     chrome_options.add_argument("--disable-notifications")
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
 
-    # Use separate Chrome profile for long-form bot
-    profile_dir = os.path.join(tempfile.gettempdir(), "seekmate_longform_chrome")
+    # Force correct Chrome binary path
+    chrome_path = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
+    if os.path.exists(chrome_path):
+        chrome_options.binary_location = chrome_path
+
+    # Share the main bot's Chrome profile so SEEK login cookies carry over
+    # (user logs in once via main bot — longform bot reuses same session)
+    profile_dir = os.path.join(tempfile.gettempdir(), "seekmate_chrome_profile")
+
+    # Nuke stale profile if it has lock files (Chrome was not shut down cleanly)
+    if os.path.exists(profile_dir):
+        lock_exists = any(
+            os.path.exists(os.path.join(profile_dir, f))
+            for f in ["SingletonLock", "SingletonSocket", "SingletonCookie", "lockfile"]
+        )
+        if lock_exists:
+            print("[*] Removing stale Chrome profile with lock files...")
+            shutil.rmtree(profile_dir, ignore_errors=True)
+
     os.makedirs(profile_dir, exist_ok=True)
     chrome_options.add_argument(f"--user-data-dir={profile_dir}")
 
     service = Service(ChromeDriverManager().install())
-    driver = webdriver.Chrome(service=service, options=chrome_options)
+    try:
+        driver = webdriver.Chrome(service=service, options=chrome_options)
+    except Exception:
+        # Fallback: wipe profile completely and retry with fresh one
+        print("[!] Chrome failed, wiping profile and retrying...")
+        shutil.rmtree(profile_dir, ignore_errors=True)
+        # Use a unique temp dir as ultimate fallback
+        profile_dir = os.path.join(tempfile.gettempdir(), f"seekmate_lf_{int(time.time())}")
+        os.makedirs(profile_dir, exist_ok=True)
+        chrome_options2 = Options()
+        chrome_options2.add_argument("--start-maximized")
+        chrome_options2.add_argument("--disable-blink-features=AutomationControlled")
+        chrome_options2.add_argument("--disable-extensions")
+        chrome_options2.add_argument("--disable-notifications")
+        chrome_options2.add_argument("--no-sandbox")
+        chrome_options2.add_argument("--disable-dev-shm-usage")
+        if os.path.exists(chrome_path):
+            chrome_options2.binary_location = chrome_path
+        chrome_options2.add_argument(f"--user-data-dir={profile_dir}")
+        service2 = Service(ChromeDriverManager().install())
+        driver = webdriver.Chrome(service=service2, options=chrome_options2)
 
     if SCAN_SPEED >= 90: driver.implicitly_wait(0.1)
     elif SCAN_SPEED >= 50: driver.implicitly_wait(1)
@@ -333,10 +374,27 @@ def init_browser():
 
 
 # ============================================
-# OPENAI GPT
+# AI ENGINE — Claude Code (free), Claude API, or OpenAI GPT
 # ============================================
+ANTHROPIC_API_KEY = CONFIG.get("ANTHROPIC_API_KEY", os.getenv("ANTHROPIC_API_KEY", ""))
 OPENAI_API_KEY = CONFIG.get("OPENAI_API_KEY", os.getenv("OPENAI_API_KEY", ""))
+USE_CLAUDE_CODE = CONFIG.get("USE_CLAUDE_CODE", True)  # Default: use Claude Code (free)
+CLAUDE_MODEL = "claude-sonnet-4-20250514"
 OPENAI_MODEL = "gpt-4.1-mini"
+
+# Determine which AI engine to use — Claude Code is preferred (zero cost)
+if USE_CLAUDE_CODE:
+    AI_ENGINE = "claude_code"
+    print("[AI] Using Claude Code (zero API cost — file-based bridge)")
+elif ANTHROPIC_API_KEY:
+    AI_ENGINE = "claude_api"
+    print(f"[AI] Using Claude API ({CLAUDE_MODEL})")
+elif OPENAI_API_KEY:
+    AI_ENGINE = "openai"
+    print(f"[AI] Using OpenAI ({OPENAI_MODEL})")
+else:
+    AI_ENGINE = "claude_code"  # Default fallback to Claude Code
+    print("[AI] No API keys — using Claude Code bridge")
 
 
 # ============================================
@@ -349,39 +407,97 @@ class LongFormBot:
         self.applied_job_titles = []
         self.skipped_quick_apply = 0
 
-        # OpenAI client
-        self.client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
+        # AI clients
+        self.claude_client = None
+        self.openai_client = None
+
+        if AI_ENGINE == "claude_api":
+            try:
+                from anthropic import Anthropic
+                self.claude_client = Anthropic(api_key=ANTHROPIC_API_KEY)
+            except Exception as e:
+                print(f"[!] Failed to init Claude client: {e}")
+        elif AI_ENGINE == "openai":
+            self.openai_client = OpenAI(api_key=OPENAI_API_KEY)
 
         # WebDriverWait timeout
         self.wait = WebDriverWait(driver, 10 if SCAN_SPEED < 50 else 5)
 
     def gpt(self, system_prompt, user_prompt):
-        if not self.client:
-            print("    [!] No OpenAI API key configured")
-            return ""
-        try:
-            res = self.client.chat.completions.create(
-                model=OPENAI_MODEL,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-                max_tokens=800,
-                temperature=0.4,
-            )
-            return res.choices[0].message.content.strip()
-        except Exception as e:
-            print(f"    [!] GPT ERROR: {e}")
-            return ""
+        """Unified AI call — routes to Claude Code, Claude API, or OpenAI."""
+        # Claude Code bridge (zero cost — Claude Code answers via file)
+        if AI_ENGINE == "claude_code":
+            try:
+                from cc_ai_bridge import ask_claude_code
+                answer = ask_claude_code(system_prompt, user_prompt, timeout=300)
+                if answer:
+                    return answer
+                print("    [!] Claude Code did not respond — check if monitoring loop is running")
+                return ""
+            except ImportError:
+                print("    [!] cc_ai_bridge.py not found — falling back to API")
+            except Exception as e:
+                print(f"    [!] Claude Code bridge error: {e}")
+
+        # Claude API
+        if self.claude_client:
+            try:
+                res = self.claude_client.messages.create(
+                    model=CLAUDE_MODEL,
+                    max_tokens=800,
+                    system=system_prompt,
+                    messages=[{"role": "user", "content": user_prompt}],
+                )
+                return res.content[0].text.strip()
+            except Exception as e:
+                print(f"    [!] CLAUDE API ERROR: {e}")
+                if self.openai_client:
+                    print("    [*] Falling back to OpenAI...")
+
+        # OpenAI fallback
+        if self.openai_client:
+            try:
+                res = self.openai_client.chat.completions.create(
+                    model=OPENAI_MODEL,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                    max_tokens=800,
+                    temperature=0.4,
+                )
+                return res.choices[0].message.content.strip()
+            except Exception as e:
+                print(f"    [!] GPT ERROR: {e}")
+                return ""
+
+        print("    [!] No AI engine available")
+        return ""
 
     def ensure_logged_in(self):
         self.driver.get("https://www.seek.com.au/")
-        speed_sleep(5, "scan")
-        throttle()
+        time.sleep(5)
         sign_in = self.driver.find_elements(By.XPATH, "//a[contains(., 'Sign in')]")
         if sign_in:
-            print("[!] Not logged in. Log in manually...")
-            input("Press ENTER after logging in...")
+            print("[!] Not logged in to SEEK. Please log in via the browser window...")
+            print("[*] Waiting for login (checking every 10 seconds)...")
+            # Poll until user logs in (no input() needed — works in subprocess mode)
+            for attempt in range(60):  # Wait up to 10 minutes
+                if check_control() == "stop":
+                    print("[!] Stop signal received during login wait.")
+                    return
+                time.sleep(10)
+                try:
+                    self.driver.get("https://www.seek.com.au/")
+                    time.sleep(3)
+                    still_signed_out = self.driver.find_elements(By.XPATH, "//a[contains(., 'Sign in')]")
+                    if not still_signed_out:
+                        print("[*] Login detected! Continuing...")
+                        return
+                    print(f"    [*] Still waiting for login... (attempt {attempt + 1}/60)")
+                except:
+                    pass
+            print("[!] Login timeout — proceeding anyway (may fail).")
         else:
             print("[*] Already logged in to SEEK.")
 
@@ -466,38 +582,114 @@ class LongFormBot:
             print(f"Next page error: {e}")
             return False
 
-    def check_external_apply(self):
-        """Check if current job page has an external apply button. Returns the button or None."""
+    def wait_for_apply_button(self):
+        """Wait for the Apply button to render on the job detail page.
+        Uses explicit WebDriverWait (not speed-dependent) so the page has time to load."""
         try:
-            external = self.driver.find_elements(
-                By.XPATH,
-                "//button[contains(., 'company site') or contains(., 'Apply on company')]"
+            WebDriverWait(self.driver, 15).until(
+                EC.presence_of_element_located((By.CSS_SELECTOR, "a[data-automation='job-detail-apply']"))
             )
-            if external:
-                return external[0]
-        except: pass
-        return None
+            return True
+        except:
+            # Fallback: also try alternative selector
+            try:
+                WebDriverWait(self.driver, 5).until(
+                    EC.presence_of_element_located((By.XPATH, "//a[contains(., 'Apply')]"))
+                )
+                return True
+            except:
+                return False
 
-    def check_quick_apply(self):
-        """Check if current job page has a Quick Apply button."""
+    def find_apply_link(self):
+        """Find the Apply link/button on the job detail page.
+        Returns (element, href, text) — text is used to distinguish Quick Apply vs External."""
+        # SEEK uses <a data-automation="job-detail-apply"> for all apply buttons
+        selectors = [
+            "a[data-automation='job-detail-apply']",
+            "a[data-automation='jobDetailApply']",
+        ]
+        for sel in selectors:
+            try:
+                els = self.driver.find_elements(By.CSS_SELECTOR, sel)
+                if els:
+                    href = els[0].get_attribute("href") or ""
+                    text = els[0].text.strip()
+                    return els[0], href, text
+            except:
+                continue
+
+        # Fallback: look for links/buttons with Apply text
+        for xpath in [
+            "//a[contains(., 'Apply')]",
+            "//button[contains(., 'Apply')]",
+        ]:
+            try:
+                els = self.driver.find_elements(By.XPATH, xpath)
+                if els:
+                    href = els[0].get_attribute("href") or ""
+                    text = els[0].text.strip()
+                    return els[0], href, text
+            except:
+                continue
+
+        return None, None, None
+
+    def detect_apply_type_from_text(self, button_text):
+        """Detect if the Apply button is Quick Apply or External based on its text.
+        SEEK uses 'Quick apply' for internal forms and 'Apply' for external portals."""
+        text = button_text.lower().replace('\u2060', '').strip()  # strip zero-width chars
+        if "quick" in text:
+            return "quick_apply"
+        elif text in ("apply", "apply now", "apply on company site"):
+            return "external"
+        return "unknown"
+
+    def click_apply_and_go_external(self, apply_element, job_url):
+        """Click the external Apply link and wait for the external portal to load.
+        Returns True if we landed on an external page, False otherwise."""
+        original_handles = set(self.driver.window_handles)
+
         try:
-            for xpath in [
-                "//button[contains(., 'Quick apply')]",
-                "//button[contains(., 'Quick Apply')]",
-                "//button[.//span[contains(text(), 'Quick apply')]]",
-            ]:
-                btns = self.driver.find_elements(By.XPATH, xpath)
-                if btns:
-                    return True
-        except: pass
-        return False
+            self.driver.execute_script("arguments[0].click();", apply_element)
+            time.sleep(5)  # Fixed 5s wait for redirect — not speed-dependent
 
-    def apply_external(self, external_button, job_title, company, job_url, description):
-        """Run the LongFormEngine on this external application."""
+            # Check if new tab opened
+            new_handles = set(self.driver.window_handles)
+            if new_handles - original_handles:
+                new_tab = list(new_handles - original_handles)[0]
+                self.driver.switch_to.window(new_tab)
+                time.sleep(3)  # Wait for external page to load
+
+            current_url = self.driver.current_url
+            print(f"    [*] After clicking Apply, landed on: {current_url[:100]}")
+
+            if "seek.com.au" not in current_url:
+                print(f"    [*] EXTERNAL PORTAL detected!")
+                return True
+
+            # Might be SEEK redirect page — wait a bit more
+            if "/apply" in current_url:
+                time.sleep(4)
+                current_url = self.driver.current_url
+                if "seek.com.au" not in current_url:
+                    print(f"    [*] EXTERNAL PORTAL detected after redirect!")
+                    return True
+
+            print(f"    [-] Did not land on external portal")
+            return False
+
+        except Exception as e:
+            print(f"    [!] Error navigating to external portal: {e}")
+            return False
+
+    def apply_external(self, job_title, company, job_url, description):
+        """Run the LongFormEngine on the current external page."""
         try:
             from longform import LongFormEngine
             lf = LongFormEngine(self.driver, CONFIG, self.gpt)
-            result = lf.run(external_button, job_title, company, job_url, description)
+
+            # The browser is already on the external ATS portal — engine handles from here
+            result = lf.run(None, job_title, company, job_url, description)
 
             if result.get("success"):
                 self.successful_submits += 1
@@ -635,25 +827,50 @@ class LongFormBot:
                         if not job_url:
                             continue
 
-                        speed_sleep(2, "scan")
+                        # Explicit wait for Apply button to render (not speed-dependent)
+                        self.wait_for_apply_button()
 
-                        # KEY DIFFERENCE: Only process EXTERNAL applications
-                        external_btn = self.check_external_apply()
-                        if external_btn:
-                            print(f"    [*] EXTERNAL APPLICATION found — processing...")
-                            description = self.get_description()
-                            self.apply_external(external_btn, title, company, job_url, description)
-                        elif self.check_quick_apply():
+                        # Get job description before checking Apply type
+                        description = self.get_description()
+
+                        # Find the Apply link on the job page
+                        apply_el, apply_href, apply_text = self.find_apply_link()
+                        if not apply_el:
+                            print(f"    [-] No apply button found — skipping")
+                            if len(self.driver.window_handles) > 1:
+                                self.driver.close()
+                                self.driver.switch_to.window(self.driver.window_handles[0])
+                            job_cooldown()
+                            continue
+
+                        print(f"    [*] Apply button text: '{apply_text}' | href: {apply_href[:80] if apply_href else 'none'}")
+
+                        # Detect Quick Apply vs External from button text (no click needed)
+                        apply_type = self.detect_apply_type_from_text(apply_text)
+
+                        if apply_type == "quick_apply":
                             self.skipped_quick_apply += 1
                             print(f"    [-] Quick Apply job — SKIPPING (use short-form bot)")
+                        elif apply_type == "external":
+                            print(f"    [*] EXTERNAL APPLICATION — clicking through to portal...")
+                            if self.click_apply_and_go_external(apply_el, job_url):
+                                self.apply_external(title, company, job_url, description)
+                            else:
+                                print(f"    [-] Failed to reach external portal — skipping")
                         else:
-                            print(f"    [-] No apply button found — skipping")
+                            # Unknown text — try clicking to detect
+                            print(f"    [*] Unknown apply type '{apply_text}' — clicking to detect...")
+                            if self.click_apply_and_go_external(apply_el, job_url):
+                                self.apply_external(title, company, job_url, description)
+                            else:
+                                self.skipped_quick_apply += 1
+                                print(f"    [-] Landed on SEEK form — SKIPPING")
 
-                        # Close job tab and return to search
-                        if len(self.driver.window_handles) > 1:
+                        # Close all extra tabs and return to search results
+                        while len(self.driver.window_handles) > 1:
                             self.driver.close()
                             self.driver.switch_to.window(self.driver.window_handles[0])
-                            stealth_random_scroll(self.driver)
+                        stealth_random_scroll(self.driver)
 
                         job_cooldown()
 

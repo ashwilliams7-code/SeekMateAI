@@ -1,5 +1,7 @@
 {
     "OPENAI_API_KEY": "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",
+    "ANTHROPIC_API_KEY": "",
+    "USE_CLAUDE_CODE": true,
     "FULL_NAME": "Ash Williams",
     "LOCATION": "Gold Coast, Australia",
     "BACKGROUND_BIO": "",
@@ -82,7 +84,7 @@
         "Director",
         "Product"
     ],
-    "ENABLE_LONGFORM": false,
+    "ENABLE_LONGFORM": true,
     "LONGFORM_MAX_PAGES": 10,
     "LONGFORM_RETRY_LIMIT": 3,
     "LONGFORM_TIMEOUT": 180,
