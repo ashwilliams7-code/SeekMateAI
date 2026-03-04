@@ -1,0 +1,46 @@
+{
+    "personal": {
+        "full_name": "",
+        "email": "",
+        "phone": "",
+        "location": "",
+        "linkedin_url": "",
+        "website": ""
+    },
+    "work_rights": {
+        "citizenship": "Australian Citizen",
+        "visa_status": "",
+        "right_to_work": "Unrestricted"
+    },
+    "work_history": [
+        {
+            "title": "",
+            "company": "",
+            "start_date": "",
+            "end_date": "Present",
+            "description": ""
+        }
+    ],
+    "education": [
+        {
+            "degree": "",
+            "institution": "",
+            "year": "",
+            "field": ""
+        }
+    ],
+    "skills": [],
+    "certifications": [],
+    "licenses": [],
+    "salary_expectations": {
+        "minimum": 0,
+        "preferred": 0,
+        "currency": "AUD"
+    },
+    "preferences": {
+        "work_type": "Full Time",
+        "notice_period": "2 weeks",
+        "willing_to_relocate": false,
+        "preferred_locations": []
+    }
+}

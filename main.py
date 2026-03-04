@@ -1909,14 +1909,29 @@ Reply with ONLY the exact option text to select:"""
         stealth_random_scroll(self.driver)
         stealth_random_pause()
 
-        # Skip external sites
+        # Handle external sites (long-form applications)
         try:
             external = self.driver.find_elements(
                 By.XPATH,
                 "//button[contains(., 'company site') or contains(., 'Apply on company')]"
             )
             if external:
-                print("    [-] External site. Skipping.")
+                if CONFIG.get("ENABLE_LONGFORM", False):
+                    try:
+                        from longform import LongFormEngine
+                        description = self.get_description() if hasattr(self, 'get_description') else ""
+                        lf = LongFormEngine(self.driver, CONFIG, self.gpt)
+                        result = lf.run(external[0], job_title, company, job_url, description)
+                        if result.get("success"):
+                            self.log_job(job_title, company, job_url)
+                            self.successful_submits += 1
+                            print(f"    [+] Long-form application submitted for {job_title} @ {company}")
+                        else:
+                            print(f"    [-] Long-form failed: {result.get('reason', 'Unknown')}")
+                    except Exception as e:
+                        print(f"    [-] Long-form engine error: {e}")
+                else:
+                    print("    [-] External site. Skipping.")
                 return
         except:
             pass

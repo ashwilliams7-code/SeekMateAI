@@ -81,5 +81,16 @@
         "Finance",
         "Director",
         "Product"
-    ]
+    ],
+    "ENABLE_LONGFORM": false,
+    "LONGFORM_MAX_PAGES": 10,
+    "LONGFORM_RETRY_LIMIT": 3,
+    "LONGFORM_TIMEOUT": 180,
+    "DOCUMENTS_DIR": "./documents",
+    "DEFAULT_RESUME": "",
+    "RESUME_MAP": {},
+    "EMAIL_IMAP_SERVER": "imap.gmail.com",
+    "EMAIL_APP_PASSWORD": "",
+    "MASTER_PROFILE_PATH": "./master_profile.json",
+    "LONGFORM_DB_PATH": "./seekmate.db"
 }
