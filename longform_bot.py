@@ -326,32 +326,40 @@ def init_browser():
     if os.path.exists(chrome_path):
         chrome_options.binary_location = chrome_path
 
-    # Share the main bot's Chrome profile so SEEK login cookies carry over
-    # (user logs in once via main bot — longform bot reuses same session)
-    profile_dir = os.path.join(tempfile.gettempdir(), "seekmate_chrome_profile")
+    # Use a PERSISTENT Chrome profile so SEEK login cookies survive between sessions.
+    # Stored in AppData (not temp) so Windows doesn't clean it up.
+    # The longform bot gets its own profile to avoid conflicts with the main bot.
+    profile_dir = os.path.join(get_data_dir(), "chrome_profile_longform")
 
-    # Nuke stale profile if it has lock files (Chrome was not shut down cleanly)
+    # Only remove lock files (not the whole profile!) so cookies/login persist
     if os.path.exists(profile_dir):
-        lock_exists = any(
-            os.path.exists(os.path.join(profile_dir, f))
-            for f in ["SingletonLock", "SingletonSocket", "SingletonCookie", "lockfile"]
-        )
-        if lock_exists:
-            print("[*] Removing stale Chrome profile with lock files...")
-            shutil.rmtree(profile_dir, ignore_errors=True)
+        for lock_file in ["SingletonLock", "SingletonSocket", "SingletonCookie", "lockfile"]:
+            lock_path = os.path.join(profile_dir, lock_file)
+            try:
+                if os.path.exists(lock_path):
+                    os.remove(lock_path)
+                    print(f"[*] Removed stale lock: {lock_file}")
+            except:
+                pass
 
     os.makedirs(profile_dir, exist_ok=True)
     chrome_options.add_argument(f"--user-data-dir={profile_dir}")
+    print(f"[INFO] Chrome profile: {profile_dir}")
 
     service = Service(ChromeDriverManager().install())
     try:
         driver = webdriver.Chrome(service=service, options=chrome_options)
-    except Exception:
-        # Fallback: wipe profile completely and retry with fresh one
-        print("[!] Chrome failed, wiping profile and retrying...")
-        shutil.rmtree(profile_dir, ignore_errors=True)
-        # Use a unique temp dir as ultimate fallback
-        profile_dir = os.path.join(tempfile.gettempdir(), f"seekmate_lf_{int(time.time())}")
+    except Exception as e:
+        # Fallback: clear lock files more aggressively and retry (keep cookies!)
+        print(f"[!] Chrome failed ({e}), clearing locks and retrying...")
+        if os.path.exists(profile_dir):
+            # Remove ALL lock-like files, but preserve cookies/login data
+            for root, dirs, files in os.walk(profile_dir):
+                for f in files:
+                    if f.startswith("Singleton") or f == "lockfile":
+                        try: os.remove(os.path.join(root, f))
+                        except: pass
+                break  # only top-level
         os.makedirs(profile_dir, exist_ok=True)
         chrome_options2 = Options()
         chrome_options2.add_argument("--start-maximized")

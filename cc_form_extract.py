@@ -18,6 +18,17 @@ def resource_path(p):
 CONFIG = json.load(open(resource_path("config.json")))
 
 
+def get_data_dir():
+    if sys.platform == "win32":
+        data_dir = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), "SeekMateAI")
+    elif sys.platform == "darwin":
+        data_dir = os.path.expanduser("~/Library/Application Support/SeekMateAI")
+    else:
+        data_dir = os.path.expanduser("~/.seekmateai")
+    os.makedirs(data_dir, exist_ok=True)
+    return data_dir
+
+
 def init_browser():
     chrome_options = Options()
     chrome_options.add_argument("--start-maximized")
@@ -29,9 +40,11 @@ def init_browser():
     chrome_path = r"C:\Program Files\Google\Chrome\Application\chrome.exe"
     if os.path.exists(chrome_path):
         chrome_options.binary_location = chrome_path
-    profile_dir = os.path.join(tempfile.gettempdir(), "seekmate_chrome_profile")
+    # Persistent profile in AppData so SEEK login cookies survive between sessions
+    profile_dir = os.path.join(get_data_dir(), "chrome_profile_longform")
+    # Only remove lock files — keep cookies/login data intact
     if os.path.exists(profile_dir):
-        for f in ["SingletonLock", "SingletonSocket", "SingletonCookie"]:
+        for f in ["SingletonLock", "SingletonSocket", "SingletonCookie", "lockfile"]:
             try: os.remove(os.path.join(profile_dir, f))
             except: pass
     os.makedirs(profile_dir, exist_ok=True)
@@ -40,8 +53,12 @@ def init_browser():
     try:
         return webdriver.Chrome(service=service, options=chrome_options)
     except:
-        shutil.rmtree(profile_dir, ignore_errors=True)
-        profile_dir = os.path.join(tempfile.gettempdir(), f"seekmate_cc_{int(time.time())}")
+        # Clear locks more aggressively but keep the profile data
+        if os.path.exists(profile_dir):
+            for f in os.listdir(profile_dir):
+                if f.startswith("Singleton") or f == "lockfile":
+                    try: os.remove(os.path.join(profile_dir, f))
+                    except: pass
         os.makedirs(profile_dir, exist_ok=True)
         opts2 = Options()
         opts2.add_argument("--start-maximized")
