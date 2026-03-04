@@ -1,13 +1,13 @@
 {
     "OPENAI_API_KEY": "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",
     "ANTHROPIC_API_KEY": "",
-    "USE_CLAUDE_CODE": true,
+    "USE_CLAUDE_CODE": false,
     "FULL_NAME": "Ash Williams",
     "LOCATION": "Gold Coast, Australia",
     "BACKGROUND_BIO": "",
-    "SEEK_EMAIL": "",
+    "SEEK_EMAIL": "ashawilliams988@gmail.com",
     "JOB_TITLE": "director",
-    "CV_PATH": "",
+    "CV_PATH": "Ash_Williams2025.pdf",
     "MAX_JOBS": 100,
     "EXPECTED_SALARY": 100000,
     "JOB_TITLES": [

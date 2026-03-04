@@ -12,10 +12,17 @@ import json
 
 # Keywords for classifying questions by category
 PERSONAL_KEYWORDS = {
-    "name": ["first name", "last name", "full name", "given name", "surname", "family name"],
+    "first_name": ["first name", "given name"],
+    "last_name": ["last name", "surname", "family name"],
+    "full_name": ["full name", "your name", "name of applicant", "applicant name"],
     "email": ["email", "e-mail"],
     "phone": ["phone", "mobile", "telephone", "contact number", "cell"],
-    "location": ["address", "city", "suburb", "postcode", "zip", "state", "street"],
+    "street": ["street", "address line 1", "address line1", "street address"],
+    "street2": ["street cont", "address line 2", "address line2", "unit", "apartment", "apt"],
+    "city": ["city", "town", "suburb"],
+    "postcode": ["postcode", "zip", "postal code", "zip code", "zipcode"],
+    "state": ["state", "region", "province"],
+    "country": ["country"],
     "linkedin": ["linkedin"],
     "website": ["website", "portfolio", "personal url", "personal site"],
 }
@@ -262,6 +269,87 @@ RULES:
             print(f"    [AI] Error generating cover letter: {e}")
             return ""
 
+    def answer_batch(self, questions):
+        """Answer multiple form questions in a single AI call.
+
+        Reduces API costs and improves answer consistency by providing all
+        questions at once so the AI can give coherent, non-repetitive answers.
+
+        Args:
+            questions: List of dicts with keys:
+                - index: field index (int)
+                - label: question/field label (str)
+                - type: field type (str)
+                - max_length: char limit (int, 0=unlimited)
+                - options: list of options for select/radio (optional)
+
+        Returns:
+            Dict mapping str(index) → answer string.
+            Empty dict if batch call fails.
+        """
+        if not questions:
+            return {}
+
+        # Build a numbered prompt with all questions
+        lines = ["Answer each of the following job application form questions.",
+                 "Return your answers as a JSON object mapping question numbers to answers.",
+                 "For select/radio questions, return the EXACT option text.",
+                 "Be concise and professional.\n"]
+
+        for q in questions:
+            idx = q["index"]
+            label = q["label"]
+            field_type = q.get("type", "text")
+            max_len = q.get("max_length", 0)
+            options = q.get("options", [])
+
+            line = f"Question {idx}: \"{label}\""
+            if options:
+                line += f" (Choose from: {', '.join(options)})"
+            if max_len and max_len > 0:
+                line += f" [Max {max_len} characters]"
+            if field_type == "textarea":
+                line += " [Provide a detailed answer, 2-4 sentences]"
+            lines.append(line)
+
+        lines.append("\nRespond ONLY with a JSON object like: "
+                     "{\"0\": \"answer\", \"1\": \"answer\", ...}")
+
+        user_prompt = "\n".join(lines)
+
+        try:
+            response = self.gpt(self._system_prompt, user_prompt)
+            if not response:
+                return {}
+
+            # Extract JSON from response (handle markdown code blocks)
+            json_str = response.strip()
+            if "```" in json_str:
+                # Extract from markdown code block
+                match = re.search(r'```(?:json)?\s*\n?(.*?)\n?```', json_str, re.DOTALL)
+                if match:
+                    json_str = match.group(1).strip()
+
+            # Try to find JSON object in response
+            brace_start = json_str.find('{')
+            brace_end = json_str.rfind('}')
+            if brace_start >= 0 and brace_end > brace_start:
+                json_str = json_str[brace_start:brace_end + 1]
+
+            answers = json.loads(json_str)
+
+            # Normalize keys to strings
+            result = {}
+            for k, v in answers.items():
+                result[str(k)] = str(v).strip()
+
+            print(f"    [AI] Batch answered {len(result)}/{len(questions)} questions")
+            return result
+
+        except (json.JSONDecodeError, Exception) as e:
+            print(f"    [AI] Batch answer failed: {e}")
+            return {}
+
     def answer_salary_question(self, label):
         """Answer salary-related questions."""
         sal = self.profile.get_salary_expectations()
@@ -291,15 +379,31 @@ RULES:
         personal = self.profile.get_personal()
         prefs = self.profile.get_preferences()
 
-        # Personal info fields
+        # Personal info fields — match label to profile data
         for field_name, keywords in PERSONAL_KEYWORDS.items():
             if any(kw in label_lower for kw in keywords):
-                if field_name == "name":
+                if field_name == "first_name":
+                    return personal.get("first_name", personal.get("full_name", "").split()[0] if personal.get("full_name") else "")
+                elif field_name == "last_name":
+                    return personal.get("last_name", personal.get("full_name", "").split()[-1] if personal.get("full_name") else "")
+                elif field_name == "full_name":
                     return personal.get("full_name", "")
                 elif field_name == "email":
                     return personal.get("email", "")
                 elif field_name == "phone":
                     return personal.get("phone", "")
+                elif field_name == "street":
+                    return personal.get("street", "")
+                elif field_name == "street2":
+                    return personal.get("street2", "")
+                elif field_name == "city":
+                    return personal.get("city", personal.get("suburb", ""))
+                elif field_name == "postcode":
+                    return personal.get("postcode", "")
+                elif field_name == "state":
+                    return personal.get("state", "")
+                elif field_name == "country":
+                    return personal.get("country", "Australia")
                 elif field_name == "linkedin":
                     return personal.get("linkedin_url", "")
                 elif field_name == "website":
@@ -370,6 +474,36 @@ RULES:
     def _rule_based_dropdown(self, label_lower, options):
         """Rule-based dropdown selection for common patterns."""
         options_lower = [o.lower() for o in options]
+
+        # Country dropdown — match from profile
+        if "country" in label_lower:
+            country = (self.profile.get_personal().get("country", "") or "").lower()
+            if country:
+                for i, opt in enumerate(options_lower):
+                    if country in opt or opt in country:
+                        return options[i]
+                # Try "australia" specifically
+                for i, opt in enumerate(options_lower):
+                    if "australia" in opt:
+                        return options[i]
+
+        # State/province dropdown — match from profile
+        if any(kw in label_lower for kw in ["state", "province", "region", "territory"]):
+            state = (self.profile.get_personal().get("state", "") or "").lower()
+            if state:
+                for i, opt in enumerate(options_lower):
+                    if state in opt or opt in state:
+                        return options[i]
+                # Try full name mapping
+                state_map = {"qld": "queensland", "nsw": "new south wales",
+                             "vic": "victoria", "sa": "south australia",
+                             "wa": "western australia", "tas": "tasmania",
+                             "nt": "northern territory", "act": "australian capital territory"}
+                full_name = state_map.get(state, "")
+                if full_name:
+                    for i, opt in enumerate(options_lower):
+                        if full_name in opt or opt in full_name:
+                            return options[i]
 
         # Work rights dropdown
         if any(kw in label_lower for kw in WORK_RIGHTS_KEYWORDS):

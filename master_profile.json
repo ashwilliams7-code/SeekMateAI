@@ -1,11 +1,21 @@
 {
     "personal": {
-        "full_name": "",
-        "email": "",
-        "phone": "",
-        "location": "",
+        "full_name": "Ash Williams",
+        "first_name": "Ash",
+        "last_name": "Williams",
+        "email": "ashawilliams988@gmail.com",
+        "phone": "0434978787",
+        "location": "Brisbane, QLD, Australia",
+        "street": "",
+        "city": "Brisbane",
+        "suburb": "Brisbane",
+        "state": "QLD",
+        "postcode": "4000",
+        "country": "Australia",
         "linkedin_url": "",
-        "website": ""
+        "seek_profile_url": "https://www.seek.com.au/profiles/ash-williams-3YXtzbyMYL",
+        "website": "",
+        "summary": "Accomplished Change and Project Director with over a decade of experience in driving enterprise-wide transformation and delivering impactful change in complex environments. Expertise in executing strategic initiatives and redesigning operational models to enhance performance and foster stakeholder engagement. Proficient in integrating Agile, PRINCE2, and Lean methodologies to optimise project delivery and governance. Known for cultivating high-performing teams and aligning organizational objectives with measurable outcomes, ensuring sustained commercial impact."
     },
     "work_rights": {
         "citizenship": "Australian Citizen",
@@ -14,33 +24,112 @@
     },
     "work_history": [
         {
-            "title": "",
-            "company": "",
-            "start_date": "",
+            "title": "Strategic Change & Project Director",
+            "company": "National Disability Insurance Agency (NDIA)",
+            "location": "Brisbane",
+            "start_date": "Jan 2023",
             "end_date": "Present",
-            "description": ""
+            "description": "Drove strategic NDIS change initiatives that improved organisational performance and operational efficiency by 25% across multiple departments. Led cross-functional teams through complex, multi-phase projects using Agile and PRINCE2 frameworks, achieving on-time delivery rates above 95%. Strengthened stakeholder engagement and alignment, resulting in a 20% increase in executive buy-in and faster adoption of key initiatives. Implemented innovative, data-driven solutions that reduced delivery cycle times by 30% and increased client satisfaction scores by 15%. Leveraged performance metrics and analytics to inform decision-making, optimise governance, and drive continuous improvement across portfolios."
+        },
+        {
+            "title": "Associate Director - Project and Program Delivery",
+            "company": "KPMG Australia",
+            "location": "Townsville City",
+            "start_date": "Jan 2020",
+            "end_date": "Dec 2022",
+            "description": "Acted as a trusted advisor to clients across government and private sectors, designing and implementing delivery models that improved efficiency by up to 25%. Led complex project delivery teams, solving high-stakes problems and embedding transformation frameworks. Provided subject matter expertise in program and project management across major infrastructure and capital portfolios. Developed compelling proposals and EOIs, contributing to 30% pipeline growth. Championed cross-functional collaboration across IT, operations, and executive leadership, enabling seamless execution of $10M+ portfolios."
+        },
+        {
+            "title": "Senior Flight Instructor & Commercial Pilot",
+            "company": "Rex Airlines (Regional Express)",
+            "location": "Melbourne",
+            "start_date": "Feb 2018",
+            "end_date": "Jan 2020",
+            "description": "Delivered high-quality flight instruction to aspiring pilots. Developed and implemented training programs aligned with regulatory standards. Conducted performance evaluations and managed flight operations ensuring compliance with safety protocols. Trained pilot cadets of Air China, Xiamen Airline and Singapore Airlines."
+        },
+        {
+            "title": "General Manager",
+            "company": "AI Consulting",
+            "location": "Sydney",
+            "start_date": "Jan 2015",
+            "end_date": "Dec 2018",
+            "description": "Led strategic and operational initiatives across government, health, technology, disability services, and commercial sectors, delivering 20-35% efficiency gains. Oversaw multi-site operations and led high-performing teams of up to 50 staff. Strengthened organisational performance by embedding governance frameworks, risk controls, performance metrics, and operational reporting structures. Managed commercial operations including financial oversight, budgeting, procurement, workforce planning, and process optimisation."
+        },
+        {
+            "title": "Business Development Manager",
+            "company": "Aviator Investments",
+            "location": "Melbourne",
+            "start_date": "Jan 2009",
+            "end_date": "Dec 2012",
+            "description": "Developed and executed multi-asset investment and growth strategies across property, equities, startups, and private capital portfolios, achieving annualised ROI increases of 18-25%. Led high-value strategic partnerships, joint ventures, and investor relations, expanding the firm's investment network by 40%. Built and managed high-value investor pipelines, securing over $50M in new capital opportunities."
         }
     ],
     "education": [
         {
-            "degree": "",
-            "institution": "",
-            "year": "",
-            "field": ""
+            "degree": "Prosci Certified",
+            "field": "Change Management",
+            "institution": "Prosci Change",
+            "year": "2024"
+        },
+        {
+            "degree": "Project & Change Management Certificate",
+            "field": "Project & Change Management",
+            "institution": "Open Universities Australia",
+            "year": "2022"
+        },
+        {
+            "degree": "Associate Degree in Aviation (Professional Pilot)",
+            "field": "Aviation",
+            "institution": "Royal Melbourne Institute of Technology (RMIT)",
+            "year": "2014"
+        },
+        {
+            "degree": "Diploma of Aviation (Flight Instructor)",
+            "field": "Aviation",
+            "institution": "Air Gold Coast",
+            "year": "2018"
         }
     ],
-    "skills": [],
-    "certifications": [],
-    "licenses": [],
+    "skills": [
+        "Project Management", "Program Management", "Change Management",
+        "Strategic Planning", "Agile", "Scrum", "PRINCE2", "Lean", "Six Sigma",
+        "Kanban", "Waterfall", "Digital Transformation", "Transformation Strategy",
+        "Risk Management", "Team Leadership", "Leadership Development",
+        "Stakeholder Management", "Business Analysis", "Financial Planning",
+        "Technology Strategy", "Operational Strategy", "Policy Development",
+        "Client Relations", "Commercial Acumen", "General Management",
+        "Microsoft Project", "Salesforce CRM", "SAP", "ERP Software", "CRM Software",
+        "Microsoft Office"
+    ],
+    "certifications": [
+        "Prosci Certified Change Practitioner",
+        "Project & Change Management Certificate",
+        "National Employment Police Check (Current)",
+        "Australian Manual Drivers Licence",
+        "Australian Motorcycle Licence"
+    ],
+    "licenses": [
+        "Commercial Pilots Licence (Current)",
+        "Flight Instructor Rating (Current)",
+        "CAAS Multi-Crew Pilot Licence (Current)",
+        "Private Pilot Licence (Current)",
+        "Qld Drivers Licence"
+    ],
+    "awards": [
+        "Consulting & Strategy Excellence Award (2021)",
+        "High-Impact Project Delivery Award (Government & Enterprise)",
+        "Business Growth & Commercial Innovation Award"
+    ],
     "salary_expectations": {
-        "minimum": 0,
-        "preferred": 0,
+        "minimum": 80000,
+        "preferred": 100000,
         "currency": "AUD"
     },
     "preferences": {
         "work_type": "Full Time",
-        "notice_period": "2 weeks",
-        "willing_to_relocate": false,
-        "preferred_locations": []
+        "notice_period": "Immediate",
+        "willing_to_relocate": true,
+        "availability": "Immediate start",
+        "preferred_locations": ["Brisbane QLD", "Gold Coast QLD", "Sydney NSW", "Melbourne VIC", "Canberra ACT"]
     }
 }

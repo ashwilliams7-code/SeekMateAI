@@ -18,10 +18,12 @@ from longform.captcha_solver import CaptchaSolver
 from longform.email_verifier import EmailVerifier
 from longform.document_manager import DocumentManager
 from longform.ats_handlers.generic import GenericATSHandler
+from longform.fill_planner import FillPlanner
+from longform.field_logger import FieldLogger
 
 
 class LongFormEngine:
-    VERSION = "1.0.0"
+    VERSION = "2.0.0"  # Label-driven form engine
 
     def __init__(self, driver, config, gpt_func):
         """
@@ -126,6 +128,11 @@ class LongFormEngine:
                 self.doc_manager, self.captcha, self.config
             )
 
+            # Initialize fill planner and field logger (v2 label-driven engine)
+            planner = FillPlanner(self.profile, ai_responder)
+            field_logger = FieldLogger(self.db.conn)
+            app_id = None  # Will be set after logging application
+
             # Step 2: Multi-page form filling loop
             self.db.update_status(job_id, "attempted")
 
@@ -193,8 +200,8 @@ class LongFormEngine:
                     continue
 
                 elif page_type == "form":
-                    # Main form filling
-                    fill_result = handler.fill_current_page()
+                    # Main form filling — use label-driven fill planner
+                    fill_result = handler.fill_current_page(planner=planner)
                     result["pages_completed"] = page_num
 
                     if fill_result["files_uploaded"]:
@@ -204,62 +211,96 @@ class LongFormEngine:
                           f"{fill_result['fields_failed']} failed, "
                           f"{len(fill_result['files_uploaded'])} files uploaded")
 
+                    # Log fill plan to database
+                    fill_plan = fill_result.get("fill_plan")
+                    if fill_plan and app_id:
+                        for action in fill_plan.actions:
+                            if action.source != "skip":
+                                field_logger.log_action(
+                                    app_id, page_num, action,
+                                    success=bool(action.intended_value),
+                                )
+                    elif fill_plan:
+                        # Log plan schema for audit
+                        schema = fill_plan.to_schema_dict()
+                        print(f"    [LongForm] Fill plan: {schema['rule_matched']} rule, "
+                              f"{schema['ai_needed']} AI, {schema['skipped']} skip")
+
                     # Try to navigate to next page
                     for attempt in range(self.retry_limit):
-                        # Try submit first (might be final page)
                         submit_btn = self.field_detector.detect_submit_button()
                         next_btn = self.field_detector.detect_next_button()
 
                         if submit_btn and not next_btn:
-                            # This looks like the final page
+                            # Final page — submit
                             handler.click_submit()
                             time.sleep(3)
 
-                            # Check if submission was successful
                             if handler.is_submission_complete():
                                 result["success"] = True
                                 result["reason"] = "Application submitted successfully"
-                                print("    [LongForm] Application submitted successfully!")
+                                print("    [LongForm] ✓ Application submitted!")
                                 break
 
-                            # Check for errors
-                            errors = handler.get_errors()
-                            if errors:
-                                print(f"    [LongForm] Submission errors: {errors[:3]}")
-                                if attempt < self.retry_limit - 1:
-                                    # Try to fix errors and retry
-                                    handler.fill_current_page()
+                            # Smart error retry: identify which fields failed
+                            errors_with_fields = self.field_detector.detect_errors_with_fields(
+                                fill_plan.actions if fill_plan else []
+                            )
+                            if errors_with_fields:
+                                error_texts = [e[0] for e in errors_with_fields]
+                                print(f"    [LongForm] Submission errors: {error_texts[:3]}")
+
+                                if attempt < self.retry_limit - 1 and fill_plan:
+                                    # Retry only the specific failed fields
+                                    for err_text, field_idx in errors_with_fields:
+                                        if field_idx is not None:
+                                            print(f"    [LongForm] Retrying field {field_idx}: {err_text}")
+                                            handler.retry_field(field_idx, fill_plan, err_text)
+                                            if app_id:
+                                                field_logger.log_action(
+                                                    app_id, page_num,
+                                                    fill_plan.actions[field_idx],
+                                                    success=False,
+                                                    error_message=err_text,
+                                                )
                                     continue
                                 else:
-                                    result["reason"] = f"Submission errors: {'; '.join(errors[:3])}"
-                                    self.db.log_failure(job_id, "form_error", result["reason"], self.driver.current_url)
+                                    result["reason"] = f"Submission errors: {'; '.join(error_texts[:3])}"
+                                    self.db.log_failure(job_id, "form_error",
+                                                        result["reason"], self.driver.current_url)
                             break
 
                         elif next_btn:
                             handler.click_next()
                             time.sleep(2)
 
-                            # Check for errors after clicking next
-                            errors = handler.get_errors()
-                            if errors:
-                                print(f"    [LongForm] Page errors: {errors[:3]}")
-                                if attempt < self.retry_limit - 1:
-                                    handler.fill_current_page()
+                            # Smart error retry on page navigation
+                            errors_with_fields = self.field_detector.detect_errors_with_fields(
+                                fill_plan.actions if fill_plan else []
+                            )
+                            if errors_with_fields:
+                                error_texts = [e[0] for e in errors_with_fields]
+                                print(f"    [LongForm] Page errors: {error_texts[:3]}")
+
+                                if attempt < self.retry_limit - 1 and fill_plan:
+                                    for err_text, field_idx in errors_with_fields:
+                                        if field_idx is not None:
+                                            handler.retry_field(field_idx, fill_plan, err_text)
                                     continue
                                 else:
-                                    result["reason"] = f"Form errors on page {page_num}: {'; '.join(errors[:3])}"
-                                    self.db.log_failure(job_id, "form_error", result["reason"], self.driver.current_url)
+                                    result["reason"] = f"Form errors on page {page_num}: {'; '.join(error_texts[:3])}"
+                                    self.db.log_failure(job_id, "form_error",
+                                                        result["reason"], self.driver.current_url)
                             break
 
                         else:
-                            # No submit or next button found
-                            # Try clicking any prominent button
-                            print("    [LongForm] No next/submit button found, looking for alternatives...")
+                            print("    [LongForm] No next/submit button found...")
                             if attempt == 0:
                                 time.sleep(2)
                                 continue
                             result["reason"] = "No navigation button found"
-                            self.db.log_failure(job_id, "form_error", "No next/submit button", self.driver.current_url)
+                            self.db.log_failure(job_id, "form_error",
+                                                "No next/submit button", self.driver.current_url)
                             break
 
                     if result["success"]:
@@ -272,9 +313,9 @@ class LongFormEngine:
                     break
 
                 else:
-                    # Unknown page type - try filling anyway
+                    # Unknown page type - try filling anyway with planner
                     print(f"    [LongForm] Unknown page type, attempting to fill...")
-                    handler.fill_current_page()
+                    handler.fill_current_page(planner=planner)
                     result["pages_completed"] = page_num
                     if not (handler.click_next() or handler.click_submit()):
                         result["reason"] = "Could not navigate past unknown page"

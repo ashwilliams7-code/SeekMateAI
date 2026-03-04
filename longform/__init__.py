@@ -6,6 +6,10 @@ Completes multi-page forms, uploads documents, solves CAPTCHAs, and handles emai
 """
 
 from longform.engine import LongFormEngine
+from longform.fill_planner import FillPlanner, FillPlan, FillAction
+from longform.field_logger import FieldLogger
+from longform.label_normalizer import normalize_label
 
-__all__ = ["LongFormEngine"]
-__version__ = "1.0.0"
+__all__ = ["LongFormEngine", "FillPlanner", "FillPlan", "FillAction",
+           "FieldLogger", "normalize_label"]
+__version__ = "2.0.0"

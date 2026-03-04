@@ -11,6 +11,8 @@ from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
 import re
 
+from longform.label_normalizer import normalize_label
+
 
 @dataclass
 class FormField:
@@ -381,6 +383,115 @@ class FieldDetector:
 
         return list(set(errors))  # deduplicate
 
+    def detect_errors_with_fields(self, fields):
+        """Detect errors and correlate each error to the nearest form field.
+
+        Returns list of (error_text, field_index_or_none) tuples where
+        field_index maps into the provided fields list.
+
+        Args:
+            fields: List of FormField objects from detect_fields()
+
+        Returns:
+            List of (error_text: str, field_index: int | None) tuples
+        """
+        error_selectors = [
+            "[class*='error']", "[class*='Error']", "[class*='invalid']",
+            "[class*='validation']", "[role='alert']",
+            ".field-error", ".form-error", ".error-message",
+            ".validation-error",
+        ]
+
+        error_elements = []
+        for selector in error_selectors:
+            try:
+                elements = self.driver.find_elements(By.CSS_SELECTOR, selector)
+                for el in elements:
+                    text = el.text.strip()
+                    if text and len(text) < 500 and self._is_visible(el):
+                        error_elements.append((el, text))
+            except Exception:
+                continue
+
+        # Also check aria-invalid fields
+        try:
+            invalid = self.driver.find_elements(
+                By.CSS_SELECTOR, "[aria-invalid='true']"
+            )
+            for el in invalid:
+                label = self._get_label(el)
+                if label:
+                    error_elements.append((el, f"Field '{label}' is invalid"))
+        except Exception:
+            pass
+
+        # Deduplicate by text
+        seen = set()
+        unique_errors = []
+        for el, text in error_elements:
+            if text not in seen:
+                seen.add(text)
+                unique_errors.append((el, text))
+
+        # Correlate each error to the nearest field
+        results = []
+        for err_el, err_text in unique_errors:
+            field_idx = self._correlate_error_to_field(err_el, fields)
+            results.append((err_text, field_idx))
+
+        return results
+
+    def _correlate_error_to_field(self, error_element, fields):
+        """Find which field an error message belongs to.
+
+        Strategies:
+        1. Error is inside the same form-group wrapper as a field
+        2. Error has an aria-describedby or for= linking to a field
+        3. Error is a sibling of a field's container
+        4. Error text mentions a field label
+
+        Returns field index or None.
+        """
+        try:
+            # Strategy 1: Walk up error's ancestors, check if any field is a descendant
+            for ancestor_tag in ["div", "fieldset", "li", "tr", "section"]:
+                try:
+                    container = error_element.find_element(
+                        By.XPATH,
+                        f"./ancestor::{ancestor_tag}[contains(@class, 'field') "
+                        f"or contains(@class, 'form-group') "
+                        f"or contains(@class, 'form-row') "
+                        f"or contains(@class, 'question')]"
+                    )
+                    # Check if any field element is inside this container
+                    for i, f in enumerate(fields):
+                        if f.element and f.field_type not in ("hidden", "file"):
+                            try:
+                                # Check if field is a descendant of this container
+                                container.find_element(
+                                    By.XPATH,
+                                    f".//*[@id='{f.element.get_attribute('id')}']"
+                                    if f.element.get_attribute('id')
+                                    else f".//*[@name='{f.element.get_attribute('name')}']"
+                                )
+                                return i
+                            except Exception:
+                                continue
+                except Exception:
+                    continue
+
+            # Strategy 2: Check if error text mentions a field label
+            err_lower = error_element.text.lower()
+            for i, f in enumerate(fields):
+                if f.label and len(f.label) > 2:
+                    if f.label.lower() in err_lower:
+                        return i
+
+        except Exception:
+            pass
+
+        return None
+
     # --- Label extraction helpers ---
 
     def _get_label(self, element):
@@ -605,7 +716,8 @@ class FieldDetector:
         return 0
 
     def _clean_label(self, text):
-        """Clean up label text - remove asterisks, extra whitespace, etc."""
+        """Clean up label text - remove asterisks, extra whitespace, normalize synonyms."""
         text = re.sub(r'\s+', ' ', text).strip()
         text = text.rstrip('*').strip()
+        text = normalize_label(text)  # Map synonyms → canonical keys
         return text

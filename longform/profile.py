@@ -28,8 +28,11 @@ class MasterProfile:
 
     def _default_profile(self):
         return {
-            "personal": {"full_name": "", "email": "", "phone": "", "location": "",
-                         "linkedin_url": "", "website": ""},
+            "personal": {"full_name": "", "first_name": "", "last_name": "",
+                         "email": "", "phone": "", "location": "",
+                         "street": "", "city": "", "suburb": "", "state": "",
+                         "postcode": "", "country": "Australia",
+                         "linkedin_url": "", "website": "", "summary": ""},
             "work_rights": {"citizenship": "", "visa_status": "", "right_to_work": ""},
             "work_history": [],
             "education": [],
@@ -94,6 +97,8 @@ class MasterProfile:
             lines.append(f"Phone: {p['phone']}")
         if p.get("email"):
             lines.append(f"Email: {p['email']}")
+        if p.get("summary"):
+            lines.append(f"\nProfessional Summary: {p['summary']}")
 
         if wr.get("citizenship"):
             lines.append(f"Citizenship: {wr['citizenship']}")

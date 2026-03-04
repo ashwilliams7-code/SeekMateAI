@@ -103,12 +103,22 @@ class GenericATSHandler:
 
         return "unknown"
 
-    def fill_current_page(self):
+    def fill_current_page(self, planner=None):
         """
         Fill all detected fields on the current page.
-        Returns dict with: fields_filled (int), fields_failed (int), files_uploaded (list)
+
+        If a FillPlanner is provided, uses the plan-based path (recommended):
+        detect → build plan → resolve AI → execute plan.
+
+        Otherwise falls back to legacy direct-fill behavior.
+
+        Returns dict with: fields_filled, fields_failed, files_uploaded, fill_plan
         """
-        result = {"fields_filled": 0, "fields_failed": 0, "files_uploaded": []}
+        result = {"fields_filled": 0, "fields_failed": 0,
+                  "files_uploaded": [], "fill_plan": None}
+
+        # Wait for any spinners/overlays to clear
+        self._wait_for_overlay_clear()
 
         fields = self.field_detector.detect_fields()
         if not fields:
@@ -117,28 +127,51 @@ class GenericATSHandler:
 
         print(f"    [ATS] Detected {len(fields)} fields on page")
 
-        for field in fields:
-            try:
-                # Skip already filled fields
-                if field.current_value and field.field_type not in ("radio", "checkbox"):
+        if planner:
+            # === NEW: Plan-based fill path ===
+            plan = planner.build_plan(fields, page_url=self.driver.current_url)
+            print(f"    [ATS] {plan.summary()}")
+            planner.resolve_ai_fields(plan)
+            result["fill_plan"] = plan
+
+            for action in plan.actions:
+                if action.source == "skip":
+                    continue
+                if not action.intended_value:
+                    if action.field and action.field.required:
+                        result["fields_failed"] += 1
                     continue
 
-                filled = self._fill_field(field)
-                if filled:
-                    result["fields_filled"] += 1
-                else:
-                    if field.required:
+                try:
+                    filled = self._execute_fill_action(action)
+                    if filled:
+                        result["fields_filled"] += 1
+                    elif action.field and action.field.required:
+                        result["fields_failed"] += 1
+                except Exception as e:
+                    print(f"    [ATS] Error filling '{action.question_text}': {e}")
+                    if action.field and action.field.required:
                         result["fields_failed"] += 1
 
-            except Exception as e:
-                print(f"    [ATS] Error filling field '{field.label}': {e}")
-                if field.required:
-                    result["fields_failed"] += 1
+                self._field_delay()
+        else:
+            # === Legacy direct-fill path (backward compatible) ===
+            for field in fields:
+                try:
+                    if field.current_value and field.field_type not in ("radio", "checkbox"):
+                        continue
+                    filled = self._fill_field(field)
+                    if filled:
+                        result["fields_filled"] += 1
+                    elif field.required:
+                        result["fields_failed"] += 1
+                except Exception as e:
+                    print(f"    [ATS] Error filling field '{field.label}': {e}")
+                    if field.required:
+                        result["fields_failed"] += 1
+                self._field_delay()
 
-            # Human-like delay between fields
-            self._field_delay()
-
-        # Handle file uploads separately
+        # Handle file uploads separately (both paths)
         file_fields = [f for f in fields if f.field_type == "file"]
         for ff in file_fields:
             filename = self.docs.handle_file_upload(ff)
@@ -147,6 +180,297 @@ class GenericATSHandler:
                 result["fields_filled"] += 1
 
         return result
+
+    def _execute_fill_action(self, action):
+        """Execute a single FillAction from the fill plan.
+
+        Routes to the appropriate fill method based on field type.
+        Uses the pre-computed intended_value instead of calling AI again.
+
+        Returns True if filled successfully.
+        """
+        field = action.field
+        value = action.intended_value
+
+        if not field or not field.element:
+            return False
+
+        self._scroll_to(field.element)
+
+        if field.field_type in ("text", "email", "tel", "number", "url"):
+            return self._set_input_value(field.element, value)
+
+        elif field.field_type == "textarea":
+            return self._set_input_value(field.element, value)
+
+        elif field.field_type == "date":
+            return self._set_input_value(field.element, value)
+
+        elif field.field_type == "select":
+            # Try native select first
+            ok = self._fill_select_with_value(field, value)
+            if not ok:
+                # Fallback to custom combobox
+                ok = self._fill_custom_combobox(field, value)
+            return ok
+
+        elif field.field_type == "radio":
+            return self._fill_radio_with_value(field, value)
+
+        elif field.field_type == "checkbox":
+            # Value is a JSON list for multi-checkbox
+            import json as _json
+            try:
+                selected = _json.loads(value) if value.startswith("[") else [value]
+            except (ValueError, TypeError):
+                selected = [value]
+            return self._fill_checkbox_with_values(field, selected)
+
+        return False
+
+    def _fill_select_with_value(self, field, value):
+        """Fill a native <select> element with a pre-computed value."""
+        try:
+            select = Select(field.element)
+            # Exact text match
+            try:
+                select.select_by_visible_text(value)
+                return True
+            except Exception:
+                pass
+            # Partial text match
+            for option in select.options:
+                if value.lower() in option.text.lower():
+                    select.select_by_visible_text(option.text)
+                    return True
+            # Value attribute match
+            for option in select.options:
+                if value.lower() == (option.get_attribute("value") or "").lower():
+                    select.select_by_value(option.get_attribute("value"))
+                    return True
+        except Exception as e:
+            print(f"    [ATS] Native select failed for '{field.label}': {e}")
+        return False
+
+    def _fill_radio_with_value(self, field, value):
+        """Fill a radio group with a pre-computed value."""
+        try:
+            group_name = field.group_name or field.name
+            if group_name:
+                radios = self.driver.find_elements(
+                    By.CSS_SELECTOR, f"input[type='radio'][name='{group_name}']"
+                )
+            else:
+                radios = [field.element]
+
+            for radio in radios:
+                radio_label = self._get_radio_label(radio)
+                if radio_label and (
+                    value.lower() == radio_label.lower() or
+                    value.lower() in radio_label.lower() or
+                    radio_label.lower() in value.lower()
+                ):
+                    self._click_element(radio)
+                    return True
+
+            # Fallback: value attribute match
+            for radio in radios:
+                attr_val = radio.get_attribute("value") or ""
+                if value.lower() in attr_val.lower():
+                    self._click_element(radio)
+                    return True
+        except Exception as e:
+            print(f"    [ATS] Radio fill error: {e}")
+        return False
+
+    def _fill_checkbox_with_values(self, field, values):
+        """Fill checkbox group with pre-computed values list."""
+        group_name = field.group_name or field.name
+        checkboxes = self.driver.find_elements(
+            By.CSS_SELECTOR, f"input[type='checkbox'][name^='{group_name}']"
+        ) if group_name else [field.element]
+
+        filled = 0
+        for cb in checkboxes:
+            cb_label = self._get_radio_label(cb)
+            if cb_label and any(v.lower() in cb_label.lower() for v in values):
+                if not cb.is_selected():
+                    self._click_element(cb)
+                filled += 1
+        return filled > 0
+
+    def _fill_custom_combobox(self, field, value):
+        """Handle custom combobox widgets (div-based dropdowns).
+
+        Works with applynow.net.au / PageUp style custom selects,
+        and generic div[role=combobox] patterns.
+
+        Strategy:
+        1. Click the combobox trigger to open dropdown
+        2. Wait for the options overlay to appear
+        3. Type the value to filter options
+        4. Click the matching visible option
+        """
+        try:
+            element = field.element
+
+            # Strategy 1: Find the container that acts as a combobox
+            container = None
+            for selector in [
+                "./ancestor::*[contains(@class, 'select')]",
+                "./ancestor::*[@role='combobox']",
+                "./ancestor::*[contains(@class, 'dropdown')]",
+                "./ancestor::*[contains(@class, 'combobox')]",
+            ]:
+                try:
+                    container = element.find_element(By.XPATH, selector)
+                    if container:
+                        break
+                except Exception:
+                    continue
+
+            if not container:
+                container = element
+
+            # Click to open the dropdown
+            self._click_element(container)
+            time.sleep(0.5)
+
+            # Wait for options to appear
+            try:
+                WebDriverWait(self.driver, 3).until(
+                    lambda d: len(d.find_elements(
+                        By.CSS_SELECTOR,
+                        "[role='option'], [role='listbox'] li, "
+                        ".dropdown-option, .select-option, "
+                        ".option, ul.options li"
+                    )) > 0
+                )
+            except Exception:
+                pass
+
+            # Find all visible options
+            option_selectors = [
+                "[role='option']",
+                "[role='listbox'] li",
+                ".dropdown-option",
+                ".select-option",
+                ".option",
+                "ul.options li",
+                "div.options div",
+            ]
+
+            options = []
+            for sel in option_selectors:
+                options = self.driver.find_elements(By.CSS_SELECTOR, sel)
+                options = [o for o in options if o.is_displayed()]
+                if options:
+                    break
+
+            if not options:
+                print(f"    [ATS] No combobox options found for '{field.label}'")
+                return False
+
+            # Find matching option
+            for opt in options:
+                opt_text = opt.text.strip()
+                if (value.lower() == opt_text.lower() or
+                        value.lower() in opt_text.lower()):
+                    self._click_element(opt)
+                    return True
+
+            # Try typing to filter
+            try:
+                element.clear()
+                element.send_keys(value)
+                time.sleep(0.5)
+
+                # Re-check options after filtering
+                for sel in option_selectors:
+                    filtered = self.driver.find_elements(By.CSS_SELECTOR, sel)
+                    filtered = [o for o in filtered if o.is_displayed()]
+                    if filtered:
+                        # Click first visible match
+                        for opt in filtered:
+                            if value.lower() in opt.text.strip().lower():
+                                self._click_element(opt)
+                                return True
+                        # If only one option, click it
+                        if len(filtered) == 1:
+                            self._click_element(filtered[0])
+                            return True
+            except Exception:
+                pass
+
+            print(f"    [ATS] Combobox: no match for '{value}' in '{field.label}'")
+            return False
+
+        except Exception as e:
+            print(f"    [ATS] Custom combobox error: {e}")
+            return False
+
+    def _wait_for_overlay_clear(self, timeout=5):
+        """Wait for any loading spinners or overlays to disappear."""
+        spinner_selectors = [
+            ".loading", ".spinner", "[class*='loader']",
+            "[class*='loading']", ".progress-overlay",
+            "[role='progressbar']", ".overlay.active",
+        ]
+        try:
+            for sel in spinner_selectors:
+                elements = self.driver.find_elements(By.CSS_SELECTOR, sel)
+                for el in elements:
+                    if el.is_displayed():
+                        WebDriverWait(self.driver, timeout).until_not(
+                            EC.visibility_of(el)
+                        )
+        except Exception:
+            pass  # No spinners found or timeout — continue anyway
+
+    def retry_field(self, field_index, plan, error_context=""):
+        """Retry filling a single field that failed validation.
+
+        Re-fills the field with error context added to the AI prompt
+        if the field needs AI-generated content.
+
+        Args:
+            field_index: Index into plan.actions
+            plan: FillPlan reference
+            error_context: The error message from validation
+
+        Returns:
+            True if the field was re-filled successfully
+        """
+        if field_index >= len(plan.actions):
+            return False
+
+        action = plan.actions[field_index]
+        field = action.field
+
+        if not field or not field.element:
+            return False
+
+        # For AI-generated fields, retry with error context
+        if action.source in ("ai", "batch_ai"):
+            label = action.question_text
+            error_prompt = (
+                f"Your previous answer for \"{label}\" was rejected. "
+                f"Error: {error_context}. "
+                f"Please provide a corrected answer."
+            )
+            new_answer = self.ai.answer_text_question(
+                f"{label} (RETRY: {error_context})",
+                action.max_length or None
+            )
+            if new_answer:
+                action.intended_value = new_answer
+                action.source = "ai"
+
+        try:
+            return self._execute_fill_action(action)
+        except Exception as e:
+            print(f"    [ATS] Retry failed for '{action.question_text}': {e}")
+            return False
 
     def _fill_field(self, field):
         """Fill a single form field. Returns True if filled successfully."""
