@@ -1,9 +1,13 @@
 """
-SeekMate Long-Form Bot Dashboard — Standalone GUI.
+SeekMate Long-Form Bot Dashboard — Premium Standalone GUI.
 
-Independent dashboard for the long-form external application bot.
-Provides Start/Stop/Pause controls, live activity log, application stats,
-job history, and configuration management.
+Complete overhaul with:
+- Two-column layout (live visualization + stats/log)
+- Real-time bot pipeline visualization
+- Claude Code AI status panel
+- Analytics with trend bars and ATS breakdown
+- Color-coded activity log with filters
+- Application history with search
 
 Usage:
     python longform_gui.py
@@ -15,15 +19,18 @@ import json
 import os
 import sys
 import time
+import math
 import threading
 import subprocess
 import webbrowser
+import re
+from datetime import datetime
 
 
 # ================================
-# PREMIUM COLOR PALETTES
+# PREMIUM COLOR PALETTE
 # ================================
-COLORS_DARK = {
+COLORS = {
     "bg_dark": "#0d0d12",
     "bg_card": "#16161d",
     "bg_card_hover": "#1e1e28",
@@ -45,32 +52,31 @@ COLORS_DARK = {
     "slider_track": "#2d3748",
     "slider_fill": "#4fd1c5",
     "gpt_highlight": "#f687b3",
-    "tab_active": "#4fd1c5",
-    "tab_inactive": "#2d3748",
-    "tab_hover": "#38b2ac",
+    "pipeline_bg": "#12121a",
+    "pipeline_active": "#4fd1c5",
+    "pipeline_done": "#48bb78",
+    "pipeline_waiting": "#2d3748",
+    "ai_glow": "#9f7aea",
 }
 
-COLORS = COLORS_DARK.copy()
-
-# ================================
-# FONTS
-# ================================
 FONT_FAMILY = "Segoe UI"
 FONT_NORMAL = (FONT_FAMILY, 11)
 FONT_BOLD = (FONT_FAMILY, 11, "bold")
 FONT_TITLE = (FONT_FAMILY, 13, "bold")
-FONT_HEADER = (FONT_FAMILY, 24, "bold")
-FONT_SUBHEADER = (FONT_FAMILY, 16, "bold")
-FONT_CONSOLE = ("Cascadia Code", 10)
-FONT_STATS = (FONT_FAMILY, 32, "bold")
+FONT_HEADER = (FONT_FAMILY, 22, "bold")
+FONT_SUBHEADER = (FONT_FAMILY, 15, "bold")
+FONT_STATS = (FONT_FAMILY, 28, "bold")
 FONT_LABEL = (FONT_FAMILY, 10)
 FONT_LABEL_BOLD = (FONT_FAMILY, 10, "bold")
 FONT_BUTTON = (FONT_FAMILY, 11, "bold")
+FONT_CONSOLE = ("Cascadia Code", 10)
 FONT_CHIP = (FONT_FAMILY, 9, "bold")
+FONT_SMALL = (FONT_FAMILY, 9)
+FONT_PIPELINE = (FONT_FAMILY, 9, "bold")
 
 
 # ================================
-# PATHS
+# RESOURCE / CONFIG HELPERS
 # ================================
 def resource_path(relative_path):
     try:
@@ -82,30 +88,32 @@ def resource_path(relative_path):
 
 def get_data_dir():
     if sys.platform == "darwin":
-        data_dir = os.path.expanduser("~/Library/Application Support/SeekMateAI")
+        d = os.path.expanduser("~/Library/Application Support/SeekMateAI")
     elif sys.platform == "win32":
-        data_dir = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), "SeekMateAI")
+        d = os.path.join(os.environ.get("APPDATA", os.path.expanduser("~")), "SeekMateAI")
     else:
-        data_dir = os.path.expanduser("~/.seekmateai")
-    os.makedirs(data_dir, exist_ok=True)
-    return data_dir
+        d = os.path.expanduser("~/.seekmateai")
+    os.makedirs(d, exist_ok=True)
+    return d
 
 
 CONFIG_FILE = resource_path("config.json")
-LOG_FILE = os.path.join(get_data_dir(), "longform_log.txt")
-CONTROL_FILE = resource_path("longform_control.json")
 
 
 def load_config():
-    if not os.path.exists(CONFIG_FILE):
+    try:
+        with open(CONFIG_FILE, "r") as f:
+            return json.load(f)
+    except:
         return {}
-    with open(CONFIG_FILE, "r") as f:
-        return json.load(f)
 
 
-def save_config(data):
+def save_config(cfg):
     with open(CONFIG_FILE, "w") as f:
-        json.dump(data, f, indent=4)
+        json.dump(cfg, f, indent=4)
+
+
+CONTROL_FILE = resource_path("longform_control.json")
 
 
 def write_control(pause=None, stop=None):
@@ -125,52 +133,28 @@ def write_control(pause=None, stop=None):
 
 
 # ================================
-# WIDGETS (same as config_gui.py)
+# CUSTOM WIDGETS
 # ================================
-class ModernEntry(tk.Frame):
-    def __init__(self, parent, placeholder="", show="", **kwargs):
-        super().__init__(parent, bg=COLORS["bg_card"])
-        self.entry = tk.Entry(
-            self, font=FONT_NORMAL, bg=COLORS["bg_input"], fg=COLORS["text_primary"],
-            insertbackground=COLORS["accent_primary"], relief="flat",
-            highlightthickness=2, highlightbackground=COLORS["border"],
-            highlightcolor=COLORS["accent_primary"], show=show
-        )
-        self.entry.pack(fill="x", ipady=8, ipadx=10)
-
-    def get(self):
-        return self.entry.get()
-
-    def insert(self, index, string):
-        self.entry.insert(index, string)
-
-    def delete(self, first, last=None):
-        self.entry.delete(first, last)
-
-    def config(self, **kwargs):
-        self.entry.config(**kwargs)
-
-    def cget(self, key):
-        return self.entry.cget(key)
-
-
 class ModernButton(tk.Canvas):
-    def __init__(self, parent, text="", command=None, style="primary", width=150, height=42, **kwargs):
-        super().__init__(parent, width=width, height=height, bg=COLORS["bg_card"],
-                         highlightthickness=0, **kwargs)
-        self.command = command
+    """Canvas-based button with rounded corners and hover effects."""
+
+    def __init__(self, parent, text="", command=None, style="primary", width=140, height=40):
+        super().__init__(parent, width=width, height=height, bg=COLORS["bg_dark"],
+                         highlightthickness=0, cursor="hand2")
         self.text = text
-        self.width = width
-        self.height = height
+        self.command = command
         self.style = style
+        self.w = width
+        self.h = height
         self.is_hovered = False
         self.is_disabled = False
         self.styles = {
-            "primary": {"bg": COLORS["accent_primary"], "hover": "#00b8e6", "fg": "#000000"},
-            "success": {"bg": COLORS["success"], "hover": "#00cc6a", "fg": "#000000"},
-            "warning": {"bg": COLORS["warning"], "hover": "#e69500", "fg": "#000000"},
-            "danger": {"bg": COLORS["danger"], "hover": "#ff3344", "fg": "#ffffff"},
-            "dark": {"bg": "#2a2a4a", "hover": "#3a3a5a", "fg": "#ffffff"},
+            "primary": {"bg": COLORS["accent_primary"], "hover": "#38b2ac", "fg": "#000"},
+            "success": {"bg": COLORS["success"], "hover": "#38a169", "fg": "#000"},
+            "warning": {"bg": COLORS["warning"], "hover": "#dd6b20", "fg": "#000"},
+            "danger": {"bg": COLORS["danger"], "hover": "#e53e3e", "fg": "#fff"},
+            "dark": {"bg": "#2a2a4a", "hover": "#3a3a5a", "fg": "#fff"},
+            "purple": {"bg": COLORS["accent_purple"], "hover": "#805ad5", "fg": "#fff"},
             "disabled": {"bg": "#3a3a4a", "hover": "#3a3a4a", "fg": "#6a6a7a"},
         }
         self.draw_button()
@@ -178,28 +162,28 @@ class ModernButton(tk.Canvas):
         self.bind("<Leave>", self.on_leave)
         self.bind("<Button-1>", self.on_click)
 
+    def _rounded_rect(self, x1, y1, x2, y2, r, **kw):
+        self.create_arc(x1, y1, x1 + 2 * r, y1 + 2 * r, start=90, extent=90, **kw)
+        self.create_arc(x2 - 2 * r, y1, x2, y1 + 2 * r, start=0, extent=90, **kw)
+        self.create_arc(x1, y2 - 2 * r, x1 + 2 * r, y2, start=180, extent=90, **kw)
+        self.create_arc(x2 - 2 * r, y2 - 2 * r, x2, y2, start=270, extent=90, **kw)
+        self.create_rectangle(x1 + r, y1, x2 - r, y2, **kw)
+        self.create_rectangle(x1, y1 + r, x2, y2 - r, **kw)
+
     def draw_button(self):
         self.delete("all")
-        style = self.styles.get("disabled" if self.is_disabled else self.style, self.styles["primary"])
-        bg = style["hover"] if self.is_hovered and not self.is_disabled else style["bg"]
-        r = 8
-        self.create_arc(2, 2, 2 + 2*r, 2 + 2*r, start=90, extent=90, fill=bg, outline=bg)
-        self.create_arc(self.width-2 - 2*r, 2, self.width-2, 2 + 2*r, start=0, extent=90, fill=bg, outline=bg)
-        self.create_arc(2, self.height-2 - 2*r, 2 + 2*r, self.height-2, start=180, extent=90, fill=bg, outline=bg)
-        self.create_arc(self.width-2 - 2*r, self.height-2 - 2*r, self.width-2, self.height-2, start=270, extent=90, fill=bg, outline=bg)
-        self.create_rectangle(2 + r, 2, self.width-2 - r, self.height-2, fill=bg, outline=bg)
-        self.create_rectangle(2, 2 + r, self.width-2, self.height-2 - r, fill=bg, outline=bg)
-        self.create_text(self.width // 2, self.height // 2, text=self.text, font=FONT_BUTTON, fill=style["fg"])
+        s = self.styles.get("disabled" if self.is_disabled else self.style, self.styles["dark"])
+        bg = s["hover"] if self.is_hovered and not self.is_disabled else s["bg"]
+        self._rounded_rect(2, 2, self.w - 2, self.h - 2, 8, fill=bg, outline=bg)
+        self.create_text(self.w // 2, self.h // 2, text=self.text, font=FONT_BUTTON, fill=s["fg"])
 
     def on_enter(self, e):
         if not self.is_disabled:
             self.is_hovered = True
-            self.config(cursor="hand2")
             self.draw_button()
 
     def on_leave(self, e):
         self.is_hovered = False
-        self.config(cursor="")
         self.draw_button()
 
     def on_click(self, e):
@@ -208,6 +192,7 @@ class ModernButton(tk.Canvas):
 
     def set_disabled(self, disabled):
         self.is_disabled = disabled
+        self.config(cursor="" if disabled else "hand2")
         self.draw_button()
 
     def set_text(self, text):
@@ -219,160 +204,232 @@ class ModernButton(tk.Canvas):
         self.draw_button()
 
 
+class ModernEntry(tk.Frame):
+    """Styled text input."""
+
+    def __init__(self, parent, placeholder="", show="", width=30, **kwargs):
+        super().__init__(parent, bg=COLORS["bg_card"])
+        self.entry = tk.Entry(self, bg=COLORS["bg_input"], fg=COLORS["text_primary"],
+                              insertbackground=COLORS["accent_primary"], font=FONT_NORMAL,
+                              relief="flat", highlightthickness=2,
+                              highlightbackground=COLORS["border"],
+                              highlightcolor=COLORS["accent_primary"],
+                              width=width, show=show)
+        self.entry.pack(fill="x", ipady=8, ipadx=10)
+
+    def get(self):
+        return self.entry.get()
+
+    def insert(self, idx, val):
+        self.entry.insert(idx, val)
+
+    def delete(self, start, end):
+        self.entry.delete(start, end)
+
+
 class PulsingIndicator(tk.Canvas):
-    def __init__(self, parent, size=12, **kwargs):
-        super().__init__(parent, width=size+4, height=size+4,
-                         bg=COLORS["bg_dark"], highlightthickness=0, **kwargs)
+    """Animated status dot."""
+
+    def __init__(self, parent, size=14):
+        super().__init__(parent, width=size + 8, height=size + 8,
+                         bg=COLORS["bg_dark"], highlightthickness=0)
         self.size = size
         self.color = COLORS["text_muted"]
-        self.is_pulsing = False
+        self.pulse_on = False
+        self.pulse_phase = 0
         self.draw()
 
     def draw(self):
         self.delete("all")
-        cx, cy = (self.size + 4) // 2, (self.size + 4) // 2
-        if self.is_pulsing:
-            g = self.size // 2 + 3
-            self.create_oval(cx - g, cy - g, cx + g, cy + g, fill="", outline=self.color, width=2)
+        cx, cy = (self.size + 8) // 2, (self.size + 8) // 2
         r = self.size // 2
+        if self.pulse_on:
+            glow_r = r + 3 + int(2 * math.sin(self.pulse_phase))
+            self.create_oval(cx - glow_r, cy - glow_r, cx + glow_r, cy + glow_r,
+                             fill="", outline=self.color, width=1)
         self.create_oval(cx - r, cy - r, cx + r, cy + r, fill=self.color, outline="")
 
     def set_status(self, status):
         colors = {"idle": COLORS["text_muted"], "running": COLORS["success"],
                   "paused": COLORS["warning"], "stopped": COLORS["danger"]}
         self.color = colors.get(status, COLORS["text_muted"])
-        self.is_pulsing = status == "running"
+        self.pulse_on = status == "running"
+        self.pulse_phase = 0
         self.draw()
-        if self.is_pulsing:
-            self.pulse()
+        if self.pulse_on:
+            self._pulse()
 
-    def pulse(self):
-        if self.is_pulsing:
-            self.draw()
-            self.after(100, self.pulse)
+    def _pulse(self):
+        if not self.pulse_on:
+            return
+        self.pulse_phase += 0.3
+        self.draw()
+        self.after(80, self._pulse)
 
 
 class ModernSlider(tk.Frame):
+    """Custom slider with value display."""
+
     def __init__(self, parent, label="", min_val=0, max_val=100, default=50,
-                 unit="", description="", on_change=None, **kwargs):
-        super().__init__(parent, bg=COLORS["bg_card"], **kwargs)
+                 unit="", on_change=None, width=300):
+        super().__init__(parent, bg=COLORS["bg_card"])
         self.min_val = min_val
         self.max_val = max_val
+        self.value = default
         self.unit = unit
         self.on_change = on_change
 
-        header = tk.Frame(self, bg=COLORS["bg_card"])
-        header.pack(fill="x", pady=(0, 8))
-        tk.Label(header, text=label, bg=COLORS["bg_card"],
-                 fg=COLORS["text_primary"], font=FONT_BOLD).pack(side="left")
-        self.value_label = tk.Label(header, text=f"{default}{unit}",
-                                    bg=COLORS["bg_card"], fg=COLORS["accent_primary"], font=FONT_BOLD)
-        self.value_label.pack(side="right")
+        top = tk.Frame(self, bg=COLORS["bg_card"])
+        top.pack(fill="x")
+        tk.Label(top, text=label, bg=COLORS["bg_card"], fg=COLORS["text_secondary"],
+                 font=FONT_LABEL).pack(side="left")
+        self.val_label = tk.Label(top, text=f"{default}{unit}", bg=COLORS["bg_card"],
+                                  fg=COLORS["accent_primary"], font=FONT_LABEL_BOLD)
+        self.val_label.pack(side="right")
 
-        if description:
-            tk.Label(self, text=description, bg=COLORS["bg_card"],
-                     fg=COLORS["text_muted"], font=FONT_LABEL,
-                     wraplength=350, justify="left").pack(fill="x", pady=(0, 8))
+        self.canvas = tk.Canvas(self, width=width, height=30, bg=COLORS["bg_card"],
+                                highlightthickness=0, cursor="hand2")
+        self.canvas.pack(fill="x", pady=(4, 0))
+        self.canvas.bind("<Button-1>", self._on_click)
+        self.canvas.bind("<B1-Motion>", self._on_drag)
+        self.after(10, self._draw)
 
-        self.track_frame = tk.Frame(self, bg=COLORS["bg_card"], height=40)
-        self.track_frame.pack(fill="x")
-        self.track_frame.pack_propagate(False)
-        self.canvas = tk.Canvas(self.track_frame, bg=COLORS["bg_card"],
-                                highlightthickness=0, height=40)
-        self.canvas.pack(fill="x", expand=True)
-        self.value = default
-        self.dragging = False
-        self.canvas.bind("<Configure>", lambda e: self.draw_slider())
-        self.canvas.bind("<Button-1>", self.on_click)
-        self.canvas.bind("<B1-Motion>", self.on_drag)
-        self.canvas.bind("<ButtonRelease-1>", lambda e: setattr(self, 'dragging', False))
+    def _draw(self):
+        c = self.canvas
+        c.delete("all")
+        w = c.winfo_width() or 300
+        pad = 12
+        ty = 15
+        th = 6
+        ratio = (self.value - self.min_val) / max(1, self.max_val - self.min_val)
+        thumb_x = pad + ratio * (w - 2 * pad)
+        c.create_rectangle(pad, ty - th // 2, w - pad, ty + th // 2,
+                           fill=COLORS["slider_track"], outline="")
+        c.create_rectangle(pad, ty - th // 2, thumb_x, ty + th // 2,
+                           fill=COLORS["slider_fill"], outline="")
+        tr = 8
+        c.create_oval(thumb_x - tr, ty - tr, thumb_x + tr, ty + tr,
+                       fill=COLORS["accent_primary"], outline=COLORS["text_primary"], width=2)
 
-        lf = tk.Frame(self, bg=COLORS["bg_card"])
-        lf.pack(fill="x", pady=(4, 0))
-        tk.Label(lf, text="Less", bg=COLORS["bg_card"],
-                 fg=COLORS["text_muted"], font=("Segoe UI", 9)).pack(side="left")
-        tk.Label(lf, text="More", bg=COLORS["bg_card"],
-                 fg=COLORS["text_muted"], font=("Segoe UI", 9)).pack(side="right")
+    def _on_click(self, e):
+        self._update(e.x)
 
-    def draw_slider(self):
-        self.canvas.delete("all")
-        w = self.canvas.winfo_width()
-        h = self.canvas.winfo_height()
-        if w < 10: return
-        pad = 15
-        ty = h // 2
-        th = 8
-        self.canvas.create_rectangle(pad, ty - th // 2, w - pad, ty + th // 2,
-                                     fill=COLORS["slider_track"], outline="")
-        ratio = (self.value - self.min_val) / (self.max_val - self.min_val)
-        tx = pad + ratio * (w - 2 * pad)
-        self.canvas.create_rectangle(pad, ty - th // 2, tx, ty + th // 2,
-                                     fill=COLORS["accent_primary"], outline="")
-        tr = 10
-        self.canvas.create_oval(tx - tr, ty - tr, tx + tr, ty + tr,
-                                fill=COLORS["accent_primary"], outline=COLORS["text_primary"], width=2)
-        self.canvas.create_oval(tx - tr - 3, ty - tr - 3, tx + tr + 3, ty + tr + 3,
-                                fill="", outline=COLORS["accent_primary"], width=1)
-
-    def on_click(self, event):
-        self._update(event.x)
-
-    def on_drag(self, event):
-        self.dragging = True
-        self._update(event.x)
+    def _on_drag(self, e):
+        self._update(e.x)
 
     def _update(self, x):
-        w = self.canvas.winfo_width()
-        pad = 15
+        w = self.canvas.winfo_width() or 300
+        pad = 12
         ratio = max(0, min(1, (x - pad) / (w - 2 * pad)))
         self.value = int(self.min_val + ratio * (self.max_val - self.min_val))
-        self.value_label.config(text=f"{self.value}{self.unit}")
-        self.draw_slider()
+        self.val_label.config(text=f"{self.value}{self.unit}")
+        self._draw()
         if self.on_change:
             self.on_change(self.value)
 
     def get(self):
         return self.value
 
-    def set(self, value):
-        self.value = max(self.min_val, min(self.max_val, value))
-        self.value_label.config(text=f"{self.value}{self.unit}")
-        self.draw_slider()
+    def set(self, val):
+        self.value = max(self.min_val, min(self.max_val, val))
+        self.val_label.config(text=f"{self.value}{self.unit}")
+        self._draw()
 
 
 class CollapsibleCard(tk.Frame):
-    def __init__(self, parent, title="", icon="", default_expanded=True, **kwargs):
-        super().__init__(parent, bg=COLORS["bg_card"], **kwargs)
-        self.is_expanded = default_expanded
-        self.header = tk.Frame(self, bg=COLORS["bg_card"], cursor="hand2")
-        self.header.pack(fill="x", padx=20, pady=(15, 0))
-        self.toggle_btn = tk.Label(self.header, text="▼" if self.is_expanded else "▶",
-                                    bg=COLORS["bg_card"], fg=COLORS["text_muted"],
-                                    font=("Segoe UI", 10), cursor="hand2")
-        self.toggle_btn.pack(side="left", padx=(0, 8))
-        tk.Label(self.header, text=f"{icon}  {title}",
-                 bg=COLORS["bg_card"], fg=COLORS["text_primary"],
-                 font=FONT_TITLE).pack(side="left")
-        self.content = tk.Frame(self, bg=COLORS["bg_card"])
-        if self.is_expanded:
-            self.content.pack(fill="x", padx=20, pady=(15, 20))
-        self.header.bind("<Button-1>", self.toggle)
-        self.toggle_btn.bind("<Button-1>", self.toggle)
-        for c in self.header.winfo_children():
-            c.bind("<Button-1>", self.toggle)
-        self.header.bind("<Enter>", lambda e: self.toggle_btn.config(fg=COLORS["accent_primary"]))
-        self.header.bind("<Leave>", lambda e: self.toggle_btn.config(fg=COLORS["text_muted"]))
+    """Expandable section card."""
 
-    def toggle(self, event=None):
+    def __init__(self, parent, title="", icon="", default_expanded=True):
+        super().__init__(parent, bg=COLORS["bg_card"])
+        self.is_expanded = default_expanded
+
+        header = tk.Frame(self, bg=COLORS["bg_card"], cursor="hand2")
+        header.pack(fill="x", padx=15, pady=(12, 0))
+        header.bind("<Button-1>", lambda e: self.toggle())
+
+        self.arrow = tk.Label(header, text="▼" if default_expanded else "▶",
+                              bg=COLORS["bg_card"], fg=COLORS["text_muted"],
+                              font=FONT_LABEL, cursor="hand2")
+        self.arrow.pack(side="left")
+        self.arrow.bind("<Button-1>", lambda e: self.toggle())
+
+        tk.Label(header, text=f" {icon}  {title}", bg=COLORS["bg_card"],
+                 fg=COLORS["text_primary"], font=FONT_TITLE,
+                 cursor="hand2").pack(side="left", padx=(4, 0))
+
+        self.content = tk.Frame(self, bg=COLORS["bg_card"])
+        if default_expanded:
+            self.content.pack(fill="x", padx=15, pady=(10, 15))
+
+    def toggle(self):
         self.is_expanded = not self.is_expanded
-        self.toggle_btn.config(text="▼" if self.is_expanded else "▶")
+        self.arrow.config(text="▼" if self.is_expanded else "▶")
         if self.is_expanded:
-            self.content.pack(fill="x", padx=20, pady=(15, 20))
+            self.content.pack(fill="x", padx=15, pady=(10, 15))
         else:
             self.content.pack_forget()
 
     def get_content(self):
         return self.content
+
+
+# ================================
+# PIPELINE STEP WIDGET
+# ================================
+class PipelineStep(tk.Frame):
+    """Single step in the bot pipeline visualization."""
+
+    def __init__(self, parent, icon, label):
+        super().__init__(parent, bg=COLORS["pipeline_bg"])
+        self.status = "waiting"  # waiting, active, done, error
+        self.icon_text = icon
+        self.label_text = label
+
+        self.dot = tk.Canvas(self, width=32, height=32, bg=COLORS["pipeline_bg"],
+                             highlightthickness=0)
+        self.dot.pack()
+        self.label = tk.Label(self, text=label, bg=COLORS["pipeline_bg"],
+                              fg=COLORS["text_muted"], font=FONT_PIPELINE)
+        self.label.pack(pady=(2, 0))
+        self._draw()
+
+    def _draw(self):
+        self.dot.delete("all")
+        colors = {
+            "waiting": COLORS["pipeline_waiting"],
+            "active": COLORS["pipeline_active"],
+            "done": COLORS["pipeline_done"],
+            "error": COLORS["danger"],
+        }
+        c = colors.get(self.status, COLORS["pipeline_waiting"])
+        self.dot.create_oval(4, 4, 28, 28, fill=c, outline="")
+        self.dot.create_text(16, 16, text=self.icon_text, font=(FONT_FAMILY, 10), fill="#fff")
+        fg = COLORS["text_primary"] if self.status in ("active", "done") else COLORS["text_muted"]
+        self.label.config(fg=fg)
+
+    def set_status(self, status):
+        self.status = status
+        self._draw()
+
+
+class PipelineConnector(tk.Canvas):
+    """Arrow connector between pipeline steps."""
+
+    def __init__(self, parent, width=30):
+        super().__init__(parent, width=width, height=32, bg=COLORS["pipeline_bg"],
+                         highlightthickness=0)
+        self.active = False
+        self._draw()
+
+    def _draw(self):
+        self.delete("all")
+        c = COLORS["pipeline_active"] if self.active else COLORS["pipeline_waiting"]
+        self.create_line(2, 16, 24, 16, fill=c, width=2)
+        self.create_polygon(22, 10, 28, 16, 22, 22, fill=c, outline=c)
+
+    def set_active(self, active):
+        self.active = active
+        self._draw()
 
 
 # ================================
@@ -382,439 +439,885 @@ class LongFormDashboard:
     def __init__(self, root):
         self.root = root
         self.root.title("SeekMate — Long-Form Bot")
-        self.root.geometry("900x900")
+        self.root.geometry("1200x900")
+        self.root.minsize(1000, 700)
         self.root.configure(bg=COLORS["bg_dark"])
-        self.root.minsize(750, 700)
 
+        # State
         self.config = load_config()
         self.bot_process = None
-        self.paused = False
-        self.start_time = None
-        self.timer_running = False
-        self.run_counter = 0
+        self.is_running = False
+        self.is_paused = False
+        self.session_start = None
+        self.log_thread = None
+        self.cc_poll_thread = None
+        self.current_job = {"title": "", "company": "", "portal": "", "fields_total": 0,
+                            "fields_filled": 0}
+        self.session_stats = {"submitted": 0, "failed": 0, "scanned": 0, "skipped_quick": 0}
+        self.cc_stats = {"questions": 0, "answers": 0, "pending": False}
+        self.log_lines = 0
+        self.log_filter = "all"
 
         self.build_ui()
-        self.refresh_stats()
-        self.refresh_history()
+        self._auto_refresh()
 
+    # ================================
+    # UI BUILDING
+    # ================================
     def build_ui(self):
-        # Main scrollable container
+        # Scrollable main container
         outer = tk.Frame(self.root, bg=COLORS["bg_dark"])
         outer.pack(fill="both", expand=True)
 
         canvas = tk.Canvas(outer, bg=COLORS["bg_dark"], highlightthickness=0)
         scrollbar = ttk.Scrollbar(outer, orient="vertical", command=canvas.yview)
-        self.scroll_frame = tk.Frame(canvas, bg=COLORS["bg_dark"])
+        self.main = tk.Frame(canvas, bg=COLORS["bg_dark"])
 
-        self.scroll_frame.bind("<Configure>",
-            lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
-        canvas.create_window((0, 0), window=self.scroll_frame, anchor="nw")
+        self.main.bind("<Configure>", lambda e: canvas.configure(scrollregion=canvas.bbox("all")))
+        canvas.create_window((0, 0), window=self.main, anchor="nw")
         canvas.configure(yscrollcommand=scrollbar.set)
 
-        canvas.pack(side="left", fill="both", expand=True)
         scrollbar.pack(side="right", fill="y")
+        canvas.pack(side="left", fill="both", expand=True)
 
         # Mouse wheel scrolling
-        def _on_mousewheel(event):
-            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
+        def _on_mousewheel(e):
+            canvas.yview_scroll(int(-1 * (e.delta / 120)), "units")
         canvas.bind_all("<MouseWheel>", _on_mousewheel)
+        self.canvas = canvas
 
-        self.build_header(self.scroll_frame)
-        self.build_controls(self.scroll_frame)
-        self.build_stats_panel(self.scroll_frame)
-        self.build_log_panel(self.scroll_frame)
-        self.build_history_panel(self.scroll_frame)
-        self.build_settings_panel(self.scroll_frame)
+        self.build_header()
+        self.build_controls()
+        self.build_two_column()
 
-    # --- HEADER ---
-    def build_header(self, parent):
-        header = tk.Frame(parent, bg=COLORS["bg_dark"])
-        header.pack(fill="x", padx=25, pady=(20, 10))
+    def build_header(self):
+        header = tk.Frame(self.main, bg=COLORS["bg_dark"])
+        header.pack(fill="x", padx=25, pady=(20, 0))
 
         left = tk.Frame(header, bg=COLORS["bg_dark"])
         left.pack(side="left")
 
-        self.status_indicator = PulsingIndicator(left, size=14)
-        self.status_indicator.pack(side="left", padx=(0, 12))
-
         tk.Label(left, text="LONG-FORM BOT", bg=COLORS["bg_dark"],
                  fg=COLORS["text_primary"], font=FONT_HEADER).pack(side="left")
 
-        self.header_status = tk.Label(header, text="STOPPED", bg=COLORS["bg_dark"],
-                                       fg=COLORS["danger"], font=FONT_SUBHEADER)
-        self.header_status.pack(side="right")
+        self.status_indicator = PulsingIndicator(left, size=12)
+        self.status_indicator.pack(side="left", padx=(15, 5))
 
-    # --- CONTROLS ---
-    def build_controls(self, parent):
-        frame = tk.Frame(parent, bg=COLORS["bg_dark"])
-        frame.pack(fill="x", padx=25, pady=(5, 15))
+        self.status_label = tk.Label(left, text="STOPPED", bg=COLORS["bg_dark"],
+                                     fg=COLORS["text_muted"], font=FONT_LABEL_BOLD)
+        self.status_label.pack(side="left")
 
-        self.start_btn = ModernButton(frame, text="▶  START", command=self.start_bot,
-                                       style="success", width=160, height=44)
-        self.start_btn.pack(side="left", padx=(0, 10))
+        right = tk.Frame(header, bg=COLORS["bg_dark"])
+        right.pack(side="right")
 
-        self.pause_btn = ModernButton(frame, text="⏸  PAUSE", command=self.pause_bot,
-                                       style="warning", width=160, height=44)
-        self.pause_btn.pack(side="left", padx=(0, 10))
+        self.timer_label = tk.Label(right, text="00:00:00", bg=COLORS["bg_dark"],
+                                    fg=COLORS["text_secondary"], font=(FONT_FAMILY, 14, "bold"))
+        self.timer_label.pack(side="right")
+        tk.Label(right, text="⏱ ", bg=COLORS["bg_dark"], fg=COLORS["text_muted"],
+                 font=FONT_NORMAL).pack(side="right")
 
-        self.stop_btn = ModernButton(frame, text="■  STOP", command=self.stop_bot,
-                                      style="danger", width=160, height=44)
-        self.stop_btn.pack(side="left")
+    def build_controls(self):
+        bar = tk.Frame(self.main, bg=COLORS["bg_dark"])
+        bar.pack(fill="x", padx=25, pady=(15, 0))
 
-    # --- STATS PANEL ---
-    def build_stats_panel(self, parent):
-        stats_frame = tk.Frame(parent, bg=COLORS["bg_dark"])
-        stats_frame.pack(fill="x", padx=25, pady=(0, 15))
+        self.btn_start = ModernButton(bar, text="▶  START", command=self.start_bot,
+                                      style="success", width=140, height=42)
+        self.btn_start.pack(side="left", padx=(0, 8))
 
-        # 4 stat cards
-        cards_row = tk.Frame(stats_frame, bg=COLORS["bg_dark"])
-        cards_row.pack(fill="x")
+        self.btn_pause = ModernButton(bar, text="⏸  PAUSE", command=self.pause_bot,
+                                      style="warning", width=140, height=42)
+        self.btn_pause.pack(side="left", padx=(0, 8))
+        self.btn_pause.set_disabled(True)
 
-        self.stat_submitted = self._build_stat_card(cards_row, "SUBMITTED", "0", COLORS["success"])
-        self.stat_submitted.pack(side="left", fill="both", expand=True, padx=(0, 6))
+        self.btn_stop = ModernButton(bar, text="■  STOP", command=self.stop_bot,
+                                     style="danger", width=140, height=42)
+        self.btn_stop.pack(side="left", padx=(0, 8))
+        self.btn_stop.set_disabled(True)
 
-        self.stat_failed = self._build_stat_card(cards_row, "FAILED", "0", COLORS["danger"])
-        self.stat_failed.pack(side="left", fill="both", expand=True, padx=(6, 6))
+        # Right side: run counter
+        right = tk.Frame(bar, bg=COLORS["bg_dark"])
+        right.pack(side="right")
+        tk.Label(right, text="This Run:", bg=COLORS["bg_dark"],
+                 fg=COLORS["text_muted"], font=FONT_LABEL).pack(side="left", padx=(0, 5))
+        max_jobs = self.config.get("MAX_JOBS", 100)
+        self.run_counter = tk.Label(right, text=f"0/{max_jobs}", bg=COLORS["bg_dark"],
+                                    fg=COLORS["accent_primary"], font=FONT_BOLD)
+        self.run_counter.pack(side="left")
 
-        self.stat_rate = self._build_stat_card(cards_row, "SUCCESS %", "0%", COLORS["accent_primary"])
-        self.stat_rate.pack(side="left", fill="both", expand=True, padx=(6, 6))
+    def build_two_column(self):
+        """Two-column layout: left = live viz + AI panel, right = stats + log + history."""
+        cols = tk.Frame(self.main, bg=COLORS["bg_dark"])
+        cols.pack(fill="both", expand=True, padx=25, pady=(15, 20))
 
-        self.stat_duration = self._build_stat_card(cards_row, "AVG DURATION", "0s", COLORS["accent_secondary"])
-        self.stat_duration.pack(side="left", fill="both", expand=True, padx=(6, 0))
+        # Left column (45%)
+        left = tk.Frame(cols, bg=COLORS["bg_dark"])
+        left.pack(side="left", fill="both", expand=True, padx=(0, 10))
 
-        # Session info row
-        session_row = tk.Frame(stats_frame, bg=COLORS["bg_card"])
-        session_row.pack(fill="x", pady=(10, 0))
+        self.build_pipeline_panel(left)
+        self.build_current_job_panel(left)
+        self.build_claude_code_panel(left)
+        self.build_settings_panel(left)
 
-        session_inner = tk.Frame(session_row, bg=COLORS["bg_card"])
-        session_inner.pack(fill="x", padx=20, pady=12)
+        # Right column (55%)
+        right = tk.Frame(cols, bg=COLORS["bg_dark"])
+        right.pack(side="right", fill="both", expand=True, padx=(10, 0))
 
-        tk.Label(session_inner, text="⏱ Session:", bg=COLORS["bg_card"],
-                 fg=COLORS["text_muted"], font=FONT_LABEL).pack(side="left")
-        self.session_time_label = tk.Label(session_inner, text="00:00:00",
-                                            bg=COLORS["bg_card"], fg=COLORS["text_primary"],
-                                            font=FONT_BOLD)
-        self.session_time_label.pack(side="left", padx=(5, 20))
+        self.build_stats_panel(right)
+        self.build_analytics_panel(right)
+        self.build_log_panel(right)
+        self.build_history_panel(right)
 
-        tk.Label(session_inner, text="This Run:", bg=COLORS["bg_card"],
-                 fg=COLORS["text_muted"], font=FONT_LABEL).pack(side="left")
-        self.run_counter_label = tk.Label(session_inner, text="0/100",
-                                           bg=COLORS["bg_card"], fg=COLORS["accent_primary"],
-                                           font=FONT_BOLD)
-        self.run_counter_label.pack(side="left", padx=(5, 20))
+    # ================================
+    # LEFT COLUMN: Pipeline
+    # ================================
+    def build_pipeline_panel(self, parent):
+        card = tk.Frame(parent, bg=COLORS["pipeline_bg"])
+        card.pack(fill="x", pady=(0, 10))
 
-        # Refresh button
-        tk.Button(session_inner, text="🔄 Refresh", command=self._refresh_all,
-                  bg=COLORS["bg_card"], fg=COLORS["accent_primary"],
-                  font=FONT_LABEL, relief="flat", cursor="hand2",
-                  activebackground=COLORS["bg_card"]).pack(side="right")
+        tk.Label(card, text="  BOT PIPELINE", bg=COLORS["pipeline_bg"],
+                 fg=COLORS["text_secondary"], font=FONT_LABEL_BOLD).pack(anchor="w", padx=15, pady=(12, 8))
 
-    def _build_stat_card(self, parent, title, value, color):
+        row = tk.Frame(card, bg=COLORS["pipeline_bg"])
+        row.pack(padx=10, pady=(0, 15))
+
+        steps = [("🔍", "Scan"), ("📋", "Filter"), ("🌐", "Portal"),
+                 ("📝", "Fill"), ("✅", "Submit")]
+
+        self.pipeline_steps = []
+        self.pipeline_connectors = []
+
+        for i, (icon, label) in enumerate(steps):
+            step = PipelineStep(row, icon, label)
+            step.pack(side="left")
+            self.pipeline_steps.append(step)
+            if i < len(steps) - 1:
+                conn = PipelineConnector(row, width=25)
+                conn.pack(side="left", pady=(0, 18))
+                self.pipeline_connectors.append(conn)
+
+    def set_pipeline_stage(self, stage_idx):
+        """Highlight the current pipeline stage (0-4)."""
+        for i, step in enumerate(self.pipeline_steps):
+            if i < stage_idx:
+                step.set_status("done")
+            elif i == stage_idx:
+                step.set_status("active")
+            else:
+                step.set_status("waiting")
+        for i, conn in enumerate(self.pipeline_connectors):
+            conn.set_active(i < stage_idx)
+
+    # ================================
+    # LEFT COLUMN: Current Job
+    # ================================
+    def build_current_job_panel(self, parent):
         card = tk.Frame(parent, bg=COLORS["bg_card"])
+        card.pack(fill="x", pady=(0, 10))
+
+        tk.Label(card, text="  CURRENT JOB", bg=COLORS["bg_card"],
+                 fg=COLORS["text_secondary"], font=FONT_LABEL_BOLD).pack(anchor="w", padx=15, pady=(12, 5))
+
         inner = tk.Frame(card, bg=COLORS["bg_card"])
-        inner.pack(fill="both", expand=True, padx=15, pady=15)
-        tk.Label(inner, text=title, bg=COLORS["bg_card"],
-                 fg=COLORS["text_muted"], font=FONT_LABEL).pack(anchor="w")
-        lbl = tk.Label(inner, text=value, bg=COLORS["bg_card"],
-                       fg=color, font=(FONT_FAMILY, 26, "bold"))
-        lbl.pack(anchor="w", pady=(4, 0))
-        card._value_label = lbl
-        return card
+        inner.pack(fill="x", padx=15, pady=(0, 15))
 
-    # --- LOG PANEL ---
+        self.job_title_label = tk.Label(inner, text="Waiting for bot to start...",
+                                        bg=COLORS["bg_card"], fg=COLORS["text_primary"],
+                                        font=FONT_BOLD, wraplength=350, anchor="w", justify="left")
+        self.job_title_label.pack(anchor="w")
+
+        self.job_company_label = tk.Label(inner, text="",
+                                          bg=COLORS["bg_card"], fg=COLORS["accent_secondary"],
+                                          font=FONT_NORMAL)
+        self.job_company_label.pack(anchor="w", pady=(2, 0))
+
+        self.job_portal_label = tk.Label(inner, text="",
+                                         bg=COLORS["bg_card"], fg=COLORS["text_muted"],
+                                         font=FONT_SMALL)
+        self.job_portal_label.pack(anchor="w", pady=(2, 0))
+
+        # Progress bar for form filling
+        prog_frame = tk.Frame(inner, bg=COLORS["bg_card"])
+        prog_frame.pack(fill="x", pady=(8, 0))
+
+        self.field_progress_bg = tk.Canvas(prog_frame, height=8, bg=COLORS["slider_track"],
+                                           highlightthickness=0)
+        self.field_progress_bg.pack(fill="x")
+
+        self.field_progress_label = tk.Label(inner, text="", bg=COLORS["bg_card"],
+                                             fg=COLORS["text_muted"], font=FONT_SMALL)
+        self.field_progress_label.pack(anchor="w", pady=(3, 0))
+
+    def update_current_job(self, title="", company="", portal="", fields_filled=0, fields_total=0):
+        self.job_title_label.config(text=title or "Scanning...")
+        self.job_company_label.config(text=company)
+        self.job_portal_label.config(text=f"Portal: {portal}" if portal else "")
+
+        # Update progress bar
+        self.field_progress_bg.delete("all")
+        w = self.field_progress_bg.winfo_width() or 300
+        if fields_total > 0:
+            ratio = min(1, fields_filled / fields_total)
+            fill_w = int(w * ratio)
+            self.field_progress_bg.create_rectangle(0, 0, fill_w, 8,
+                                                     fill=COLORS["accent_primary"], outline="")
+            self.field_progress_label.config(
+                text=f"Fields: {fields_filled}/{fields_total} ({int(ratio * 100)}%)")
+        else:
+            self.field_progress_label.config(text="")
+
+    # ================================
+    # LEFT COLUMN: Claude Code AI Panel
+    # ================================
+    def build_claude_code_panel(self, parent):
+        card = tk.Frame(parent, bg=COLORS["bg_card"])
+        card.pack(fill="x", pady=(0, 10))
+
+        header = tk.Frame(card, bg=COLORS["bg_card"])
+        header.pack(fill="x", padx=15, pady=(12, 5))
+
+        self.cc_dot = tk.Canvas(header, width=12, height=12, bg=COLORS["bg_card"],
+                                highlightthickness=0)
+        self.cc_dot.pack(side="left")
+        self.cc_dot.create_oval(2, 2, 10, 10, fill=COLORS["text_muted"], outline="")
+
+        tk.Label(header, text="  CLAUDE CODE AI", bg=COLORS["bg_card"],
+                 fg=COLORS["text_secondary"], font=FONT_LABEL_BOLD).pack(side="left")
+
+        self.cc_status_label = tk.Label(header, text="Idle", bg=COLORS["bg_card"],
+                                        fg=COLORS["text_muted"], font=FONT_SMALL)
+        self.cc_status_label.pack(side="right")
+
+        inner = tk.Frame(card, bg=COLORS["bg_card"])
+        inner.pack(fill="x", padx=15, pady=(0, 12))
+
+        self.cc_question_label = tk.Label(inner, text="No active questions",
+                                          bg=COLORS["bg_card"], fg=COLORS["text_muted"],
+                                          font=FONT_SMALL, wraplength=300, anchor="w", justify="left")
+        self.cc_question_label.pack(anchor="w")
+
+        stats_row = tk.Frame(inner, bg=COLORS["bg_card"])
+        stats_row.pack(fill="x", pady=(6, 0))
+
+        self.cc_q_count = tk.Label(stats_row, text="Questions: 0", bg=COLORS["bg_card"],
+                                   fg=COLORS["text_secondary"], font=FONT_SMALL)
+        self.cc_q_count.pack(side="left")
+
+        self.cc_a_count = tk.Label(stats_row, text="Answers: 0", bg=COLORS["bg_card"],
+                                   fg=COLORS["accent_primary"], font=FONT_SMALL)
+        self.cc_a_count.pack(side="left", padx=(15, 0))
+
+    def update_cc_status(self, status="idle", question=""):
+        colors = {"idle": COLORS["text_muted"], "waiting": COLORS["warning"],
+                  "answering": COLORS["ai_glow"], "done": COLORS["success"]}
+        labels = {"idle": "Idle", "waiting": "Waiting for answer...",
+                  "answering": "Generating answer...", "done": "Answer sent"}
+
+        c = colors.get(status, COLORS["text_muted"])
+        self.cc_dot.delete("all")
+        self.cc_dot.create_oval(2, 2, 10, 10, fill=c, outline="")
+        self.cc_status_label.config(text=labels.get(status, ""), fg=c)
+
+        if question:
+            short = question[:80] + "..." if len(question) > 80 else question
+            self.cc_question_label.config(text=short, fg=COLORS["text_secondary"])
+        elif status == "idle":
+            self.cc_question_label.config(text="No active questions", fg=COLORS["text_muted"])
+
+        self.cc_q_count.config(text=f"Questions: {self.cc_stats['questions']}")
+        self.cc_a_count.config(text=f"Answers: {self.cc_stats['answers']}")
+
+    # ================================
+    # LEFT COLUMN: Settings
+    # ================================
+    def build_settings_panel(self, parent):
+        card = CollapsibleCard(parent, title="Settings", icon="⚙️", default_expanded=False)
+        card.pack(fill="x", pady=(0, 10))
+        content = card.get_content()
+
+        # Max jobs
+        self.max_jobs_slider = ModernSlider(content, label="Max Applications",
+                                            min_val=1, max_val=200,
+                                            default=self.config.get("MAX_JOBS", 100), unit="")
+        self.max_jobs_slider.pack(fill="x", pady=(0, 8))
+
+        # Cooldown
+        self.cooldown_slider = ModernSlider(content, label="Cooldown Delay",
+                                            min_val=0, max_val=30,
+                                            default=self.config.get("COOLDOWN_DELAY", 5), unit="s")
+        self.cooldown_slider.pack(fill="x", pady=(0, 8))
+
+        # Stealth toggle
+        stealth_frame = tk.Frame(content, bg=COLORS["bg_card"])
+        stealth_frame.pack(fill="x", pady=(0, 8))
+        tk.Label(stealth_frame, text="Stealth Mode", bg=COLORS["bg_card"],
+                 fg=COLORS["text_secondary"], font=FONT_LABEL).pack(side="left")
+        self.stealth_var = tk.BooleanVar(value=self.config.get("STEALTH_MODE", False))
+        tk.Checkbutton(stealth_frame, variable=self.stealth_var, bg=COLORS["bg_card"],
+                       fg=COLORS["accent_primary"], selectcolor=COLORS["bg_input"],
+                       activebackground=COLORS["bg_card"]).pack(side="right")
+
+        # Claude Code toggle
+        cc_frame = tk.Frame(content, bg=COLORS["bg_card"])
+        cc_frame.pack(fill="x", pady=(0, 8))
+        tk.Label(cc_frame, text="Use Claude Code AI (free)", bg=COLORS["bg_card"],
+                 fg=COLORS["text_secondary"], font=FONT_LABEL).pack(side="left")
+        self.use_cc_var = tk.BooleanVar(value=self.config.get("USE_CLAUDE_CODE", True))
+        tk.Checkbutton(cc_frame, variable=self.use_cc_var, bg=COLORS["bg_card"],
+                       fg=COLORS["accent_primary"], selectcolor=COLORS["bg_input"],
+                       activebackground=COLORS["bg_card"]).pack(side="right")
+
+        # Save button
+        ModernButton(content, text="Save Settings", command=self.save_settings,
+                     style="primary", width=140, height=36).pack(anchor="w", pady=(8, 0))
+
+    def save_settings(self):
+        self.config["MAX_JOBS"] = self.max_jobs_slider.get()
+        self.config["COOLDOWN_DELAY"] = self.cooldown_slider.get()
+        self.config["STEALTH_MODE"] = self.stealth_var.get()
+        self.config["USE_CLAUDE_CODE"] = self.use_cc_var.get()
+        save_config(self.config)
+        self.log("INFO", "Settings saved")
+
+    # ================================
+    # RIGHT COLUMN: Stats
+    # ================================
+    def build_stats_panel(self, parent):
+        row = tk.Frame(parent, bg=COLORS["bg_dark"])
+        row.pack(fill="x", pady=(0, 10))
+
+        self.stat_cards = {}
+        stats_def = [
+            ("submitted", "SUBMITTED", COLORS["success"], "0"),
+            ("failed", "FAILED", COLORS["danger"], "0"),
+            ("rate", "SUCCESS %", COLORS["accent_primary"], "0%"),
+            ("duration", "AVG TIME", COLORS["accent_secondary"], "0s"),
+        ]
+        for key, label, color, default in stats_def:
+            card = tk.Frame(row, bg=COLORS["bg_card"])
+            card.pack(side="left", fill="both", expand=True, padx=(0, 6))
+            inner = tk.Frame(card, bg=COLORS["bg_card"])
+            inner.pack(fill="both", expand=True, padx=12, pady=12)
+            tk.Label(inner, text=label, bg=COLORS["bg_card"], fg=COLORS["text_muted"],
+                     font=FONT_CHIP).pack(anchor="w")
+            val = tk.Label(inner, text=default, bg=COLORS["bg_card"], fg=color,
+                           font=FONT_STATS)
+            val.pack(anchor="w", pady=(2, 0))
+            self.stat_cards[key] = val
+
+    def refresh_stats(self):
+        try:
+            db_path = self.config.get("LONGFORM_DB_PATH", resource_path("seekmate.db"))
+            if not os.path.exists(db_path):
+                return
+            from longform.database import Database
+            db = Database(db_path)
+            stats = db.get_stats()
+            sub = stats.get("submitted", 0)
+            fail = stats.get("failed", 0)
+            total = sub + fail
+            rate = int(sub / total * 100) if total > 0 else 0
+            avg_dur = stats.get("avg_duration", 0) or 0
+
+            self.stat_cards["submitted"].config(text=str(sub))
+            self.stat_cards["failed"].config(text=str(fail))
+            self.stat_cards["rate"].config(text=f"{rate}%")
+            self.stat_cards["duration"].config(text=f"{avg_dur:.0f}s")
+        except:
+            pass
+
+    # ================================
+    # RIGHT COLUMN: Analytics
+    # ================================
+    def build_analytics_panel(self, parent):
+        card = tk.Frame(parent, bg=COLORS["bg_card"])
+        card.pack(fill="x", pady=(0, 10))
+
+        tk.Label(card, text="  ANALYTICS", bg=COLORS["bg_card"],
+                 fg=COLORS["text_secondary"], font=FONT_LABEL_BOLD).pack(anchor="w", padx=15, pady=(12, 8))
+
+        inner = tk.Frame(card, bg=COLORS["bg_card"])
+        inner.pack(fill="x", padx=15, pady=(0, 15))
+
+        # ATS breakdown
+        tk.Label(inner, text="ATS Portals", bg=COLORS["bg_card"],
+                 fg=COLORS["text_secondary"], font=FONT_SMALL).pack(anchor="w")
+
+        self.ats_frame = tk.Frame(inner, bg=COLORS["bg_card"])
+        self.ats_frame.pack(fill="x", pady=(4, 8))
+
+        # Hourly submissions bar chart
+        tk.Label(inner, text="Submissions (last 8 hours)", bg=COLORS["bg_card"],
+                 fg=COLORS["text_secondary"], font=FONT_SMALL).pack(anchor="w")
+
+        self.chart_canvas = tk.Canvas(inner, height=60, bg=COLORS["bg_card"],
+                                      highlightthickness=0)
+        self.chart_canvas.pack(fill="x", pady=(4, 0))
+
+        # Scanned counter
+        scan_row = tk.Frame(inner, bg=COLORS["bg_card"])
+        scan_row.pack(fill="x", pady=(8, 0))
+        tk.Label(scan_row, text="Jobs Scanned:", bg=COLORS["bg_card"],
+                 fg=COLORS["text_muted"], font=FONT_SMALL).pack(side="left")
+        self.scanned_label = tk.Label(scan_row, text="0", bg=COLORS["bg_card"],
+                                      fg=COLORS["text_secondary"], font=FONT_SMALL)
+        self.scanned_label.pack(side="left", padx=(5, 15))
+
+        tk.Label(scan_row, text="Quick Apply Skipped:", bg=COLORS["bg_card"],
+                 fg=COLORS["text_muted"], font=FONT_SMALL).pack(side="left")
+        self.skipped_label = tk.Label(scan_row, text="0", bg=COLORS["bg_card"],
+                                      fg=COLORS["text_secondary"], font=FONT_SMALL)
+        self.skipped_label.pack(side="left", padx=(5, 0))
+
+    def refresh_analytics(self):
+        """Update ATS breakdown and chart from database."""
+        try:
+            db_path = self.config.get("LONGFORM_DB_PATH", resource_path("seekmate.db"))
+            if not os.path.exists(db_path):
+                return
+
+            import sqlite3
+            conn = sqlite3.connect(db_path, timeout=5)
+            cursor = conn.cursor()
+
+            # ATS breakdown
+            try:
+                cursor.execute("""
+                    SELECT ats_portal, COUNT(*) as cnt FROM applications
+                    WHERE ats_portal IS NOT NULL AND ats_portal != ''
+                    GROUP BY ats_portal ORDER BY cnt DESC LIMIT 5
+                """)
+                rows = cursor.fetchall()
+                for w in self.ats_frame.winfo_children():
+                    w.destroy()
+
+                ats_colors = [COLORS["accent_primary"], COLORS["accent_secondary"],
+                              COLORS["accent_purple"], COLORS["success"], COLORS["warning"]]
+                total = sum(r[1] for r in rows) if rows else 1
+
+                for i, (portal, cnt) in enumerate(rows):
+                    row = tk.Frame(self.ats_frame, bg=COLORS["bg_card"])
+                    row.pack(fill="x", pady=1)
+                    c = ats_colors[i % len(ats_colors)]
+                    tk.Label(row, text=f"  {portal or 'Unknown'}", bg=COLORS["bg_card"],
+                             fg=c, font=FONT_SMALL, width=18, anchor="w").pack(side="left")
+                    # Mini bar
+                    bar = tk.Canvas(row, height=10, bg=COLORS["slider_track"],
+                                    highlightthickness=0, width=100)
+                    bar.pack(side="left", padx=(5, 5))
+                    ratio = cnt / total
+                    bar.create_rectangle(0, 0, int(100 * ratio), 10, fill=c, outline="")
+                    tk.Label(row, text=str(cnt), bg=COLORS["bg_card"],
+                             fg=COLORS["text_secondary"], font=FONT_SMALL).pack(side="left")
+
+                if not rows:
+                    tk.Label(self.ats_frame, text="No data yet", bg=COLORS["bg_card"],
+                             fg=COLORS["text_muted"], font=FONT_SMALL).pack(anchor="w")
+            except:
+                pass
+
+            # Hourly chart
+            try:
+                cursor.execute("""
+                    SELECT strftime('%H', created_at) as hour, COUNT(*) as cnt
+                    FROM applications WHERE submission_status='submitted'
+                    AND created_at >= datetime('now', '-8 hours')
+                    GROUP BY hour ORDER BY hour
+                """)
+                hourly = cursor.fetchall()
+                self.chart_canvas.delete("all")
+                w = self.chart_canvas.winfo_width() or 300
+                if hourly:
+                    max_cnt = max(r[1] for r in hourly)
+                    bar_w = max(8, (w - 20) // max(len(hourly), 1) - 4)
+                    for i, (hour, cnt) in enumerate(hourly):
+                        x = 10 + i * (bar_w + 4)
+                        h = int(45 * cnt / max(max_cnt, 1))
+                        self.chart_canvas.create_rectangle(
+                            x, 55 - h, x + bar_w, 55,
+                            fill=COLORS["accent_primary"], outline="")
+                        self.chart_canvas.create_text(
+                            x + bar_w // 2, 55 - h - 6, text=str(cnt),
+                            font=FONT_SMALL, fill=COLORS["text_secondary"])
+                else:
+                    self.chart_canvas.create_text(
+                        w // 2, 30, text="No submissions yet",
+                        font=FONT_SMALL, fill=COLORS["text_muted"])
+            except:
+                pass
+
+            conn.close()
+        except:
+            pass
+
+    # ================================
+    # RIGHT COLUMN: Activity Log
+    # ================================
     def build_log_panel(self, parent):
-        self.log_card = tk.Frame(parent, bg=COLORS["bg_card"])
-        self.log_card.pack(fill="both", expand=True, padx=25, pady=(0, 15))
-        self.log_expanded = True
+        card = CollapsibleCard(parent, title="Activity Log", icon="📝", default_expanded=True)
+        card.pack(fill="x", pady=(0, 10))
+        content = card.get_content()
 
-        header = tk.Frame(self.log_card, bg=COLORS["bg_card"])
-        header.pack(fill="x", padx=20, pady=(15, 10))
+        # Filter buttons
+        filter_row = tk.Frame(content, bg=COLORS["bg_card"])
+        filter_row.pack(fill="x", pady=(0, 5))
 
-        left = tk.Frame(header, bg=COLORS["bg_card"])
-        left.pack(side="left")
+        filters = [("All", "all"), ("Errors", "error"), ("AI", "ai"), ("Success", "success")]
+        self.filter_btns = {}
+        for label, key in filters:
+            btn = tk.Label(filter_row, text=f" {label} ", bg=COLORS["bg_elevated"],
+                           fg=COLORS["text_secondary"], font=FONT_CHIP, cursor="hand2",
+                           padx=8, pady=2)
+            btn.pack(side="left", padx=(0, 4))
+            btn.bind("<Button-1>", lambda e, k=key: self._set_log_filter(k))
+            self.filter_btns[key] = btn
 
-        self.log_collapse_btn = tk.Button(left, text="▼", font=("Segoe UI", 12),
-                                           bg=COLORS["bg_card"], fg=COLORS["accent_primary"],
-                                           activebackground=COLORS["bg_card"],
-                                           relief="flat", padx=4, cursor="hand2",
-                                           command=self.toggle_log)
-        self.log_collapse_btn.pack(side="left", padx=(0, 8))
+        self.filter_btns["all"].config(bg=COLORS["accent_primary"], fg="#000")
 
-        tk.Label(left, text="Activity Log", bg=COLORS["bg_card"],
-                 fg=COLORS["text_primary"], font=FONT_TITLE).pack(side="left")
+        self.line_count_label = tk.Label(filter_row, text="(0 lines)", bg=COLORS["bg_card"],
+                                         fg=COLORS["text_muted"], font=FONT_SMALL)
+        self.line_count_label.pack(side="right")
 
-        self.log_count_label = tk.Label(left, text="(0 lines)", bg=COLORS["bg_card"],
-                                         fg=COLORS["text_muted"], font=FONT_LABEL)
-        self.log_count_label.pack(side="left", padx=(10, 0))
+        # Clear button
+        clear_btn = tk.Label(filter_row, text="Clear", bg=COLORS["bg_card"],
+                             fg=COLORS["text_muted"], font=FONT_SMALL, cursor="hand2")
+        clear_btn.pack(side="right", padx=(0, 8))
+        clear_btn.bind("<Button-1>", lambda e: self._clear_log())
 
-        # Controls
-        ctrl = tk.Frame(header, bg=COLORS["bg_card"])
-        ctrl.pack(side="right")
+        # Console
+        log_frame = tk.Frame(content, bg=COLORS["bg_input"])
+        log_frame.pack(fill="x")
 
-        tk.Button(ctrl, text="Clear", bg=COLORS["bg_card"], fg=COLORS["text_muted"],
-                  font=FONT_LABEL, relief="flat", cursor="hand2",
-                  activebackground=COLORS["bg_card"],
-                  command=lambda: self.console.delete("1.0", tk.END)).pack(side="right", padx=(8, 0))
-
-        # Log text area
-        self.log_frame = tk.Frame(self.log_card, bg=COLORS["bg_card"])
-        self.log_frame.pack(fill="both", expand=True, padx=20, pady=(0, 15))
-
-        self.console = tk.Text(self.log_frame, bg=COLORS["bg_dark"], fg=COLORS["text_secondary"],
-                               wrap="word", font=FONT_CONSOLE, relief="flat",
+        self.console = tk.Text(log_frame, height=14, bg=COLORS["bg_input"],
+                               fg=COLORS["text_secondary"], font=FONT_CONSOLE,
+                               relief="flat", wrap="word", state="disabled",
                                insertbackground=COLORS["accent_primary"],
-                               selectbackground=COLORS["accent_secondary"],
-                               height=15)
-        self.console.pack(side="left", fill="both", expand=True)
+                               selectbackground=COLORS["border_light"])
+        scroll = ttk.Scrollbar(log_frame, command=self.console.yview)
+        self.console.config(yscrollcommand=scroll.set)
+        scroll.pack(side="right", fill="y")
+        self.console.pack(side="left", fill="both", expand=True, padx=5, pady=5)
 
-        scrollbar = ttk.Scrollbar(self.log_frame, command=self.console.yview)
-        scrollbar.pack(side="right", fill="y")
-        self.console.configure(yscrollcommand=scrollbar.set)
-
-        # Color tags
+        # Tag colors
         self.console.tag_config("ERROR", foreground=COLORS["danger"])
         self.console.tag_config("SUCCESS", foreground=COLORS["success"])
         self.console.tag_config("INFO", foreground=COLORS["text_secondary"])
-        self.console.tag_config("timestamp", foreground=COLORS["text_muted"])
-        self.console.tag_config("GPT", foreground="#FF6EC7", font=("Cascadia Code", 10, "bold"))
-        self.console.tag_config("ATS", foreground=COLORS["accent_primary"])
-        self.console.tag_config("LONGFORM", foreground=COLORS["accent_secondary"])
+        self.console.tag_config("AI", foreground=COLORS["ai_glow"])
+        self.console.tag_config("ATS", foreground=COLORS["accent_secondary"])
+        self.console.tag_config("EXTERNAL", foreground=COLORS["accent_primary"])
+        self.console.tag_config("SKIP", foreground=COLORS["text_muted"])
+        self.console.tag_config("LONGFORM", foreground=COLORS["accent_gold"])
 
-    def toggle_log(self):
-        self.log_expanded = not self.log_expanded
-        self.log_collapse_btn.config(text="▼" if self.log_expanded else "▶")
-        if self.log_expanded:
-            self.log_frame.pack(fill="both", expand=True, padx=20, pady=(0, 15))
-            self.log_card.pack(fill="both", expand=True, padx=25, pady=(0, 15))
-        else:
-            self.log_frame.pack_forget()
-            self.log_card.pack(fill="x", expand=False, padx=25, pady=(0, 15))
+    def _set_log_filter(self, key):
+        self.log_filter = key
+        for k, btn in self.filter_btns.items():
+            if k == key:
+                btn.config(bg=COLORS["accent_primary"], fg="#000")
+            else:
+                btn.config(bg=COLORS["bg_elevated"], fg=COLORS["text_secondary"])
 
-    # --- HISTORY PANEL ---
+    def _clear_log(self):
+        self.console.config(state="normal")
+        self.console.delete("1.0", "end")
+        self.console.config(state="disabled")
+        self.log_lines = 0
+        self.line_count_label.config(text="(0 lines)")
+
+    def log(self, level, text):
+        """Insert a log line into the console."""
+        # Check filter
+        if self.log_filter != "all":
+            level_lower = level.lower()
+            if self.log_filter == "error" and level_lower not in ("error",):
+                return
+            if self.log_filter == "ai" and level_lower not in ("ai", "cc", "gpt"):
+                return
+            if self.log_filter == "success" and level_lower not in ("success",):
+                return
+
+        timestamp = datetime.now().strftime("%H:%M:%S")
+        tag = level.upper()
+        if tag not in ("ERROR", "SUCCESS", "INFO", "AI", "ATS", "EXTERNAL", "SKIP", "LONGFORM"):
+            tag = "INFO"
+
+        self.console.config(state="normal")
+        self.console.insert("end", f"[{timestamp}] ", "INFO")
+        self.console.insert("end", f"{text}\n", tag)
+        self.console.see("end")
+        self.console.config(state="disabled")
+        self.log_lines += 1
+        self.line_count_label.config(text=f"({self.log_lines} lines)")
+
+    def _insert_log_line(self, line):
+        """Parse a raw log line and insert with appropriate coloring."""
+        line = line.strip()
+        if not line:
+            return
+
+        tag = "INFO"
+        if "[!]" in line or "ERROR" in line or "error" in line.lower() or "Traceback" in line:
+            tag = "ERROR"
+        elif "[+]" in line or "SUBMITTED" in line or "submitted" in line.lower():
+            tag = "SUCCESS"
+        elif "[CC]" in line or "Claude Code" in line or "GPT" in line:
+            tag = "AI"
+        elif "[ATS]" in line or "ATS" in line:
+            tag = "ATS"
+        elif "EXTERNAL" in line or "portal" in line.lower():
+            tag = "EXTERNAL"
+        elif "SKIP" in line or "skipping" in line.lower() or "Quick Apply" in line:
+            tag = "SKIP"
+        elif "[LongForm]" in line:
+            tag = "LONGFORM"
+
+        # Apply filter
+        if self.log_filter != "all":
+            if self.log_filter == "error" and tag != "ERROR":
+                return
+            if self.log_filter == "ai" and tag != "AI":
+                return
+            if self.log_filter == "success" and tag != "SUCCESS":
+                return
+
+        self.console.config(state="normal")
+        self.console.insert("end", line + "\n", tag)
+        self.console.see("end")
+        self.console.config(state="disabled")
+        self.log_lines += 1
+        self.line_count_label.config(text=f"({self.log_lines} lines)")
+
+        # Parse pipeline state from log
+        self._parse_log_for_state(line)
+
+    def _parse_log_for_state(self, line):
+        """Update pipeline and current job based on log output."""
+        if "Searching in:" in line or "SEARCHING:" in line:
+            self.set_pipeline_stage(0)
+        elif "Job " in line and "|" in line:
+            self.set_pipeline_stage(1)
+            # Extract title and company
+            m = re.search(r'Job \d+: (.+?) \| (.+)', line)
+            if m:
+                self.update_current_job(title=m.group(1).strip(), company=m.group(2).strip())
+        elif "EXTERNAL APPLICATION" in line or "EXTERNAL PORTAL" in line:
+            self.set_pipeline_stage(2)
+        elif "portal" in line.lower() and "http" in line:
+            m = re.search(r'(https?://\S+)', line)
+            if m:
+                self.job_portal_label.config(text=f"Portal: {m.group(1)[:60]}")
+        elif "[LongForm]" in line and "Page" in line:
+            self.set_pipeline_stage(3)
+        elif "fields on page" in line:
+            m = re.search(r'(\d+) fields', line)
+            if m:
+                total = int(m.group(1))
+                self.current_job["fields_total"] = total
+                self.update_current_job(
+                    title=self.job_title_label.cget("text"),
+                    company=self.job_company_label.cget("text"),
+                    fields_total=total, fields_filled=0)
+        elif "Filled" in line and "fields" in line:
+            m = re.search(r'Filled (\d+) fields', line)
+            if m:
+                filled = int(m.group(1))
+                self.update_current_job(
+                    title=self.job_title_label.cget("text"),
+                    company=self.job_company_label.cget("text"),
+                    fields_total=self.current_job["fields_total"],
+                    fields_filled=filled)
+        elif "SUBMITTED" in line or "submitted" in line.lower():
+            self.set_pipeline_stage(4)
+            self.session_stats["submitted"] += 1
+            max_jobs = self.config.get("MAX_JOBS", 100)
+            self.run_counter.config(text=f"{self.session_stats['submitted']}/{max_jobs}")
+        elif "FAILED" in line:
+            self.session_stats["failed"] += 1
+        elif "Quick Apply" in line and "SKIPPING" in line:
+            self.session_stats["skipped_quick"] += 1
+            self.skipped_label.config(text=str(self.session_stats["skipped_quick"]))
+
+        # Update scanned count
+        if "Found" in line and "jobs" in line:
+            m = re.search(r'Found (\d+) jobs', line)
+            if m:
+                self.session_stats["scanned"] += int(m.group(1))
+                self.scanned_label.config(text=str(self.session_stats["scanned"]))
+
+        # Claude Code activity
+        if "[CC]" in line:
+            if "Question written" in line:
+                self.cc_stats["questions"] += 1
+                self.update_cc_status("waiting")
+            elif "Answer received" in line:
+                self.cc_stats["answers"] += 1
+                self.update_cc_status("done")
+
+    # ================================
+    # RIGHT COLUMN: History
+    # ================================
     def build_history_panel(self, parent):
-        card = CollapsibleCard(parent, title="Application History", icon="📋", default_expanded=False)
-        card.pack(fill="x", padx=25, pady=(0, 15))
+        card = CollapsibleCard(parent, title="Application History", icon="📋",
+                               default_expanded=False)
+        card.pack(fill="x", pady=(0, 10))
         content = card.get_content()
 
         # Search
         search_frame = tk.Frame(content, bg=COLORS["bg_card"])
-        search_frame.pack(fill="x", pady=(0, 10))
+        search_frame.pack(fill="x", pady=(0, 8))
+        tk.Label(search_frame, text="🔍", bg=COLORS["bg_card"],
+                 font=FONT_NORMAL).pack(side="left")
+        self.history_search = ModernEntry(search_frame, placeholder="Search jobs...", width=30)
+        self.history_search.pack(side="left", fill="x", expand=True, padx=(5, 0))
+        self.history_search.entry.bind("<KeyRelease>", lambda e: self.refresh_history())
 
-        self.history_search = tk.Entry(search_frame, font=FONT_NORMAL, bg=COLORS["bg_input"],
-                                        fg=COLORS["text_primary"], insertbackground=COLORS["accent_primary"],
-                                        relief="flat", highlightthickness=2,
-                                        highlightbackground=COLORS["border"],
-                                        highlightcolor=COLORS["accent_primary"])
-        self.history_search.pack(side="left", fill="x", expand=True, ipady=6)
-        self.history_search.insert(0, "Search jobs...")
-        self.history_search.bind("<FocusIn>", lambda e: self.history_search.delete(0, tk.END)
-                                  if self.history_search.get() == "Search jobs..." else None)
-        self.history_search.bind("<KeyRelease>", lambda e: self.refresh_history())
+        self.history_frame = tk.Frame(content, bg=COLORS["bg_card"])
+        self.history_frame.pack(fill="x")
 
-        tk.Button(search_frame, text="🔄", command=self.refresh_history,
-                  bg=COLORS["bg_card"], fg=COLORS["accent_primary"],
-                  font=("Segoe UI", 12), relief="flat", cursor="hand2",
-                  activebackground=COLORS["bg_card"]).pack(side="right", padx=(10, 0))
+    def refresh_history(self):
+        """Rebuild history cards from database."""
+        for w in self.history_frame.winfo_children():
+            w.destroy()
 
-        # Scrollable job list
-        list_frame = tk.Frame(content, bg=COLORS["bg_card"])
-        list_frame.pack(fill="both", expand=True)
+        try:
+            db_path = self.config.get("LONGFORM_DB_PATH", resource_path("seekmate.db"))
+            if not os.path.exists(db_path):
+                tk.Label(self.history_frame, text="No history yet", bg=COLORS["bg_card"],
+                         fg=COLORS["text_muted"], font=FONT_SMALL).pack(pady=10)
+                return
 
-        self.history_canvas = tk.Canvas(list_frame, bg=COLORS["bg_dark"],
-                                         highlightthickness=0, height=200)
-        h_scroll = ttk.Scrollbar(list_frame, orient="vertical", command=self.history_canvas.yview)
-        self.history_list_frame = tk.Frame(self.history_canvas, bg=COLORS["bg_dark"])
-        self.history_list_frame.bind("<Configure>",
-            lambda e: self.history_canvas.configure(scrollregion=self.history_canvas.bbox("all")))
-        self.history_canvas.create_window((0, 0), window=self.history_list_frame, anchor="nw")
-        self.history_canvas.configure(yscrollcommand=h_scroll.set)
-        self.history_canvas.pack(side="left", fill="both", expand=True)
-        h_scroll.pack(side="right", fill="y")
+            from longform.database import Database
+            db = Database(db_path)
+            jobs = db.get_recent_jobs(limit=30)
+            search = self.history_search.get().lower().strip()
 
-    # --- SETTINGS PANEL ---
-    def build_settings_panel(self, parent):
-        card = CollapsibleCard(parent, title="Settings", icon="⚙️", default_expanded=False)
-        card.pack(fill="x", padx=25, pady=(0, 25))
-        content = card.get_content()
+            count = 0
+            for job in jobs:
+                title = job.get("title", "") or ""
+                company = job.get("company", "") or ""
+                if search and search not in title.lower() and search not in company.lower():
+                    continue
 
-        # Documents section
-        tk.Label(content, text="📁 DOCUMENTS", bg=COLORS["bg_card"],
-                 fg=COLORS["text_secondary"], font=FONT_LABEL_BOLD).pack(anchor="w", pady=(0, 8))
+                self._build_history_card(job)
+                count += 1
+                if count >= 20:
+                    break
 
-        docs_row = tk.Frame(content, bg=COLORS["bg_card"])
-        docs_row.pack(fill="x", pady=(0, 8))
-        tk.Label(docs_row, text="Documents Directory:", bg=COLORS["bg_card"],
-                 fg=COLORS["text_muted"], font=FONT_LABEL).pack(anchor="w")
-        dir_row = tk.Frame(docs_row, bg=COLORS["bg_card"])
-        dir_row.pack(fill="x")
-        self.docs_dir_entry = ModernEntry(dir_row)
-        self.docs_dir_entry.pack(side="left", fill="x", expand=True)
-        self.docs_dir_entry.insert(0, self.config.get("DOCUMENTS_DIR", "./documents"))
-        tk.Button(dir_row, text="Browse", command=self._browse_docs_dir,
-                  bg=COLORS["bg_elevated"], fg=COLORS["text_primary"],
-                  font=FONT_LABEL, relief="flat", cursor="hand2",
-                  padx=12, pady=4).pack(side="right", padx=(8, 0))
+            if count == 0:
+                tk.Label(self.history_frame, text="No matching jobs", bg=COLORS["bg_card"],
+                         fg=COLORS["text_muted"], font=FONT_SMALL).pack(pady=10)
+        except:
+            pass
 
-        tk.Label(content, text="Default Resume:", bg=COLORS["bg_card"],
-                 fg=COLORS["text_muted"], font=FONT_LABEL).pack(anchor="w", pady=(4, 0))
-        self.resume_entry = ModernEntry(content)
-        self.resume_entry.pack(fill="x", pady=(0, 12))
-        self.resume_entry.insert(0, self.config.get("DEFAULT_RESUME", ""))
+    def _build_history_card(self, job):
+        card = tk.Frame(self.history_frame, bg=COLORS["bg_elevated"], cursor="hand2")
+        card.pack(fill="x", pady=2)
 
-        # Separator
-        tk.Frame(content, bg=COLORS["border"], height=1).pack(fill="x", pady=12)
+        inner = tk.Frame(card, bg=COLORS["bg_elevated"])
+        inner.pack(fill="x", padx=10, pady=6)
 
-        # Email section
-        tk.Label(content, text="📧 EMAIL VERIFICATION", bg=COLORS["bg_card"],
-                 fg=COLORS["text_secondary"], font=FONT_LABEL_BOLD).pack(anchor="w", pady=(0, 8))
+        title = job.get("title", "Unknown")[:50]
+        company = job.get("company", "")[:30]
+        status = job.get("status", "unknown")
 
-        tk.Label(content, text="IMAP Server:", bg=COLORS["bg_card"],
-                 fg=COLORS["text_muted"], font=FONT_LABEL).pack(anchor="w")
-        self.imap_entry = ModernEntry(content)
-        self.imap_entry.pack(fill="x", pady=(0, 8))
-        self.imap_entry.insert(0, self.config.get("EMAIL_IMAP_SERVER", "imap.gmail.com"))
+        top = tk.Frame(inner, bg=COLORS["bg_elevated"])
+        top.pack(fill="x")
 
-        tk.Label(content, text="App Password:", bg=COLORS["bg_card"],
-                 fg=COLORS["text_muted"], font=FONT_LABEL).pack(anchor="w")
-        pw_row = tk.Frame(content, bg=COLORS["bg_card"])
-        pw_row.pack(fill="x", pady=(0, 12))
-        self.email_pw_entry = ModernEntry(pw_row, show="*")
-        self.email_pw_entry.pack(side="left", fill="x", expand=True)
-        self.email_pw_entry.insert(0, self.config.get("EMAIL_APP_PASSWORD", ""))
-        self.email_pw_visible = False
-        tk.Button(pw_row, text="👁", command=self.toggle_email_pw,
-                  bg=COLORS["bg_card"], fg=COLORS["text_muted"],
-                  font=("Segoe UI", 12), relief="flat", cursor="hand2",
-                  activebackground=COLORS["bg_card"]).pack(side="right", padx=(8, 0))
+        tk.Label(top, text=title, bg=COLORS["bg_elevated"], fg=COLORS["text_primary"],
+                 font=FONT_BOLD, anchor="w").pack(side="left")
 
-        # Separator
-        tk.Frame(content, bg=COLORS["border"], height=1).pack(fill="x", pady=12)
+        # Status badge
+        badge_colors = {
+            "submitted": (COLORS["success"], "APPLIED"),
+            "applied": (COLORS["success"], "APPLIED"),
+            "failed": (COLORS["danger"], "FAILED"),
+            "opened": (COLORS["warning"], "OPENED"),
+            "discovered": (COLORS["text_muted"], "FOUND"),
+        }
+        badge_color, badge_text = badge_colors.get(status, (COLORS["text_muted"], status.upper()))
+        tk.Label(top, text=f" {badge_text} ", bg=badge_color, fg="#000",
+                 font=FONT_CHIP).pack(side="right")
 
-        # Profile section
-        tk.Label(content, text="👤 MASTER PROFILE", bg=COLORS["bg_card"],
-                 fg=COLORS["text_secondary"], font=FONT_LABEL_BOLD).pack(anchor="w", pady=(0, 8))
+        if company:
+            tk.Label(inner, text=company, bg=COLORS["bg_elevated"],
+                     fg=COLORS["text_muted"], font=FONT_SMALL, anchor="w").pack(anchor="w")
 
-        prof_row = tk.Frame(content, bg=COLORS["bg_card"])
-        prof_row.pack(fill="x", pady=(0, 8))
-        tk.Label(prof_row, text="Profile Path:", bg=COLORS["bg_card"],
-                 fg=COLORS["text_muted"], font=FONT_LABEL).pack(anchor="w")
-        self.profile_entry = ModernEntry(prof_row)
-        self.profile_entry.pack(fill="x")
-        self.profile_entry.insert(0, self.config.get("MASTER_PROFILE_PATH", "./master_profile.json"))
-
-        self.profile_preview = tk.Label(content, text="", bg=COLORS["bg_card"],
-                                         fg=COLORS["text_muted"], font=FONT_LABEL,
-                                         wraplength=500, justify="left")
-        self.profile_preview.pack(anchor="w", pady=(4, 12))
-        self._refresh_profile_preview()
-
-        # Separator
-        tk.Frame(content, bg=COLORS["border"], height=1).pack(fill="x", pady=12)
-
-        # Advanced section
-        tk.Label(content, text="⚙️ ADVANCED", bg=COLORS["bg_card"],
-                 fg=COLORS["text_secondary"], font=FONT_LABEL_BOLD).pack(anchor="w", pady=(0, 8))
-
-        self.max_pages_slider = ModernSlider(content, label="Max Pages per Application",
-                                              min_val=1, max_val=20,
-                                              default=self.config.get("LONGFORM_MAX_PAGES", 10))
-        self.max_pages_slider.pack(fill="x", pady=(0, 12))
-
-        self.retry_slider = ModernSlider(content, label="Retry Limit",
-                                          min_val=1, max_val=5,
-                                          default=self.config.get("LONGFORM_RETRY_LIMIT", 3))
-        self.retry_slider.pack(fill="x", pady=(0, 12))
-
-        self.timeout_slider = ModernSlider(content, label="Timeout (seconds)",
-                                            min_val=30, max_val=600,
-                                            default=self.config.get("LONGFORM_TIMEOUT", 180), unit="s")
-        self.timeout_slider.pack(fill="x", pady=(0, 12))
-
-        tk.Label(content, text="Database Path:", bg=COLORS["bg_card"],
-                 fg=COLORS["text_muted"], font=FONT_LABEL).pack(anchor="w")
-        self.db_path_entry = ModernEntry(content)
-        self.db_path_entry.pack(fill="x")
-        self.db_path_entry.insert(0, self.config.get("LONGFORM_DB_PATH", "./seekmate.db"))
+        url = job.get("job_url", "")
+        if url:
+            card.bind("<Button-1>", lambda e, u=url: webbrowser.open(u))
 
     # ================================
     # BOT CONTROL
     # ================================
     def start_bot(self):
-        self.save_config()
-
-        # Clear log file
-        try:
-            if os.path.exists(LOG_FILE):
-                os.remove(LOG_FILE)
-        except:
-            pass
-
-        # Reset control
-        write_control(pause=False, stop=False)
-        time.sleep(0.3)
-
-        # Clear console
-        self.console.delete("1.0", tk.END)
-        self.run_counter = 0
-
-        # Update UI
-        self.start_btn.set_text("RUNNING...")
-        self.start_btn.set_disabled(True)
-        self.status_indicator.set_status("running")
-        self.header_status.config(text="RUNNING", fg=COLORS["success"])
-
-        # Start timer
-        self.start_time = time.time()
-        self.timer_running = True
-        self.update_timer()
-
-        # Launch bot subprocess
-        try:
-            bot_script = resource_path("longform_bot.py")
-            if sys.platform == "win32":
-                self.bot_process = subprocess.Popen(
-                    [sys.executable, bot_script],
-                    creationflags=subprocess.CREATE_NO_WINDOW
-                )
-            else:
-                self.bot_process = subprocess.Popen(
-                    [sys.executable, bot_script]
-                )
-            self.log("INFO", f"Long-form bot started (PID: {self.bot_process.pid})")
-        except Exception as e:
-            self.log("ERROR", f"Failed to start bot: {e}")
-            self._reset_ui()
+        if self.is_running:
             return
 
-        # Start log tailing
-        threading.Thread(target=self.tail_log, daemon=True).start()
+        self.save_settings()
+        write_control(pause=False, stop=False)
 
-        # Start stats refresh loop
-        self._auto_refresh_stats()
+        script = resource_path("longform_bot.py")
+        try:
+            kwargs = {}
+            if sys.platform == "win32":
+                kwargs["creationflags"] = subprocess.CREATE_NO_WINDOW
+            self.bot_process = subprocess.Popen(
+                [sys.executable, script],
+                stdout=subprocess.PIPE, stderr=subprocess.STDOUT,
+                **kwargs
+            )
+        except Exception as e:
+            self.log("ERROR", f"Failed to start bot: {e}")
+            return
+
+        self.is_running = True
+        self.is_paused = False
+        self.session_start = time.time()
+        self.session_stats = {"submitted": 0, "failed": 0, "scanned": 0, "skipped_quick": 0}
+        self.cc_stats = {"questions": 0, "answers": 0, "pending": False}
+
+        self.status_indicator.set_status("running")
+        self.status_label.config(text="RUNNING", fg=COLORS["success"])
+        self.btn_start.set_disabled(True)
+        self.btn_pause.set_disabled(False)
+        self.btn_stop.set_disabled(False)
+        self.set_pipeline_stage(0)
+
+        self.log("SUCCESS", "Bot started")
+
+        # Start log tailing thread
+        self.log_thread = threading.Thread(target=self._tail_log, daemon=True)
+        self.log_thread.start()
+
+        # Start CC polling
+        self.cc_poll_thread = threading.Thread(target=self._poll_cc_bridge, daemon=True)
+        self.cc_poll_thread.start()
+
+        self._update_timer()
 
     def pause_bot(self):
-        self.paused = not self.paused
-        write_control(pause=self.paused)
-
-        if self.paused:
-            self.log("INFO", "Bot paused.")
+        if not self.is_running:
+            return
+        self.is_paused = not self.is_paused
+        write_control(pause=self.is_paused)
+        if self.is_paused:
             self.status_indicator.set_status("paused")
-            self.header_status.config(text="PAUSED", fg=COLORS["warning"])
-            self.pause_btn.set_text("▶  RESUME")
+            self.status_label.config(text="PAUSED", fg=COLORS["warning"])
+            self.btn_pause.set_text("▶  RESUME")
+            self.btn_pause.set_style("success")
+            self.log("INFO", "Bot paused")
         else:
-            self.log("INFO", "Bot resumed.")
             self.status_indicator.set_status("running")
-            self.header_status.config(text="RUNNING", fg=COLORS["success"])
-            self.pause_btn.set_text("⏸  PAUSE")
+            self.status_label.config(text="RUNNING", fg=COLORS["success"])
+            self.btn_pause.set_text("⏸  PAUSE")
+            self.btn_pause.set_style("warning")
+            self.log("INFO", "Bot resumed")
 
     def stop_bot(self):
+        if not self.is_running:
+            return
         write_control(stop=True)
-        self.paused = False
-        self.timer_running = False
+        self.is_running = False
+        self.is_paused = False
 
-        self.log("INFO", "Stop signal sent...")
-
-        # Kill process
         if self.bot_process:
             try:
                 self.bot_process.terminate()
@@ -824,9 +1327,8 @@ class LongFormDashboard:
                     self.bot_process.kill()
                 except:
                     pass
-            self.bot_process = None
 
-        # Kill Chrome (longform profile)
+        # Kill chromedriver on Windows
         if sys.platform == "win32":
             try:
                 subprocess.run(["taskkill", "/F", "/IM", "chromedriver.exe"],
@@ -834,261 +1336,103 @@ class LongFormDashboard:
             except:
                 pass
 
-        self._reset_ui()
-        self.refresh_stats()
-        self.refresh_history()
-
-    def _reset_ui(self):
-        self.start_btn.set_text("▶  START")
-        self.start_btn.set_disabled(False)
-        self.pause_btn.set_text("⏸  PAUSE")
         self.status_indicator.set_status("stopped")
-        self.header_status.config(text="STOPPED", fg=COLORS["danger"])
+        self.status_label.config(text="STOPPED", fg=COLORS["danger"])
+        self.btn_start.set_disabled(False)
+        self.btn_pause.set_disabled(True)
+        self.btn_stop.set_disabled(True)
+        self.btn_pause.set_text("⏸  PAUSE")
+        self.btn_pause.set_style("warning")
+
+        self.log("INFO", "Bot stopped")
+        self.update_current_job(title="Bot stopped")
+        self.update_cc_status("idle")
 
     # ================================
-    # LOG TAILING
+    # BACKGROUND THREADS
     # ================================
-    def tail_log(self):
-        # Wait for log file
-        timeout = 30
-        start = time.time()
-        while not os.path.exists(LOG_FILE):
-            if time.time() - start > timeout:
-                self.log("ERROR", "Log file not created — bot may have failed to start")
-                return
-            time.sleep(0.2)
+    def _tail_log(self):
+        """Tail the bot's log file for live updates."""
+        log_file = os.path.join(get_data_dir(), "longform_log.txt")
 
-        line_count = 0
-        with open(LOG_FILE, "r", encoding="utf-8") as f:
-            while True:
-                line = f.readline()
-                if not line:
-                    # Check if process still alive
-                    if self.bot_process and self.bot_process.poll() is not None:
-                        self.log("INFO", "Bot process has exited.")
-                        self.root.after(0, self._reset_ui)
-                        self.root.after(0, self.refresh_stats)
-                        self.root.after(0, self.refresh_history)
-                        break
-                    time.sleep(0.1)
-                    continue
+        # Wait for log file to appear
+        for _ in range(30):
+            if os.path.exists(log_file) or not self.is_running:
+                break
+            time.sleep(1)
 
-                clean = line.strip()
-                if not clean:
-                    continue
-
-                line_count += 1
-
-                # Determine tag
-                tag = "INFO"
-                upper = clean.upper()
-                if "ERROR" in upper or "FAILED" in upper or "[-]" in clean:
-                    tag = "ERROR"
-                elif "SUCCESS" in upper or "[+]" in clean or "SUBMITTED" in upper:
-                    tag = "SUCCESS"
-                elif "GPT" in upper:
-                    tag = "GPT"
-                elif "[ATS]" in clean:
-                    tag = "ATS"
-                elif "[LongForm]" in clean:
-                    tag = "LONGFORM"
-
-                # Parse submission counter
-                if "Successful submissions:" in clean:
-                    try:
-                        num = int(clean.split(":")[-1].strip())
-                        self.run_counter = num
-                        max_jobs = self.config.get("MAX_JOBS", 100)
-                        self.root.after(0, lambda n=num, m=max_jobs:
-                                         self.run_counter_label.config(text=f"{n}/{m}"))
-                    except:
-                        pass
-
-                # Insert into console
-                self.root.after(0, lambda c=clean, t=tag, lc=line_count:
-                                 self._insert_log(c, t, lc))
-
-    def _insert_log(self, text, tag, line_count):
-        self.console.insert(tk.END, text + "\n", tag)
-        self.console.see(tk.END)
-        self.log_count_label.config(text=f"({line_count} lines)")
-
-    def log(self, level, message):
-        ts = time.strftime("%H:%M:%S")
-        self.console.insert(tk.END, f"[{ts}] {message}\n", level)
-        self.console.see(tk.END)
-
-    # ================================
-    # TIMER
-    # ================================
-    def update_timer(self):
-        if self.timer_running and self.start_time:
-            elapsed = int(time.time() - self.start_time)
-            h, m, s = elapsed // 3600, (elapsed % 3600) // 60, elapsed % 60
-            self.session_time_label.config(text=f"{h:02d}:{m:02d}:{s:02d}")
-            self.root.after(1000, self.update_timer)
-
-    # ================================
-    # STATS & HISTORY
-    # ================================
-    def refresh_stats(self):
-        try:
-            from longform.database import Database
-            db_path = self.config.get("LONGFORM_DB_PATH", "./seekmate.db")
-            if not os.path.exists(db_path):
-                return
-            db = Database(db_path)
-            stats = db.get_stats()
-            db.close()
-
-            submitted = stats.get("total_submitted", 0)
-            failed = stats.get("total_failed", 0)
-            total = submitted + failed
-            rate = f"{int(submitted / total * 100)}%" if total > 0 else "0%"
-            avg_dur = stats.get("avg_duration_seconds", 0)
-            dur_str = f"{avg_dur:.0f}s" if avg_dur else "0s"
-
-            self.stat_submitted._value_label.config(text=str(submitted))
-            self.stat_failed._value_label.config(text=str(failed))
-            self.stat_rate._value_label.config(text=rate)
-            self.stat_duration._value_label.config(text=dur_str)
-        except Exception as e:
-            pass
-
-    def refresh_history(self):
-        try:
-            from longform.database import Database
-            db_path = self.config.get("LONGFORM_DB_PATH", "./seekmate.db")
-            if not os.path.exists(db_path):
-                return
-            db = Database(db_path)
-            jobs = db.get_recent_jobs(limit=50)
-            db.close()
-        except Exception:
-            jobs = []
-
-        # Filter by search
-        search_text = self.history_search.get().strip().lower()
-        if search_text and search_text != "search jobs...":
-            jobs = [j for j in jobs if search_text in (j.get("title", "") + " " + j.get("company", "")).lower()]
-
-        # Clear existing
-        for w in self.history_list_frame.winfo_children():
-            w.destroy()
-
-        if not jobs:
-            tk.Label(self.history_list_frame, text="No applications yet",
-                     bg=COLORS["bg_dark"], fg=COLORS["text_muted"],
-                     font=FONT_LABEL).pack(pady=20)
+        if not os.path.exists(log_file):
             return
 
-        for job in jobs:
-            self._build_history_card(job)
-
-    def _build_history_card(self, job):
-        card = tk.Frame(self.history_list_frame, bg=COLORS["bg_card"])
-        card.pack(fill="x", pady=(0, 4), padx=4)
-        inner = tk.Frame(card, bg=COLORS["bg_card"])
-        inner.pack(fill="x", padx=12, pady=8)
-
-        # Title row
-        title_row = tk.Frame(inner, bg=COLORS["bg_card"])
-        title_row.pack(fill="x")
-
-        title = job.get("title", "Unknown")
-        tk.Label(title_row, text=title, bg=COLORS["bg_card"],
-                 fg=COLORS["text_primary"], font=FONT_BOLD).pack(side="left")
-
-        # Status badge
-        status = job.get("status", "unknown")
-        status_colors = {"applied": COLORS["success"], "failed": COLORS["danger"],
-                         "attempted": COLORS["warning"], "opened": COLORS["accent_primary"],
-                         "discovered": COLORS["text_muted"]}
-        badge_color = status_colors.get(status, COLORS["text_muted"])
-        tk.Label(title_row, text=f" {status.upper()} ", bg=badge_color,
-                 fg="#000000", font=FONT_CHIP).pack(side="right", padx=2)
-
-        # Detail row
-        detail_row = tk.Frame(inner, bg=COLORS["bg_card"])
-        detail_row.pack(fill="x", pady=(2, 0))
-
-        company = job.get("company", "")
-        ats = job.get("ats_portal", "")
-        dur = job.get("duration_seconds")
-        pages = job.get("pages_completed")
-
-        detail_parts = [company]
-        if ats:
-            detail_parts.append(f"ATS: {ats}")
-        if dur:
-            detail_parts.append(f"{dur:.0f}s")
-        if pages:
-            detail_parts.append(f"{pages} pages")
-
-        detail_text = "  |  ".join(filter(None, detail_parts))
-        tk.Label(detail_row, text=detail_text, bg=COLORS["bg_card"],
-                 fg=COLORS["text_muted"], font=FONT_LABEL).pack(side="left")
-
-        # Make card clickable
-        url = job.get("job_url", "")
-        if url:
-            card.bind("<Button-1>", lambda e, u=url: webbrowser.open(u))
-            card.config(cursor="hand2")
-            for child in card.winfo_children():
-                child.bind("<Button-1>", lambda e, u=url: webbrowser.open(u))
-
-    def _auto_refresh_stats(self):
-        if self.timer_running:
-            self.refresh_stats()
-            self.root.after(10000, self._auto_refresh_stats)  # Every 10s
-
-    def _refresh_all(self):
-        self.refresh_stats()
-        self.refresh_history()
-
-    # ================================
-    # SETTINGS HELPERS
-    # ================================
-    def toggle_email_pw(self):
-        self.email_pw_visible = not self.email_pw_visible
-        self.email_pw_entry.config(show="" if self.email_pw_visible else "*")
-
-    def _browse_docs_dir(self):
-        d = filedialog.askdirectory()
-        if d:
-            self.docs_dir_entry.delete(0, tk.END)
-            self.docs_dir_entry.insert(0, d)
-
-    def _refresh_profile_preview(self):
         try:
-            path = self.config.get("MASTER_PROFILE_PATH", "./master_profile.json")
-            if os.path.exists(path):
-                with open(path, "r") as f:
-                    profile = json.load(f)
-                personal = profile.get("personal", {})
-                name = personal.get("full_name", "Not set")
-                loc = personal.get("location", "")
-                work = len(profile.get("work_history", []))
-                skills = len(profile.get("skills", {}).get("technical", []))
-                self.profile_preview.config(
-                    text=f"Name: {name} | Location: {loc} | Work History: {work} entries | Skills: {skills}")
-            else:
-                self.profile_preview.config(text="Profile file not found")
-        except Exception:
-            self.profile_preview.config(text="Could not load profile")
+            with open(log_file, "r", encoding="utf-8", errors="replace") as f:
+                # Seek to end
+                f.seek(0, 2)
+                while self.is_running:
+                    line = f.readline()
+                    if line:
+                        self.root.after(0, self._insert_log_line, line)
+                    else:
+                        time.sleep(0.2)
+        except:
+            pass
 
-    def save_config(self):
-        self.config["DOCUMENTS_DIR"] = self.docs_dir_entry.get()
-        self.config["DEFAULT_RESUME"] = self.resume_entry.get()
-        self.config["EMAIL_IMAP_SERVER"] = self.imap_entry.get()
-        self.config["EMAIL_APP_PASSWORD"] = self.email_pw_entry.get()
-        self.config["MASTER_PROFILE_PATH"] = self.profile_entry.get()
-        self.config["LONGFORM_MAX_PAGES"] = self.max_pages_slider.get()
-        self.config["LONGFORM_RETRY_LIMIT"] = self.retry_slider.get()
-        self.config["LONGFORM_TIMEOUT"] = self.timeout_slider.get()
-        self.config["LONGFORM_DB_PATH"] = self.db_path_entry.get()
-        self.config["ENABLE_LONGFORM"] = True
-        save_config(self.config)
+    def _poll_cc_bridge(self):
+        """Poll Claude Code bridge files for AI activity status."""
+        bridge_dir = os.path.dirname(os.path.abspath(resource_path("cc_ai_bridge.py")))
+        q_file = os.path.join(bridge_dir, "cc_question.json")
+        bq_file = os.path.join(bridge_dir, "cc_batch_question.json")
+
+        while self.is_running:
+            try:
+                pending = os.path.exists(q_file) or os.path.exists(bq_file)
+                if pending and not self.cc_stats.get("pending"):
+                    self.cc_stats["pending"] = True
+                    question = ""
+                    try:
+                        f_path = q_file if os.path.exists(q_file) else bq_file
+                        with open(f_path, "r") as f:
+                            data = json.load(f)
+                            question = data.get("user_prompt", "")[:80]
+                    except:
+                        pass
+                    self.root.after(0, self.update_cc_status, "waiting", question)
+                elif not pending and self.cc_stats.get("pending"):
+                    self.cc_stats["pending"] = False
+                    self.root.after(0, self.update_cc_status, "idle")
+            except:
+                pass
+            time.sleep(2)
+
+    def _update_timer(self):
+        if not self.is_running or not self.session_start:
+            return
+        elapsed = int(time.time() - self.session_start)
+        h, m, s = elapsed // 3600, (elapsed % 3600) // 60, elapsed % 60
+        self.timer_label.config(text=f"{h:02d}:{m:02d}:{s:02d}")
+        self.root.after(1000, self._update_timer)
+
+    def _auto_refresh(self):
+        """Auto-refresh stats and analytics every 15 seconds."""
+        self.refresh_stats()
+        self.refresh_analytics()
+        self.root.after(15000, self._auto_refresh)
+
+
+# ================================
+# DARK TITLE BAR (Windows)
+# ================================
+def set_dark_title_bar(root):
+    if sys.platform == "win32":
+        try:
+            import ctypes
+            hwnd = ctypes.windll.user32.GetParent(root.winfo_id())
+            DWMWA_USE_IMMERSIVE_DARK_MODE = 20
+            ctypes.windll.dwmapi.DwmSetWindowAttribute(
+                hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE,
+                ctypes.byref(ctypes.c_int(1)), ctypes.sizeof(ctypes.c_int))
+        except:
+            pass
 
 
 # ================================
@@ -1096,18 +1440,9 @@ class LongFormDashboard:
 # ================================
 def main():
     root = tk.Tk()
-
-    # Set dark title bar on Windows
-    try:
-        import ctypes
-        root.update()
-        hwnd = ctypes.windll.user32.GetParent(root.winfo_id())
-        DWMWA_USE_IMMERSIVE_DARK_MODE = 20
-        ctypes.windll.dwmapi.DwmSetWindowAttribute(
-            hwnd, DWMWA_USE_IMMERSIVE_DARK_MODE,
-            ctypes.byref(ctypes.c_int(1)), ctypes.sizeof(ctypes.c_int))
-    except:
-        pass
+    root.withdraw()
+    set_dark_title_bar(root)
+    root.deiconify()
 
     app = LongFormDashboard(root)
     root.mainloop()
