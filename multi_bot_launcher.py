@@ -17,6 +17,46 @@ import threading
 from pathlib import Path
 from datetime import datetime
 
+# Shared job tracking database for cross-instance duplicate prevention
+SHARED_JOBS_DB = os.path.join(os.path.dirname(os.path.abspath(__file__)), "shared_applied_jobs.json")
+
+def load_shared_jobs():
+    """Load the shared applied jobs registry"""
+    if os.path.exists(SHARED_JOBS_DB):
+        try:
+            with open(SHARED_JOBS_DB, "r", encoding="utf-8") as f:
+                return json.load(f)
+        except Exception:
+            pass
+    return {}
+
+def save_shared_jobs(jobs):
+    """Save the shared applied jobs registry"""
+    try:
+        with open(SHARED_JOBS_DB, "w", encoding="utf-8") as f:
+            json.dump(jobs, f, indent=2)
+    except Exception as e:
+        print(f"[SharedJobs] Failed to save: {e}")
+
+def register_applied_job(job_url, instance_name, job_title="", company=""):
+    """Register a job as applied by an instance. Returns False if already applied by another instance."""
+    jobs = load_shared_jobs()
+    if job_url in jobs:
+        return False  # Already applied by another instance
+    jobs[job_url] = {
+        "instance": instance_name,
+        "title": job_title,
+        "company": company,
+        "applied_at": datetime.now().isoformat()
+    }
+    save_shared_jobs(jobs)
+    return True
+
+def is_job_applied(job_url):
+    """Check if a job has already been applied to by any instance"""
+    jobs = load_shared_jobs()
+    return job_url in jobs
+
 # Configuration
 INSTANCES_FILE = "bot_instances.json"
 INSTANCES_DIR = "bot_instances"
@@ -132,7 +172,7 @@ def list_instances():
     print("="*60 + "\n")
 
 def start_instance(instance_name):
-    """Start a single bot instance"""
+    """Start a single bot instance by running main.py with env vars (no generated files)."""
     instances = load_instances()
     
     if instance_name not in instances:
@@ -141,65 +181,45 @@ def start_instance(instance_name):
     
     instance = instances[instance_name]
     
-    # Check if already running
     if instance.get("status") == "running":
         print(f"⚠️  Instance '{instance_name}' is already running!")
         return False
     
-    # Create modified main.py that uses instance-specific config
-    print(f"🚀 Starting instance '{instance_name}'...")
-    
-    # Start bot in a subprocess
     script_dir = os.path.dirname(os.path.abspath(__file__))
+    main_py = os.path.join(script_dir, "main.py")
+    if not os.path.exists(main_py):
+        print(f"❌ main.py not found in {script_dir}")
+        return False
     
-    # Create a wrapper script for this instance
-    # Use raw strings and proper escaping for Windows paths
-    config_file_path = os.path.abspath(instance["config_file"]).replace('\\', '\\\\')
-    control_file_path = os.path.abspath(instance["control_file"]).replace('\\', '\\\\')
-    log_file_path = instance["log_file"].replace('\\', '\\\\')
-    script_dir_path = script_dir.replace('\\', '\\\\')
+    # Pass paths via environment so we never generate .py files or escape paths
+    env = dict(os.environ)
+    env["BOT_INSTANCE_NAME"] = instance_name
+    env["BOT_CONFIG_FILE"] = os.path.abspath(instance["config_file"])
+    env["BOT_CHROME_PROFILE"] = instance["chrome_profile"]
+    env["BOT_LOG_FILE"] = os.path.abspath(instance["log_file"])
+    env["BOT_CONTROL_FILE"] = os.path.abspath(instance["control_file"])
     
-    wrapper_script = f"""import os
-import sys
-import json
-
-# Set instance-specific environment variables
-os.environ['BOT_INSTANCE_NAME'] = '{instance_name}'
-os.environ['BOT_CONFIG_FILE'] = r'{config_file_path}'
-os.environ['BOT_CHROME_PROFILE'] = '{instance["chrome_profile"]}'
-os.environ['BOT_LOG_FILE'] = r'{log_file_path}'
-os.environ['BOT_CONTROL_FILE'] = r'{control_file_path}'
-
-# Import and run main
-sys.path.insert(0, r'{script_dir_path}')
-import main
-main.main()
-"""
+    log_path = instance["log_file"]
+    if not os.path.isabs(log_path):
+        log_path = os.path.join(script_dir, log_path)
     
-    wrapper_path = os.path.join(INSTANCES_DIR, f"{instance_name}_runner.py")
-    with open(wrapper_path, "w") as f:
-        f.write(wrapper_script)
-    
-    # Start the process
+    print(f"🚀 Starting instance '{instance_name}'...")
     try:
-        log_file_path = os.path.join(script_dir, instance["log_file"])
-        log_file = open(log_file_path, "a", encoding="utf-8")
-        
+        log_handle = open(log_path, "a", encoding="utf-8")
         process = subprocess.Popen(
-            [sys.executable, wrapper_path],
+            [sys.executable, main_py],
             cwd=script_dir,
-            stdout=log_file,
+            env=env,
+            stdout=log_handle,
             stderr=subprocess.STDOUT,
-            creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0
+            creationflags=subprocess.CREATE_NO_WINDOW if sys.platform == "win32" else 0,
         )
-        
         instance["process_id"] = process.pid
         instance["status"] = "running"
-        instance["start_time"] = datetime.now().isoformat()  # Track start time
+        instance["start_time"] = datetime.now().isoformat()
         save_instances(instances)
-        
         print(f"✅ Instance '{instance_name}' started (PID: {process.pid})")
-        print(f"   Log file: {log_file_path}")
+        print(f"   Log: {log_path}")
         return True
     except Exception as e:
         print(f"❌ Failed to start instance '{instance_name}': {e}")

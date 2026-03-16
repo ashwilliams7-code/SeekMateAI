@@ -22,10 +22,8 @@ ENV/
 *.swp
 *.swo
 
-# Chrome profiles (large, user-specific, machine-specific)
+# Chrome profile (large, user-specific)
 chrome_seek_profile/
-chrome_profile_*/
-chrome_indeed_profile/
 
 # Logs and data
 *.log

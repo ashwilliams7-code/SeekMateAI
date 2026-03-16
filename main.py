@@ -8,18 +8,28 @@ import threading
 import urllib.request
 import urllib.parse
 
-from selenium import webdriver
+import undetected_chromedriver as uc
 from selenium.webdriver.chrome.options import Options
-from selenium.webdriver.chrome.service import Service
 from selenium.webdriver.common.by import By
 from selenium.webdriver.support.ui import WebDriverWait
 from selenium.webdriver.support import expected_conditions as EC
-from webdriver_manager.chrome import ChromeDriverManager
 
 from openai import OpenAI
 import openpyxl
+try:
+    from anthropic import Anthropic
+    ANTHROPIC_AVAILABLE = True
+except ImportError:
+    ANTHROPIC_AVAILABLE = False
 from openpyxl import Workbook
 from datetime import datetime, timedelta
+
+# Shared job tracking for multi-bot duplicate prevention
+try:
+    from multi_bot_launcher import is_job_applied, register_applied_job
+    SHARED_JOBS_AVAILABLE = True
+except ImportError:
+    SHARED_JOBS_AVAILABLE = False
 
 # Gmail cleanup
 try:
@@ -616,9 +626,111 @@ Great work! Your applications have been submitted."""
         return False
 
 
+def _send_slack(payload):
+    """Generic Slack webhook POST helper. Returns True on success."""
+    if not CONFIG.get("SLACK_NOTIFICATIONS_ENABLED", False):
+        return False
+
+    webhook = CONFIG.get("SLACK_WEBHOOK_URL", "").strip()
+    if not webhook or not webhook.startswith("https://hooks.slack.com/"):
+        return False
+
+    try:
+        req = urllib.request.Request(
+            webhook,
+            data=json.dumps(payload).encode("utf-8"),
+            headers={"Content-Type": "application/json"},
+            method="POST"
+        )
+        with urllib.request.urlopen(req, timeout=10) as resp:
+            if resp.status in (200, 204):
+                return True
+    except Exception as e:
+        print(f"[Slack] Notification failed: {e}")
+    return False
+
+
+def send_slack_job(instance_name, status, jobs, time_run, job_title="", company="", job_url=""):
+    """Send a rich Slack notification with job details, or a simple fallback."""
+    name = instance_name or "Main"
+    fallback = f"✅ {name} | {status} | {jobs} jobs | {time_run}"
+
+    # Simple format when no job details are provided (backward compat)
+    if not job_title:
+        return _send_slack({"text": fallback})
+
+    # Rich Block Kit message
+    job_line = f"*{job_title}*"
+    if company:
+        job_line += f" at _{company}_"
+    if job_url:
+        job_line = f"<{job_url}|{job_line}>"
+
+    blocks = [
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"✅ *{name}* — {status}"
+            }
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": job_line
+            }
+        },
+        {
+            "type": "section",
+            "fields": [
+                {"type": "mrkdwn", "text": f"*Jobs:* {jobs}"},
+                {"type": "mrkdwn", "text": f"*Elapsed:* {time_run}"}
+            ]
+        },
+        {"type": "divider"}
+    ]
+
+    return _send_slack({"text": fallback, "blocks": blocks})
+
+
+def send_slack_alert(instance_name, message, level="warning"):
+    """Send an error/warning/health alert to Slack."""
+    name = instance_name or "Main"
+    emoji_map = {"warning": "⚠️", "error": "🔴", "info": "🔵"}
+    emoji = emoji_map.get(level, "⚠️")
+    color_map = {"warning": "#f0ad4e", "error": "#d9534f", "info": "#5bc0de"}
+    color = color_map.get(level, "#f0ad4e")
+
+    fallback = f"{emoji} {name} | {level.upper()}: {message}"
+
+    blocks = [
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": f"{emoji} *{name}* — {level.upper()}"
+            }
+        },
+        {
+            "type": "section",
+            "text": {
+                "type": "mrkdwn",
+                "text": message
+            }
+        },
+        {"type": "divider"}
+    ]
+
+    return _send_slack({"text": fallback, "blocks": blocks})
+
+
 # OpenAI
 OPENAI_API_KEY = CONFIG.get("OPENAI_API_KEY", os.getenv("OPENAI_API_KEY", ""))
 OPENAI_MODEL = "gpt-4.1-mini"
+
+# Anthropic (fallback when OpenAI fails)
+ANTHROPIC_API_KEY = (CONFIG.get("ANTHROPIC_API_KEY") or os.getenv("ANTHROPIC_API_KEY", "")).strip()
 
 
 # ============================================
@@ -642,58 +754,95 @@ SEARCH_URL = build_search_url(JOB_TITLE, LOCATION)
 # ------------------ FIXED BROWSER LAUNCHER ------------------
 def init_browser():
     import tempfile
-    
-    chrome_options = Options()
-    
+
+    chrome_options = uc.ChromeOptions()
+
     # Check if running in headless mode (for VPS/server deployment)
     run_headless = os.getenv("RUN_HEADLESS", "false").lower() == "true"
-    
+
+    # Required for Linux (VPS/desktop) - safe on Windows too
+    chrome_options.add_argument("--no-sandbox")
+    chrome_options.add_argument("--disable-dev-shm-usage")
+
     if run_headless:
-        # Headless mode for server/VPS deployment
-        chrome_options.add_argument("--headless=new")  # Use new headless mode
-        chrome_options.add_argument("--no-sandbox")  # Required for Docker/some VPS
-        chrome_options.add_argument("--disable-dev-shm-usage")  # Prevents crashes
-        chrome_options.add_argument("--disable-gpu")  # GPU not needed headless
-        chrome_options.add_argument("--window-size=1920,1080")  # Set window size
+        chrome_options.add_argument("--headless=new")
+        chrome_options.add_argument("--disable-gpu")
+        chrome_options.add_argument("--window-size=1920,1080")
         print("[INFO] Running in HEADLESS mode (VPS/server deployment)")
     else:
-        # Normal mode with visible browser
         chrome_options.add_argument("--start-maximized")
-    
-    chrome_options.add_argument("--disable-blink-features=AutomationControlled")
-    chrome_options.add_argument("--disable-extensions")
+        chrome_options.add_argument("--disable-gpu")
+        chrome_options.add_argument("--disable-software-rasterizer")
+
     chrome_options.add_argument("--disable-notifications")
 
-    # Check for multi-bot instance Chrome profile
+    # Each bot instance MUST use its own Chrome profile (never share logins)
+    script_dir = os.path.dirname(os.path.abspath(__file__))
     bot_chrome_profile = os.getenv("BOT_CHROME_PROFILE")
+    # If we're an instance (have instance config) but profile not set, derive from config path
+    if not bot_chrome_profile and os.getenv("BOT_CONFIG_FILE"):
+        config_path = os.getenv("BOT_CONFIG_FILE", "")
+        base = os.path.basename(config_path)
+        if base.endswith("_config.json"):
+            instance_name = base.replace("_config.json", "").strip()
+            bot_chrome_profile = f"chrome_profile_{instance_name}"
+            print(f"[INSTANCE] Using profile from config: {bot_chrome_profile}")
     if bot_chrome_profile:
-        # Use instance-specific profile directory
-        script_dir = os.path.dirname(os.path.abspath(__file__))
         profile_dir = os.path.join(script_dir, bot_chrome_profile)
         os.makedirs(profile_dir, exist_ok=True)
-        chrome_options.add_argument(f"--user-data-dir={profile_dir}")
-        print(f"[INSTANCE] Chrome Profile: {bot_chrome_profile}")
-        print(f"[INSTANCE] Using Chrome profile: {profile_dir}")
+        port = 9222 + (abs(hash(bot_chrome_profile)) % 1000)
+        chrome_options.add_argument(f"--remote-debugging-port={port}")
+        print(f"[INSTANCE] Chrome profile: {profile_dir} (port {port}) — separate logins")
     else:
-        # Use temp directory for Chrome profile (works on macOS bundled apps)
-        # This avoids permission issues on macOS sandboxed environments
-        profile_dir = os.path.join(tempfile.gettempdir(), "seekmate_chrome_profile")
+        # Persistent profile (not /tmp) so Cloudflare cookies survive reboots
+        profile_dir = os.path.join(os.path.expanduser("~"), ".seekmate_chrome_profile")
         os.makedirs(profile_dir, exist_ok=True)
-        chrome_options.add_argument(f"--user-data-dir={profile_dir}")
 
-    service = Service(ChromeDriverManager().install())
-    driver = webdriver.Chrome(service=service, options=chrome_options)
-    
+    print(f"[BROWSER] Chrome profile: {profile_dir}")
+    driver = uc.Chrome(options=chrome_options, user_data_dir=profile_dir)
+
     # Set implicit wait based on SCAN_SPEED slider
     if SCAN_SPEED >= 90:
-        driver.implicitly_wait(0.1)  # Near instant for insane/fast
+        driver.implicitly_wait(0.1)
     elif SCAN_SPEED >= 50:
-        driver.implicitly_wait(1)    # Quick for normal
+        driver.implicitly_wait(1)
     else:
-        driver.implicitly_wait(3)    # Patient for slow
+        driver.implicitly_wait(3)
     
     return driver
 
+
+def wait_for_cloudflare(driver, url=None, timeout=300):
+    """
+    Detect Cloudflare 'Just a moment...' challenge and wait for manual solve.
+    The user solves it via RDP, cookies persist in the Chrome profile.
+    """
+    if url:
+        driver.get(url)
+        time.sleep(3)
+
+    start = time.time()
+    warned = False
+    while time.time() - start < timeout:
+        try:
+            title = driver.title.lower()
+            if "just a moment" not in title and "challenge" not in title:
+                if warned:
+                    print("[CLOUDFLARE] Challenge solved! Continuing...")
+                return True
+            if not warned:
+                print("=" * 60)
+                print("[CLOUDFLARE] Human verification detected!")
+                print("[CLOUDFLARE] Please solve the challenge in the Chrome window.")
+                print("[CLOUDFLARE] Waiting up to 5 minutes...")
+                print("=" * 60)
+                warned = True
+            time.sleep(3)
+        except Exception:
+            time.sleep(3)
+
+    print("[CLOUDFLARE] Timed out waiting for challenge to be solved.")
+    return False
 
 
 class SeekBot:
@@ -713,7 +862,13 @@ class SeekBot:
             wait_timeout = 15  # Patient timeout for slow mode
         
         self.wait = WebDriverWait(driver, wait_timeout)
-        self.client = OpenAI(api_key=OPENAI_API_KEY)
+        self.client = OpenAI(api_key=OPENAI_API_KEY) if OPENAI_API_KEY else None
+        self.anthropic_client = None
+        if ANTHROPIC_AVAILABLE and ANTHROPIC_API_KEY:
+            try:
+                self.anthropic_client = Anthropic(api_key=ANTHROPIC_API_KEY)
+            except Exception as e:
+                print(f"[!] Anthropic fallback not available: {e}")
         
         # Initialize Gmail cleanup if available and enabled
         self.gmail_cleanup = None
@@ -761,40 +916,79 @@ class SeekBot:
         if title not in self.applied_job_titles:
             self.applied_job_titles.append(title)
     def gpt(self, system_prompt: str, user_prompt: str) -> str:
-        try:
-            res = self.client.chat.completions.create(
-                model=OPENAI_MODEL,
-                messages=[
-                    {"role": "system", "content": system_prompt},
-                    {"role": "user", "content": user_prompt},
-                ],
-                max_tokens=800,
-                temperature=0.4,
-            )
-            return res.choices[0].message.content.strip()
-        except Exception as e:
-            print("GPT ERROR:", e)
-            return ""
+        # Try OpenAI first
+        if self.client:
+            try:
+                res = self.client.chat.completions.create(
+                    model=OPENAI_MODEL,
+                    messages=[
+                        {"role": "system", "content": system_prompt},
+                        {"role": "user", "content": user_prompt},
+                    ],
+                    max_tokens=800,
+                    temperature=0.4,
+                )
+                return res.choices[0].message.content.strip()
+            except Exception as e:
+                print(f"GPT ERROR: {e}")
+                if self.anthropic_client:
+                    print("    [*] Falling back to Anthropic Claude...")
+        # Anthropic fallback
+        if self.anthropic_client:
+            try:
+                res = self.anthropic_client.messages.create(
+                    model="claude-3-5-haiku-20241022",
+                    max_tokens=800,
+                    system=system_prompt,
+                    messages=[{"role": "user", "content": user_prompt}],
+                )
+                return res.content[0].text.strip()
+            except Exception as e:
+                print(f"CLAUDE ERROR: {e}")
+        return ""
 
     # ---------- LOGIN ----------
     def ensure_logged_in(self):
-        self.driver.get("https://www.seek.com.au/")
-        speed_sleep(5, "scan")
-        throttle()
+        try:
+            self.driver.get("https://www.seek.com.au/")
+            speed_sleep(5, "scan")
 
-        sign_in = self.driver.find_elements(By.XPATH, "//a[contains(., 'Sign in')]")
-        if sign_in:
-            print("[!] Not logged in. Log in manually...")
-            input("Press ENTER after logging in...")
-        else:
-            print("[*] Already logged in.")
+            # Check for Cloudflare challenge before anything else
+            wait_for_cloudflare(self.driver)
+
+            throttle()
+
+            sign_in = self.driver.find_elements(By.XPATH, "//a[contains(., 'Sign in')]")
+            if sign_in:
+                print("[!] Not logged in. Log in manually...")
+                try:
+                    if sys.stdin.isatty():
+                        input("Press ENTER after logging in...")
+                    else:
+                        print("[!] Running in background. You have 45 seconds to log in to Seek in the Chrome window.")
+                        time.sleep(45)
+                except (EOFError, OSError):
+                    print("[!] Running in background. You have 45 seconds to log in to Seek in the Chrome window.")
+                    time.sleep(45)
+            else:
+                print("[*] Already logged in.")
+        except Exception as e:
+            from selenium.common.exceptions import InvalidSessionIdException, WebDriverException
+            if isinstance(e, (InvalidSessionIdException, WebDriverException)):
+                print("[ERROR] Chrome closed or lost connection. Check that Chrome is not already open with the same profile, and try again.")
+            else:
+                print(f"[ERROR] Login check failed: {e}")
+            import traceback
+            traceback.print_exc()
+            raise
 
     # ---------- SEARCH ----------
     def open_search(self):
         print(f"[*] Opening search for: {JOB_TITLE}")
         print(f"    URL: {SEARCH_URL}")
-        self.driver.get(SEARCH_URL)   # <- This is now auto-generated above
+        self.driver.get(SEARCH_URL)
         speed_sleep(3, "scan")
+        wait_for_cloudflare(self.driver)
         throttle()
 
     def get_job_cards(self):
@@ -2076,10 +2270,24 @@ Reply with ONLY the exact option text to select:"""
             except Exception as e:
                 print("    [-] Logging failed:", e)
 
+            # Register in shared tracker so other bot instances skip this job
+            if SHARED_JOBS_AVAILABLE:
+                instance_name = os.getenv("BOT_INSTANCE_NAME") or CONFIG.get("FULL_NAME", "Main")
+                register_applied_job(job_url, instance_name, job_title, company)
+
             # COUNT REAL SUBMISSION
             self.successful_submits += 1
             current_time = datetime.now()
             self.job_timestamps.append(current_time)
+            
+            # Live Slack notification: instance, status, jobs, time only
+            instance_name = os.getenv("BOT_INSTANCE_NAME") or CONFIG.get("FULL_NAME", "Main")
+            elapsed = int(time.time() - getattr(self, "run_start_time", time.time()))
+            m, s = divmod(elapsed, 60)
+            h, m = divmod(m, 60)
+            time_str = f"{h:02d}:{m:02d}:{s:02d}" if h else f"{m:02d}:{s:02d}"
+            send_slack_job(instance_name, "Running", self.successful_submits, time_str,
+                          job_title=job_title, company=company, job_url=job_url)
             
             # Clean old timestamps (older than 24 hours)
             cutoff_time = current_time - timedelta(hours=24)
@@ -2256,6 +2464,14 @@ Reply with ONLY the exact option text to select:"""
                     if not job_url:
                         continue
 
+                    # Cross-instance duplicate check
+                    if SHARED_JOBS_AVAILABLE and is_job_applied(job_url):
+                        print(f"    [!] SKIP: Already applied by another bot instance")
+                        if len(self.driver.window_handles) > 1:
+                            self.driver.close()
+                            self.driver.switch_to.window(self.driver.window_handles[0])
+                        continue
+
                     # Check 24/7 mode limit before applying
                     if self.mode_24_7:
                         cutoff_time = datetime.now() - timedelta(hours=24)
@@ -2265,7 +2481,7 @@ Reply with ONLY the exact option text to select:"""
                             print(f"    [!] 24/7 MODE: Reached 100 jobs in 24 hours. Stopping...")
                             self.send_summary_and_exit(run_start_time)
                             return
-                    
+
                     speed_sleep(2, "scan")
 
                     try:
@@ -2363,6 +2579,7 @@ Reply with ONLY the exact option text to select:"""
         
         self.ensure_logged_in()
         run_start_time = time.time()  # Track start time for WhatsApp summary
+        self.run_start_time = run_start_time  # For Slack notifications
 
         # Check if running in Recommended Jobs mode
         if is_recommended_mode():
@@ -2542,6 +2759,14 @@ Reply with ONLY the exact option text to select:"""
                         if not job_url:
                             continue
 
+                        # Cross-instance duplicate check
+                        if SHARED_JOBS_AVAILABLE and is_job_applied(job_url):
+                            print(f"    [!] SKIP: Already applied by another bot instance")
+                            if len(self.driver.window_handles) > 1:
+                                self.driver.close()
+                                self.driver.switch_to.window(self.driver.window_handles[0])
+                            continue
+
                         speed_sleep(2, "scan")
 
                         # Check 24/7 mode limit before applying
@@ -2600,15 +2825,24 @@ Reply with ONLY the exact option text to select:"""
 
 
 def main():
-    # Reload config to get latest settings
-    reload_config()
-    
-    # Reset control flags for fresh start
-    write_control(pause=False, stop=False)
-    
-    driver = init_browser()
-    bot = SeekBot(driver)
-    bot.run()
+    try:
+        # Reload config to get latest settings
+        reload_config()
+        
+        # Reset control flags for fresh start
+        write_control(pause=False, stop=False)
+        
+        driver = init_browser()
+        # Give Chrome a moment to fully start before navigating
+        time.sleep(2)
+        
+        bot = SeekBot(driver)
+        bot.run()
+    except Exception as e:
+        import traceback
+        print(f"[ERROR] Bot stopped: {e}")
+        traceback.print_exc()
+        raise
 
 
 if __name__ == "__main__":

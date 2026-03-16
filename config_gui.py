@@ -1377,11 +1377,6 @@ class SeekMateGUI:
         
         self.build_preset_chips(inner)
         
-        # Selected presets display
-        self.selected_presets_frame = tk.Frame(inner, bg=COLORS["bg_card"])
-        self.selected_presets_frame.pack(fill="x", pady=(15, 0))
-        self._update_selected_presets_display()
-        
         # Max jobs and salary row
         row = tk.Frame(inner, bg=COLORS["bg_card"])
         row.pack(fill="x", pady=(20, 0))
@@ -1627,6 +1622,51 @@ class SeekMateGUI:
                 bg=COLORS["bg_card"], fg=COLORS["text_muted"],
                 font=FONT_LABEL).pack(anchor="w", pady=(5, 0))
 
+        # Slack Notifications (live per-job)
+        slack_card = tk.Frame(frame, bg=COLORS["bg_card"])
+        slack_card.pack(fill="x", pady=(0, 15))
+        slack_inner = tk.Frame(slack_card, bg=COLORS["bg_card"])
+        slack_inner.pack(fill="x", padx=25, pady=20)
+        tk.Label(slack_inner, text="💬  Slack Notifications (Live)", 
+                bg=COLORS["bg_card"], fg=COLORS["text_primary"], 
+                font=FONT_SUBHEADER).pack(anchor="w", pady=(0, 5))
+        tk.Label(slack_inner, text="Get a message in Slack each time a job is applied (multi-bot friendly)",
+                bg=COLORS["bg_card"], fg=COLORS["text_muted"],
+                font=FONT_LABEL).pack(anchor="w", pady=(0, 12))
+        self.slack_var = tk.BooleanVar(value=self.config.get("SLACK_NOTIFICATIONS_ENABLED", False))
+        slack_toggle_row = tk.Frame(slack_inner, bg=COLORS["bg_card"])
+        slack_toggle_row.pack(fill="x", pady=(0, 12))
+        self.slack_btn = tk.Button(slack_toggle_row, 
+            text="💬 SLACK: ON" if self.slack_var.get() else "💬 SLACK: OFF",
+            font=FONT_LABEL, relief="flat", cursor="hand2",
+            bg=COLORS["success"] if self.slack_var.get() else COLORS["bg_input"],
+            fg=COLORS["text_primary"] if self.slack_var.get() else COLORS["text_secondary"],
+            command=self.toggle_slack)
+        self.slack_btn.pack(side="left")
+        tk.Label(slack_toggle_row, text="  Live job notifications to your Slack channel",
+                bg=COLORS["bg_card"], fg=COLORS["text_muted"],
+                font=FONT_LABEL).pack(side="left", padx=(10, 0))
+        tk.Label(slack_inner, text="SLACK WEBHOOK URL", bg=COLORS["bg_card"], 
+                fg=COLORS["text_secondary"], font=FONT_LABEL_BOLD).pack(anchor="w", pady=(0, 8))
+        self.slack_webhook_entry = ModernEntry(slack_inner, show="•")
+        self.slack_webhook_entry.insert(0, self.config.get("SLACK_WEBHOOK_URL", ""))
+        self.slack_webhook_entry.pack(fill="x", pady=(0, 8))
+        tk.Label(slack_inner, text="💡 Create an Incoming Webhook in Slack: Apps → Incoming Webhooks → Add to Slack",
+                bg=COLORS["bg_card"], fg=COLORS["text_muted"],
+                font=FONT_LABEL).pack(anchor="w", pady=(5, 0))
+
+    def toggle_slack(self):
+        """Toggle Slack notifications on/off"""
+        new_state = not self.slack_var.get()
+        self.slack_var.set(new_state)
+        if new_state:
+            self.slack_btn.config(text="💬 SLACK: ON", bg=COLORS["success"], fg=COLORS["text_primary"])
+            self.log("INFO", "💬 Slack notifications ENABLED")
+        else:
+            self.slack_btn.config(text="💬 SLACK: OFF", bg=COLORS["bg_input"], fg=COLORS["text_secondary"])
+            self.log("INFO", "💬 Slack notifications DISABLED")
+        self.config["SLACK_NOTIFICATIONS_ENABLED"] = new_state
+
     def build_preset_chips(self, parent):
         """Build modern chip-style preset buttons with multi-select capability"""
         # Container for all chips
@@ -1724,26 +1764,16 @@ class SeekMateGUI:
                         font=FONT_CHIP, padx=12, pady=6)
         label.pack()
         
-        # Store chip state and references
+        # Store chip state
         chip.is_selected = is_selected
         chip.name = name
         chip.titles = titles
-        chip.label = label  # Store label reference for hover updates
         
-        # Bind events - use chip reference directly
-        def on_click(e):
-            self._toggle_preset(chip, name, titles)
-        
-        def on_enter(e):
-            self._chip_hover(chip, label, True)
-        
-        def on_leave(e):
-            self._chip_hover(chip, label, False)
-        
+        # Bind events
         for widget in [chip, label]:
-            widget.bind("<Button-1>", on_click)
-            widget.bind("<Enter>", on_enter)
-            widget.bind("<Leave>", on_leave)
+            widget.bind("<Button-1>", lambda e, c=chip, n=name, t=titles: self._toggle_preset(c, n, t))
+            widget.bind("<Enter>", lambda e, c=chip, l=label, s=is_selected: self._chip_hover(c, l, True, s))
+            widget.bind("<Leave>", lambda e, c=chip, l=label, s=is_selected: self._chip_hover(c, l, False, s))
         
         return chip
     
@@ -1754,17 +1784,18 @@ class SeekMateGUI:
         if chip.is_selected:
             self.selected_presets.add(name)
             chip.config(bg=COLORS["accent_primary"])
-            chip.label.config(bg=COLORS["accent_primary"], fg=COLORS["bg_dark"])
+            for widget in chip.winfo_children():
+                if isinstance(widget, tk.Label):
+                    widget.config(bg=COLORS["accent_primary"], fg=COLORS["bg_dark"])
         else:
             self.selected_presets.discard(name)
             chip.config(bg=COLORS["border"])
-            chip.label.config(bg=COLORS["border"], fg=COLORS["text_secondary"])
+            for widget in chip.winfo_children():
+                if isinstance(widget, tk.Label):
+                    widget.config(bg=COLORS["border"], fg=COLORS["text_secondary"])
         
         # Update job titles from all selected presets
         self._update_job_titles_from_presets()
-        
-        # Update selected presets display
-        self._update_selected_presets_display()
         
         # Save selected presets to config
         self.config["SELECTED_PRESETS"] = list(self.selected_presets)
@@ -1793,78 +1824,6 @@ class SeekMateGUI:
         self.config["JOB_TITLES"] = all_titles
         save_config(self.config)
     
-    def _update_selected_presets_display(self):
-        """Update the display showing selected presets and their titles"""
-        # Clear existing display
-        for widget in self.selected_presets_frame.winfo_children():
-            widget.destroy()
-        
-        if not self.selected_presets:
-            # Show message when nothing is selected
-            tk.Label(self.selected_presets_frame, 
-                    text="No presets selected. Click chips above to select job title categories.",
-                    bg=COLORS["bg_card"], fg=COLORS["text_muted"],
-                    font=("Segoe UI", 9), wraplength=600, justify="left").pack(anchor="w")
-            return
-        
-        # Header
-        header = tk.Frame(self.selected_presets_frame, bg=COLORS["bg_card"])
-        header.pack(fill="x", pady=(0, 10))
-        tk.Label(header, text=f"✅ Selected Presets ({len(self.selected_presets)}):", 
-                bg=COLORS["bg_card"], fg=COLORS["text_primary"],
-                font=FONT_LABEL_BOLD).pack(anchor="w")
-        
-        # Create scrollable frame for selected presets
-        canvas = tk.Canvas(self.selected_presets_frame, bg=COLORS["bg_card"], 
-                          highlightthickness=0, height=200)
-        scrollbar = tk.Scrollbar(self.selected_presets_frame, orient="vertical", command=canvas.yview)
-        scrollable_frame = tk.Frame(canvas, bg=COLORS["bg_card"])
-        
-        scrollable_frame.bind(
-            "<Configure>",
-            lambda e: canvas.configure(scrollregion=canvas.bbox("all"))
-        )
-        
-        canvas.create_window((0, 0), window=scrollable_frame, anchor="nw")
-        canvas.configure(yscrollcommand=scrollbar.set)
-        
-        # Display each selected preset with its titles
-        for preset_name, preset_titles in self.presets:
-            if preset_name in self.selected_presets:
-                # Preset name
-                preset_frame = tk.Frame(scrollable_frame, bg=COLORS["bg_input"], relief="flat", bd=1)
-                preset_frame.pack(fill="x", pady=(0, 8), padx=(0, 5))
-                
-                preset_inner = tk.Frame(preset_frame, bg=COLORS["bg_input"])
-                preset_inner.pack(fill="x", padx=12, pady=10)
-                
-                # Preset name label
-                name_label = tk.Label(preset_inner, 
-                    text=f"📌 {preset_name}",
-                    bg=COLORS["bg_input"], fg=COLORS["accent_primary"],
-                    font=("Segoe UI", 10, "bold"), anchor="w")
-                name_label.pack(fill="x", pady=(0, 5))
-                
-                # Titles list
-                titles_text = ", ".join(preset_titles)
-                titles_label = tk.Label(preset_inner,
-                    text=f"   Titles: {titles_text}",
-                    bg=COLORS["bg_input"], fg=COLORS["text_secondary"],
-                    font=("Segoe UI", 9), anchor="w", justify="left", wraplength=700)
-                titles_label.pack(fill="x")
-        
-        canvas.pack(side="left", fill="both", expand=True)
-        scrollbar.pack(side="right", fill="y")
-        
-        # Update scroll region after all widgets are added
-        canvas.update_idletasks()
-        canvas.configure(scrollregion=canvas.bbox("all"))
-        
-        # Bind mousewheel
-        def on_mousewheel(event):
-            canvas.yview_scroll(int(-1 * (event.delta / 120)), "units")
-        canvas.bind_all("<MouseWheel>", on_mousewheel)
-    
     def _on_job_entry_change(self, event=None):
         """Handle manual edits to job entry - update config but keep selected presets"""
         # Parse job titles from entry
@@ -1874,14 +1833,14 @@ class SeekMateGUI:
             self.config["JOB_TITLES"] = titles
             save_config(self.config)
 
-    def _chip_hover(self, chip, label, entering):
+    def _chip_hover(self, chip, label, entering, is_selected):
         """Handle chip hover state"""
         if entering:
-            if not chip.is_selected:
+            if not is_selected:
                 chip.config(bg=COLORS["accent_primary"])
                 label.config(bg=COLORS["accent_primary"], fg=COLORS["bg_dark"])
         else:
-            if not chip.is_selected:
+            if not is_selected:
                 chip.config(bg=COLORS["border"])
                 label.config(bg=COLORS["border"], fg=COLORS["text_secondary"])
 
@@ -3695,6 +3654,10 @@ rm "$0"
             self.config["TWILIO_WHATSAPP_FROM"] = self.twilio_from_entry.get().strip()
         if hasattr(self, 'whatsapp_var'):
             self.config["WHATSAPP_NOTIFICATIONS"] = self.whatsapp_var.get()
+        if hasattr(self, 'slack_var'):
+            self.config["SLACK_NOTIFICATIONS_ENABLED"] = self.slack_var.get()
+        if hasattr(self, 'slack_webhook_entry'):
+            self.config["SLACK_WEBHOOK_URL"] = self.slack_webhook_entry.get().strip()
         
         # Platform selections
         self.config["USE_SEEK"] = self.seek_var.get()
