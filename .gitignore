@@ -30,9 +30,11 @@ chrome_seek_profile/
 log.txt
 job_log.xlsx
 
-# Config (contains user secrets)
+# Config and secrets
 config.json
 control.json
+.env
+bot_instances.json
 
 # OS files
 .DS_Store
@@ -41,4 +43,23 @@ Thumbs.db
 # Temporary files
 *.tmp
 *.bak
+
+# Sensitive files (API keys, tokens, profiles)
+bot_instances/
+slack_bot_config.json
+test_slack.py
+profiles.json
+master_profile.json
+shared_applied_jobs.json
+whatsapp_summary_state.json
+control_*.json
+log_*.txt
+*.db
+*.db-shm
+*.db-wal
+chrome_profile_*/
+chrome_indeed_profile/
+
+# Claude worktrees
+.claude/worktrees/
 

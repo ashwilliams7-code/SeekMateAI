@@ -8,6 +8,9 @@ import threading
 import urllib.request
 import urllib.parse
 
+from dotenv import load_dotenv
+load_dotenv()
+
 import undetected_chromedriver as uc
 from selenium.webdriver.chrome.options import Options
 from selenium.webdriver.common.by import By
@@ -543,9 +546,10 @@ if BLOCKED_TITLES:
 # ============================================
 # TWILIO WHATSAPP NOTIFICATIONS
 # ============================================
-TWILIO_ACCOUNT_SID = CONFIG.get("TWILIO_ACCOUNT_SID", "")
-TWILIO_AUTH_TOKEN = CONFIG.get("TWILIO_AUTH_TOKEN", "")
-TWILIO_WHATSAPP_FROM = CONFIG.get("TWILIO_WHATSAPP_FROM", "whatsapp:+14155238886")
+TWOCAPTCHA_API_KEY = os.getenv("TWOCAPTCHA_API_KEY") or CONFIG.get("TWOCAPTCHA_API_KEY", "")
+TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID") or CONFIG.get("TWILIO_ACCOUNT_SID", "")
+TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN") or CONFIG.get("TWILIO_AUTH_TOKEN", "")
+TWILIO_WHATSAPP_FROM = os.getenv("TWILIO_WHATSAPP_FROM") or CONFIG.get("TWILIO_WHATSAPP_FROM", "whatsapp:+14155238886")
 WHATSAPP_NOTIFICATIONS = CONFIG.get("WHATSAPP_NOTIFICATIONS", True)
 
 # Profile phone numbers for WhatsApp notifications
@@ -631,7 +635,7 @@ def _send_slack(payload):
     if not CONFIG.get("SLACK_NOTIFICATIONS_ENABLED", False):
         return False
 
-    webhook = CONFIG.get("SLACK_WEBHOOK_URL", "").strip()
+    webhook = (os.getenv("SLACK_WEBHOOK_URL") or CONFIG.get("SLACK_WEBHOOK_URL", "")).strip()
     if not webhook or not webhook.startswith("https://hooks.slack.com/"):
         return False
 
@@ -726,11 +730,11 @@ def send_slack_alert(instance_name, message, level="warning"):
 
 
 # OpenAI
-OPENAI_API_KEY = CONFIG.get("OPENAI_API_KEY", os.getenv("OPENAI_API_KEY", ""))
+OPENAI_API_KEY = os.getenv("OPENAI_API_KEY") or CONFIG.get("OPENAI_API_KEY", "")
 OPENAI_MODEL = "gpt-4.1-mini"
 
 # Anthropic (fallback when OpenAI fails)
-ANTHROPIC_API_KEY = (CONFIG.get("ANTHROPIC_API_KEY") or os.getenv("ANTHROPIC_API_KEY", "")).strip()
+ANTHROPIC_API_KEY = (os.getenv("ANTHROPIC_API_KEY") or CONFIG.get("ANTHROPIC_API_KEY", "")).strip()
 
 
 # ============================================

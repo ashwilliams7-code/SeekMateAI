@@ -33,11 +33,17 @@ class MultiBotGUI:
         self.root.minsize(1000, 620)
         self.root.configure(bg="#1a1a2e")
         
+        # Session baselines so tallies reset each time dashboard starts
+        # These store absolute counts at dashboard launch; UI shows deltas since then.
+        self.session_baseline_jobs = {}
+        self.session_baseline_scanned = {}
+        
         self.selected_instance_for_log = None
         self.log_tail_lines = 100
         
         _apply_dark_style(root)
         self.load_instances()
+        self._init_session_baselines()
         self.create_ui()
         self.refresh_list()
         
@@ -51,6 +57,38 @@ class MultiBotGUI:
         self.root.bind("<F5>", lambda e: self.refresh_list())
         self.root.bind("<Control-r>", lambda e: self.refresh_list())
     
+    def _init_session_baselines(self):
+        """Capture baseline log-derived counts at dashboard startup so tallies reset each run."""
+        self.session_baseline_jobs = {}
+        self.session_baseline_scanned = {}
+        
+        if not getattr(self, "instances", None):
+            return
+        
+        for name, info in self.instances.items():
+            log_path = info.get("log_file", os.path.join(SCRIPT_DIR, f"log_{name}.txt"))
+            if not os.path.isabs(log_path):
+                log_path = os.path.join(SCRIPT_DIR, log_path)
+            abs_jobs = int(self.get_jobs_applied(log_path) or 0)
+            abs_scanned = int(self.get_jobs_scanned(log_path) or 0)
+            self.session_baseline_jobs[name] = abs_jobs
+            self.session_baseline_scanned[name] = abs_scanned
+
+    def _get_session_counts(self, name, abs_jobs, abs_scanned):
+        """
+        Return per-session (since dashboard launch) counts for an instance.
+        If an instance appears mid-session, take its current absolute values as baseline
+        so the session counter starts at zero.
+        """
+        if name not in self.session_baseline_jobs:
+            self.session_baseline_jobs[name] = abs_jobs
+        if name not in self.session_baseline_scanned:
+            self.session_baseline_scanned[name] = abs_scanned
+        
+        jobs = max(0, abs_jobs - self.session_baseline_jobs.get(name, 0))
+        scanned = max(0, abs_scanned - self.session_baseline_scanned.get(name, 0))
+        return jobs, scanned
+
     def load_instances(self):
         if os.path.exists(INSTANCES_FILE):
             try:
@@ -282,8 +320,11 @@ class MultiBotGUI:
             log_path = info.get("log_file", os.path.join(SCRIPT_DIR, f"log_{name}.txt"))
             if not os.path.isabs(log_path):
                 log_path = os.path.join(SCRIPT_DIR, log_path)
-            total_jobs += int(self.get_jobs_applied(log_path) or 0)
-            total_scanned += int(self.get_jobs_scanned(log_path) or 0)
+            abs_jobs = int(self.get_jobs_applied(log_path) or 0)
+            abs_scanned = int(self.get_jobs_scanned(log_path) or 0)
+            session_jobs, session_scanned = self._get_session_counts(name, abs_jobs, abs_scanned)
+            total_jobs += session_jobs
+            total_scanned += session_scanned
         crashed_text = f"  ·  {crashed} crashed" if crashed else ""
         self.summary_label.config(
             text=f"  {total} instance(s)  ·  {running} running{crashed_text}  ·  {total_scanned} scanned  ·  {total_jobs} applied"
@@ -690,8 +731,14 @@ class MultiBotGUI:
             log_file = info.get("log_file", os.path.join(SCRIPT_DIR, f"log_{name}.txt"))
             if not os.path.isabs(log_file):
                 log_file = os.path.join(SCRIPT_DIR, log_file)
-            jobs_applied = self.get_jobs_applied(log_file)
-            jobs_scanned = self.get_jobs_scanned(log_file)
+
+            # Absolute counts from logs
+            abs_jobs = int(self.get_jobs_applied(log_file) or 0)
+            abs_scanned = int(self.get_jobs_scanned(log_file) or 0)
+            # Session-relative counts (reset at dashboard start)
+            jobs_applied_int, jobs_scanned_int = self._get_session_counts(name, abs_jobs, abs_scanned)
+            jobs_applied = str(jobs_applied_int)
+            jobs_scanned = str(jobs_scanned_int)
             last_log = self.get_last_log_line(log_file)
 
             start_time = info.get("start_time", "")
