@@ -775,6 +775,7 @@ def init_browser():
         chrome_options.add_argument("--disable-software-rasterizer")
 
     chrome_options.add_argument("--disable-notifications")
+    chrome_options.add_argument("--disable-popup-blocking")
 
     # Each bot instance MUST use its own Chrome profile (never share logins)
     script_dir = os.path.dirname(os.path.abspath(__file__))
@@ -797,6 +798,11 @@ def init_browser():
         # Persistent profile (not /tmp) so Cloudflare cookies survive reboots
         profile_dir = os.path.join(os.path.expanduser("~"), ".seekmate_chrome_profile")
         os.makedirs(profile_dir, exist_ok=True)
+
+    # Allow popups so window.open() works for opening job tabs
+    chrome_options.add_experimental_option("prefs", {
+        "profile.default_content_setting_values.popups": 1,
+    })
 
     print(f"[BROWSER] Chrome profile: {profile_dir}")
     driver = uc.Chrome(options=chrome_options, user_data_dir=profile_dir)
@@ -1055,18 +1061,57 @@ class SeekBot:
         stealth_before_click()  # Human-like pause before clicking
         try:
             link = card.find_element(By.CSS_SELECTOR, "a[data-automation='jobTitle']")
-            href = link.get_attribute("href")
+            href = link.get_attribute("href") or ""
+            if not href or href == "#":
+                return ""
+
+            self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", card)
+            speed_sleep(0.5, "scan")
+
+            # Open job in a new tab (preserves search results page)
+            handles_before = set(self.driver.window_handles)
             self.driver.execute_script("window.open(arguments[0], '_blank');", href)
             speed_sleep(2, "scan")
-            self.driver.switch_to.window(self.driver.window_handles[-1])
-            
-            # Stealth: Behave like human viewing the job page
-            stealth_page_behavior(self.driver)
-            
-            print(f"    [+] Opened: {href}")
-            return href
-        except Exception:
-            print("    [-] Failed to open job tab.")
+            new_handles = set(self.driver.window_handles) - handles_before
+            if new_handles:
+                self.driver.switch_to.window(new_handles.pop())
+                stealth_page_behavior(self.driver)
+                print(f"    [+] Opened: {href}")
+                return href
+
+            # Fallback: Ctrl+click the link to open in new tab
+            print("    [*] window.open blocked, trying Ctrl+click fallback...")
+            from selenium.webdriver.common.keys import Keys
+            from selenium.webdriver.common.action_chains import ActionChains
+            try:
+                ActionChains(self.driver).key_down(Keys.CONTROL).click(link).key_up(Keys.CONTROL).perform()
+                speed_sleep(2, "scan")
+                new_handles = set(self.driver.window_handles) - handles_before
+                if new_handles:
+                    self.driver.switch_to.window(new_handles.pop())
+                    stealth_page_behavior(self.driver)
+                    print(f"    [+] Opened (Ctrl+click): {href}")
+                    return href
+            except Exception as e2:
+                print(f"    [-] Ctrl+click failed: {e2}")
+
+            # Last resort: navigate directly (loses search page, will re-search after)
+            print("    [*] Trying direct navigation fallback...")
+            self.driver.execute_script("window.open('');")
+            speed_sleep(1, "scan")
+            new_handles = set(self.driver.window_handles) - handles_before
+            if new_handles:
+                self.driver.switch_to.window(new_handles.pop())
+                self.driver.get(href)
+                speed_sleep(2, "scan")
+                stealth_page_behavior(self.driver)
+                print(f"    [+] Opened (direct nav): {href}")
+                return href
+
+            print("    [-] All tab-open methods failed.")
+            return ""
+        except Exception as e:
+            print(f"    [-] Failed to open job: {e}")
             return ""
 
     # ---------- DESCRIPTION ----------
@@ -1278,6 +1323,37 @@ Examples:
             
             if selections_made:
                 print(f"    [+] Document options: {', '.join(selections_made)}")
+            else:
+                # Fallback: some SEEK variants render these choices in buttons/divs/spans instead of label tags.
+                # Click by matching the option text across common clickable container tags.
+                try:
+                    fallback_candidates = [
+                        ("Resume: Select saved", "select a resum"),
+                        ("Cover letter: Write", "write a cover letter"),
+                        ("Selection criteria: Write", "write a statement"),
+                    ]
+                    for action_name, phrase in fallback_candidates:
+                        xpath = (
+                            "//*[self::label or self::button or self::span or self::div]"
+                            "[contains(translate(normalize-space(.), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), '%s')]"
+                        ) % phrase
+                        els = self.driver.find_elements(By.XPATH, xpath)
+                        for el in els:
+                            try:
+                                if el.is_displayed() and el.is_enabled():
+                                    self.driver.execute_script("arguments[0].click();", el)
+                                    selections_made.append(action_name)
+                                    speed_sleep(0.3, "apply")
+                                    break
+                            except:
+                                continue
+                        if selections_made:
+                            break
+                except:
+                    pass
+
+                if selections_made:
+                    print(f"    [+] Document options (fallback): {', '.join(selections_made)}")
             
             speed_sleep(0.5, "apply")
             
@@ -1291,9 +1367,10 @@ Examples:
         location = CONFIG.get("LOCATION", "Australia")
         background_bio = CONFIG.get("BACKGROUND_BIO", "")
         
-        # Find selection criteria textarea
+        # Find selection criteria input (textarea or rich editor)
         textareas = self.driver.find_elements(By.TAG_NAME, "textarea")
-        criteria_textarea = None
+        criteria_input = None  # selenium element
+        criteria_kind = None   # "textarea" | "contenteditable"
         
         for ta in textareas:
             try:
@@ -1309,13 +1386,14 @@ Examples:
                 # Look for selection/criteria/statement keywords
                 if any(kw in placeholder or kw in name_attr or kw in aria 
                        for kw in ["selection", "criteria", "statement", "address"]):
-                    criteria_textarea = ta
+                    criteria_input = ta
+                    criteria_kind = "textarea"
                     break
                     
             except:
                 continue
         
-        if not criteria_textarea:
+        if not criteria_input:
             # Try finding by section - look for textarea after "Selection criteria" heading
             try:
                 sections = self.driver.find_elements(By.XPATH, 
@@ -1323,12 +1401,40 @@ Examples:
                     "/following::textarea[1]"
                 )
                 if sections:
-                    criteria_textarea = sections[0]
+                    criteria_input = sections[0]
+                    criteria_kind = "textarea"
             except:
                 pass
         
-        if not criteria_textarea:
-            print("    [!] No selection criteria textarea found")
+        if not criteria_input:
+            # Seek sometimes uses a rich editor instead of a textarea
+            try:
+                editables = self.driver.find_elements(
+                    By.XPATH,
+                    "//*[contains(text(), 'Selection criteria') or contains(text(), 'selection criteria')]"
+                    "/following::*[@contenteditable='true'][1]"
+                )
+                if editables:
+                    criteria_input = editables[0]
+                    criteria_kind = "contenteditable"
+            except:
+                pass
+
+        if not criteria_input:
+            try:
+                role_boxes = self.driver.find_elements(
+                    By.XPATH,
+                    "//*[contains(text(), 'Selection criteria') or contains(text(), 'selection criteria')]"
+                    "/following::*[@role='textbox'][1]"
+                )
+                if role_boxes:
+                    criteria_input = role_boxes[0]
+                    criteria_kind = "contenteditable"
+            except:
+                pass
+
+        if not criteria_input:
+            print("    [!] No selection criteria input found (textarea/contenteditable).")
             return
         
         # Generate statement using GPT
@@ -1368,27 +1474,40 @@ JOB DESCRIPTION:
             return
         
         try:
-            self.driver.execute_script("arguments[0].scrollIntoView(true);", criteria_textarea)
+            self.driver.execute_script("arguments[0].scrollIntoView(true);", criteria_input)
             speed_sleep(0.5, "apply")
-            
-            # Clear and fill
-            criteria_textarea.clear()
-            speed_sleep(0.2, "apply")
-            
-            self.driver.execute_script(
-                "arguments[0].value = arguments[1];", criteria_textarea, statement
-            )
-            
-            # Fire events
-            self.driver.execute_script("""
-                arguments[0].dispatchEvent(new Event('input', { bubbles: true }));
-                arguments[0].dispatchEvent(new Event('change', { bubbles: true }));
-            """, criteria_textarea)
-            
-            speed_sleep(0.3, "apply")
-            criteria_textarea.send_keys(" ")
-            criteria_textarea.send_keys("\b")
-            
+
+            if criteria_kind == "textarea":
+                # Clear and fill
+                criteria_input.clear()
+                speed_sleep(0.2, "apply")
+
+                self.driver.execute_script(
+                    "arguments[0].value = arguments[1];", criteria_input, statement
+                )
+
+                # Fire events
+                self.driver.execute_script("""
+                    arguments[0].dispatchEvent(new Event('input', { bubbles: true }));
+                    arguments[0].dispatchEvent(new Event('change', { bubbles: true }));
+                """, criteria_input)
+
+                speed_sleep(0.3, "apply")
+                criteria_input.send_keys(" ")
+                criteria_input.send_keys("\b")
+            else:
+                # Rich editor: set text via JS and dispatch events
+                self.driver.execute_script("arguments[0].focus();", criteria_input)
+                speed_sleep(0.2, "apply")
+                self.driver.execute_script(
+                    "arguments[0].innerText = arguments[1];", criteria_input, statement
+                )
+                self.driver.execute_script("""
+                    arguments[0].dispatchEvent(new Event('input', { bubbles: true }));
+                    arguments[0].dispatchEvent(new Event('change', { bubbles: true }));
+                """, criteria_input)
+                speed_sleep(0.2, "apply")
+
             print("    [+] Selection criteria statement added (GPT)")
             
         except Exception as e:
@@ -2095,6 +2214,57 @@ Reply with ONLY the exact option text to select:"""
             return False
 
     # ---------- APPLY FLOW ----------
+    def _switch_into_application_iframe(self) -> bool:
+        """
+        Seek often renders the Quick Apply wizard inside an iframe.
+        Switch into the first iframe that appears to contain application inputs.
+        Returns True if switched, False otherwise.
+        """
+        try:
+            self.driver.switch_to.default_content()
+        except:
+            pass
+
+        try:
+            iframes = self.driver.find_elements(By.TAG_NAME, "iframe")
+        except:
+            return False
+
+        for frame in iframes:
+            try:
+                self.driver.switch_to.frame(frame)
+
+                # Heuristics: form likely contains inputs and/or continue button
+                has_textarea = len(self.driver.find_elements(By.TAG_NAME, "textarea")) > 0
+                has_editable = len(self.driver.find_elements(By.XPATH, "//*[@contenteditable='true' or @role='textbox']")) > 0
+                has_continue = len(self.driver.find_elements(
+                    By.XPATH,
+                    "//*[self::button or self::a]"
+                    "[contains(translate(normalize-space(.), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'continue')"
+                    " or contains(translate(normalize-space(.), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'next')"
+                    " or contains(translate(normalize-space(@aria-label), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'continue')"
+                    " or contains(translate(normalize-space(@aria-label), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'next')]"
+                )) > 0
+
+                if has_textarea or has_editable or has_continue:
+                    # Stay in this iframe — caller will interact with it
+                    return True
+
+                # This iframe wasn't the right one, reset for the next
+                self.driver.switch_to.default_content()
+            except:
+                try:
+                    self.driver.switch_to.default_content()
+                except:
+                    pass
+                continue
+
+        try:
+            self.driver.switch_to.default_content()
+        except:
+            pass
+        return False
+
     def apply(self, job_title, company, job_url=""):
         speed_sleep(2, "scan")
         throttle()
@@ -2133,8 +2303,6 @@ Reply with ONLY the exact option text to select:"""
             (By.XPATH, "//button[contains(@aria-label, 'Quick apply')]"),
             (By.XPATH, "//button[contains(@aria-label, 'Quick Apply')]"),
             (By.XPATH, "//*[self::button or self::a][.//*[contains(text(),'Quick apply')]]"),
-            (By.XPATH, "//button[contains(., 'Apply now')]"),
-            (By.XPATH, "//button[contains(., 'Apply')]"),
         ]
 
         # First, FIND the apply button (don't click yet)
@@ -2144,7 +2312,9 @@ Reply with ONLY the exact option text to select:"""
         for by, sel in candidates:
             try:
                 btn = self.driver.find_element(by, sel)
-                if btn.is_displayed() and btn.is_enabled():
+                # Sometimes Seek's "Quick apply" is visually clickable but Selenium reports it as not enabled.
+                # We only require it to be displayed and rely on JS click for robustness.
+                if btn.is_displayed():
                     apply_btn = btn
                     apply_sel = sel
                     break
@@ -2163,6 +2333,13 @@ Reply with ONLY the exact option text to select:"""
                 return
 
         # Now click the apply button
+        handles_before = len(self.driver.window_handles)
+        url_before = ""
+        try:
+            url_before = (self.driver.current_url or "").lower()
+        except:
+            url_before = ""
+
         try:
             self.driver.execute_script("arguments[0].scrollIntoView({block: 'center'});", apply_btn)
             speed_sleep(1, "scan")
@@ -2178,11 +2355,49 @@ Reply with ONLY the exact option text to select:"""
         throttle()
         stealth_random_pause()  # Pause after form loads
 
+        # If Quick apply opened in a new tab/window, switch to it
+        try:
+            if len(self.driver.window_handles) > handles_before:
+                self.driver.switch_to.window(self.driver.window_handles[-1])
+                speed_sleep(1, "scan")
+                throttle()
+        except:
+            pass
+
         desc = self.get_description()
+        # Switch into Seek's application iframe (if any) before interacting with the wizard
+        self._switch_into_application_iframe()
 
         # --------------------------
         # PAGE 1 — Document selection + GPT content
         # --------------------------
+        # Wait for the Quick Apply wizard to load (doc selection or continue button)
+        try:
+            start_wait = time.time()
+            while time.time() - start_wait < 20:
+                doc_labels = self.driver.find_elements(
+                    By.XPATH,
+                    "//*[self::label or self::button or self::span or self::div]"
+                    "[contains(translate(normalize-space(.), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'write a cover letter')"
+                    " or contains(translate(normalize-space(.), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'write a statement')"
+                    " or contains(translate(normalize-space(.), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'select a resum')]"
+                )
+                if doc_labels:
+                    break
+                cont_btns = self.driver.find_elements(
+                    By.XPATH,
+                    "//*[self::button or self::a]"
+                    "[contains(translate(normalize-space(.), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'continue')"
+                    " or contains(translate(normalize-space(.), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'next')"
+                    " or contains(translate(normalize-space(@aria-label), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'continue')"
+                    " or contains(translate(normalize-space(@aria-label), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'next')]"
+                )
+                if cont_btns:
+                    break
+                time.sleep(0.5)
+        except:
+            pass
+
         # First: Select the right radio buttons (Resume, Cover Letter, Selection Criteria)
         self.select_document_options()
         
@@ -2191,16 +2406,35 @@ Reply with ONLY the exact option text to select:"""
         self.fill_selection_criteria(job_title, company, desc)
         self.answer_questions(job_title, company, desc)
 
+        # Click Continue/Next once it appears (wait because Seek can load slowly)
+        cont = None
         try:
-            cont = self.driver.find_element(
-                By.XPATH,
-                "//button[contains(., 'Continue') or contains(., 'Next')]"
-            )
+            start_wait = time.time()
+            while time.time() - start_wait < 20:
+                try:
+                    candidate = self.driver.find_element(
+                        By.XPATH,
+                        "//*[self::button or self::a]"
+                        "[contains(translate(normalize-space(.), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'continue')"
+                        " or contains(translate(normalize-space(.), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'next')"
+                        " or contains(translate(normalize-space(@aria-label), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'continue')"
+                        " or contains(translate(normalize-space(@aria-label), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'next')]"
+                    )
+                    if candidate.is_displayed() and candidate.is_enabled():
+                        cont = candidate
+                        break
+                except:
+                    pass
+                time.sleep(0.5)
+        except:
+            cont = None
+
+        if cont:
             self.driver.execute_script("arguments[0].click();", cont)
             print("    [+] Continue → Page 2")
             speed_sleep(3, "apply")
-        except:
-            print("    [-] Cannot continue from page 1.")
+        else:
+            print("    [-] Cannot continue from page 1 (Continue/Next button not found).")
             return
 
         # --------------------------
@@ -2218,7 +2452,11 @@ Reply with ONLY the exact option text to select:"""
             try:
                 cont = self.driver.find_element(
                     By.XPATH,
-                    "//button[contains(., 'Continue') or contains(., 'Next')]"
+                    "//*[self::button or self::a]"
+                    "[contains(translate(normalize-space(.), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'continue')"
+                    " or contains(translate(normalize-space(.), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'next')"
+                    " or contains(translate(normalize-space(@aria-label), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'continue')"
+                    " or contains(translate(normalize-space(@aria-label), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'next')]"
                 )
                 self.driver.execute_script("arguments[0].click();", cont)
                 print("    [+] Continue")
@@ -2238,7 +2476,11 @@ Reply with ONLY the exact option text to select:"""
                         try:
                             cont = self.driver.find_element(
                                 By.XPATH,
-                                "//button[contains(., 'Continue') or contains(., 'Next')]"
+                                "//*[self::button or self::a]"
+                                "[contains(translate(normalize-space(.), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'continue')"
+                                " or contains(translate(normalize-space(.), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'next')"
+                                " or contains(translate(normalize-space(@aria-label), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'continue')"
+                                " or contains(translate(normalize-space(@aria-label), 'ABCDEFGHIJKLMNOPQRSTUVWXYZ', 'abcdefghijklmnopqrstuvwxyz'), 'next')]"
                             )
                             self.driver.execute_script("arguments[0].click();", cont)
                             print("    [+] Continue (after GPT fix)")
