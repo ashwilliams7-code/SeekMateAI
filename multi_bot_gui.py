@@ -352,158 +352,67 @@ class MultiBotGUI:
                          relief=tk.FLAT, cursor="hand2", padx=10, pady=2)
             b.pack(side=tk.LEFT, padx=2)
 
-        # ── Speed Controls ────────────────────────────────────
-        speed_frame = tk.Frame(left, bg=C["card"], highlightbackground=C["border"],
-                               highlightthickness=1, padx=12, pady=8)
-        speed_frame.pack(fill=tk.X, pady=(6, 0))
-
-        tk.Label(speed_frame, text="Speed Controls", font=("Segoe UI", 9, "bold"),
-                 fg=C["text_dim"], bg=C["card"]).pack(anchor="w")
-
-        scan_row = tk.Frame(speed_frame, bg=C["card"])
-        scan_row.pack(fill=tk.X, pady=2)
-        tk.Label(scan_row, text="Scan:", font=("Segoe UI", 9),
-                 fg=C["text"], bg=C["card"], width=6).pack(side=tk.LEFT)
+        # Initialize vars used by right panel tabs (created later)
         self.scan_speed_var = tk.IntVar(value=50)
-        self.scan_slider = tk.Scale(scan_row, from_=1, to=100, orient=tk.HORIZONTAL,
-                                    variable=self.scan_speed_var, bg=C["card"], fg=C["text"],
-                                    troughcolor=C["surface"], highlightthickness=0,
-                                    sliderrelief=tk.FLAT, font=("Segoe UI", 8),
-                                    command=lambda v: self._on_speed_change())
-        self.scan_slider.pack(side=tk.LEFT, fill=tk.X, expand=True)
-
-        apply_row = tk.Frame(speed_frame, bg=C["card"])
-        apply_row.pack(fill=tk.X, pady=2)
-        tk.Label(apply_row, text="Apply:", font=("Segoe UI", 9),
-                 fg=C["text"], bg=C["card"], width=6).pack(side=tk.LEFT)
         self.apply_speed_var = tk.IntVar(value=50)
-        self.apply_slider = tk.Scale(apply_row, from_=1, to=100, orient=tk.HORIZONTAL,
-                                     variable=self.apply_speed_var, bg=C["card"], fg=C["text"],
-                                     troughcolor=C["surface"], highlightthickness=0,
-                                     sliderrelief=tk.FLAT, font=("Segoe UI", 8),
-                                     command=lambda v: self._on_speed_change())
-        self.apply_slider.pack(side=tk.LEFT, fill=tk.X, expand=True)
-
-        # ── Mini Chart ────────────────────────────────────────
-        chart_frame = tk.Frame(left, bg=C["card"], highlightbackground=C["border"],
-                               highlightthickness=1, padx=12, pady=8)
-        chart_frame.pack(fill=tk.X, pady=(6, 0))
-
-        tk.Label(chart_frame, text="Applications Over Time", font=("Segoe UI", 9, "bold"),
-                 fg=C["text_dim"], bg=C["card"]).pack(anchor="w")
-
-        self.chart_canvas = tk.Canvas(chart_frame, bg=C["surface"], height=80,
-                                      highlightthickness=0)
-        self.chart_canvas.pack(fill=tk.X, pady=(4, 0))
-
-        # ── Energy Mode ──────────────────────────────────────
-        energy_frame = tk.Frame(left, bg=C["card"], highlightbackground=C["border"],
-                                highlightthickness=1, padx=12, pady=8)
-        energy_frame.pack(fill=tk.X, pady=(6, 0))
-
-        energy_header = tk.Frame(energy_frame, bg=C["card"])
-        energy_header.pack(fill=tk.X)
-        tk.Label(energy_header, text="Energy Mode", font=("Segoe UI", 9, "bold"),
-                 fg=C["yellow"], bg=C["card"]).pack(side=tk.LEFT)
-
-        self.energy_status_label = tk.Label(energy_header, text="",
-                                             font=("Segoe UI", 8), fg=C["text_muted"],
-                                             bg=C["card"])
-        self.energy_status_label.pack(side=tk.RIGHT)
-
-        energy_btns = tk.Frame(energy_frame, bg=C["card"])
-        energy_btns.pack(fill=tk.X, pady=(4, 2))
-
-        tk.Button(energy_btns, text="Screen Off Now", command=self._screen_off,
-                 font=("Segoe UI", 8, "bold"), fg="white", bg="#555577",
-                 relief=tk.FLAT, cursor="hand2", padx=8, pady=2).pack(side=tk.LEFT, padx=2)
-
         self.auto_screen_off_var = tk.BooleanVar(value=False)
-        tk.Checkbutton(energy_btns, text="Auto screen off when bots run",
-                       variable=self.auto_screen_off_var, font=("Segoe UI", 8),
-                       fg=C["text"], bg=C["card"], selectcolor=C["surface"],
-                       activebackground=C["card"], activeforeground=C["text"],
-                       command=self._on_auto_screen_toggle).pack(side=tk.LEFT, padx=6)
-
-        # Scheduled shutdown row
-        shutdown_row = tk.Frame(energy_frame, bg=C["card"])
-        shutdown_row.pack(fill=tk.X, pady=(4, 0))
-
-        tk.Label(shutdown_row, text="Shutdown at:", font=("Segoe UI", 8),
-                 fg=C["text"], bg=C["card"]).pack(side=tk.LEFT)
-
         self.shutdown_hour_var = tk.StringVar(value="23")
         self.shutdown_min_var = tk.StringVar(value="30")
-
-        h_spin = tk.Spinbox(shutdown_row, from_=0, to=23, width=3, wrap=True,
-                            textvariable=self.shutdown_hour_var, font=("Segoe UI", 9),
-                            bg=C["surface"], fg=C["text"], buttonbackground=C["surface2"],
-                            relief=tk.FLAT, format="%02.0f")
-        h_spin.pack(side=tk.LEFT, padx=2)
-        tk.Label(shutdown_row, text=":", font=("Segoe UI", 9, "bold"),
-                 fg=C["text"], bg=C["card"]).pack(side=tk.LEFT)
-        m_spin = tk.Spinbox(shutdown_row, from_=0, to=59, width=3, wrap=True,
-                            textvariable=self.shutdown_min_var, font=("Segoe UI", 9),
-                            bg=C["surface"], fg=C["text"], buttonbackground=C["surface2"],
-                            relief=tk.FLAT, format="%02.0f")
-        m_spin.pack(side=tk.LEFT, padx=2)
-
         self.shutdown_action_var = tk.StringVar(value="sleep")
-        for text, val in [("Sleep", "sleep"), ("Shutdown", "shutdown")]:
-            tk.Radiobutton(shutdown_row, text=text, variable=self.shutdown_action_var,
-                          value=val, font=("Segoe UI", 8), fg=C["text"], bg=C["card"],
-                          selectcolor=C["surface"], activebackground=C["card"]).pack(side=tk.LEFT, padx=2)
-
         self.shutdown_enabled_var = tk.BooleanVar(value=False)
-        self.shutdown_toggle_btn = tk.Button(shutdown_row, text="Enable",
-                                              command=self._toggle_shutdown_timer,
-                                              font=("Segoe UI", 8, "bold"), fg="white",
-                                              bg=C["text_muted"], relief=tk.FLAT,
-                                              cursor="hand2", padx=8)
-        self.shutdown_toggle_btn.pack(side=tk.LEFT, padx=6)
-
         self._shutdown_timer_id = None
 
         # ── Right: Tabbed Panel ───────────────────────────────
         right = tk.Frame(paned, bg=C["surface"])
-        paned.add(right, minsize=420)
+        paned.add(right, minsize=460)
 
         # Tab bar
-        tab_bar = tk.Frame(right, bg=C["surface2"], height=36)
+        tab_bar = tk.Frame(right, bg=C["surface2"], height=40)
         tab_bar.pack(fill=tk.X)
         tab_bar.pack_propagate(False)
 
         self.active_tab = "logs"
         self.tab_btns = {}
+        self.tab_frames = {}  # container frames per tab
 
-        for tab_id, tab_label in [("logs", "Logs"), ("history", "Job History")]:
-            btn = tk.Button(tab_bar, text=tab_label, font=("Segoe UI", 10),
+        for tab_id, tab_label in [("logs", "Logs"), ("history", "Job History"),
+                                   ("controls", "Controls"), ("energy", "Energy")]:
+            btn = tk.Button(tab_bar, text=tab_label, font=("Segoe UI", 10, "bold"),
                            fg=C["text"], bg=C["surface2"], relief=tk.FLAT,
-                           cursor="hand2", padx=16,
+                           cursor="hand2", padx=14, pady=6,
                            command=lambda t=tab_id: self._switch_tab(t))
             btn.pack(side=tk.LEFT, padx=1)
             self.tab_btns[tab_id] = btn
 
         # Log filter (right side of tab bar)
-        filter_frame = tk.Frame(tab_bar, bg=C["surface2"])
-        filter_frame.pack(side=tk.RIGHT, padx=8)
-        tk.Label(filter_frame, text="Filter:", font=("Segoe UI", 8),
+        self.filter_frame = tk.Frame(tab_bar, bg=C["surface2"])
+        self.filter_frame.pack(side=tk.RIGHT, padx=8)
+        tk.Label(self.filter_frame, text="Filter:", font=("Segoe UI", 8),
                  fg=C["text_muted"], bg=C["surface2"]).pack(side=tk.LEFT, padx=(0, 4))
         self.filter_var = tk.StringVar(value="All")
-        filter_menu = ttk.Combobox(filter_frame, textvariable=self.filter_var,
+        filter_menu = ttk.Combobox(self.filter_frame, textvariable=self.filter_var,
                                     values=["All", "Errors", "Applications", "Skipped"],
                                     state="readonly", width=12, font=("Segoe UI", 8))
         filter_menu.pack(side=tk.LEFT)
         filter_menu.bind("<<ComboboxSelected>>", lambda e: self._on_filter_change())
 
-        # Instance label
-        self.log_instance_label = tk.Label(right, text="Select an instance",
+        # Content area — all tabs share this container
+        self.tab_container = tk.Frame(right, bg=C["surface"])
+        self.tab_container.pack(fill=tk.BOTH, expand=True)
+
+        # ── Logs Tab ─────────────────────────────────────────
+        logs_frame = tk.Frame(self.tab_container, bg="#12121f")
+        self.tab_frames["logs"] = logs_frame
+
+        self.log_instance_label = tk.Label(logs_frame, text="Select an instance",
                                             font=("Segoe UI", 10), fg=C["text_dim"],
                                             bg=C["surface"], anchor="w", padx=12, pady=4)
         self.log_instance_label.pack(fill=tk.X)
 
-        # Log text panel
-        self.log_text = tk.Text(right, wrap=tk.WORD, font=("Consolas", 9),
+        log_inner = tk.Frame(logs_frame, bg="#12121f")
+        log_inner.pack(fill=tk.BOTH, expand=True)
+
+        self.log_text = tk.Text(log_inner, wrap=tk.WORD, font=("Consolas", 9),
                                 bg="#12121f", fg=C["text"], insertbackground=C["text"],
                                 relief=tk.FLAT, padx=10, pady=8)
         self.log_text.tag_configure("error", foreground="#ff6b6b")
@@ -511,15 +420,149 @@ class MultiBotGUI:
         self.log_text.tag_configure("success", foreground="#6bff6b")
         self.log_text.tag_configure("skip", foreground="#888")
         self.log_text.tag_configure("job_header", foreground=C["accent"], font=("Consolas", 9, "bold"))
-
-        log_scroll = ttk.Scrollbar(right, orient=tk.VERTICAL, command=self.log_text.yview)
+        log_scroll = ttk.Scrollbar(log_inner, orient=tk.VERTICAL, command=self.log_text.yview)
         self.log_text.configure(yscrollcommand=log_scroll.set)
         self.log_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
         log_scroll.pack(side=tk.RIGHT, fill=tk.Y)
 
-        # Job history panel (hidden by default)
-        self.history_frame = tk.Frame(right, bg="#12121f")
-        self.history_tree = None  # built on first show
+        # ── Job History Tab ──────────────────────────────────
+        self.history_frame = tk.Frame(self.tab_container, bg="#12121f")
+        self.tab_frames["history"] = self.history_frame
+        self.history_tree = None
+
+        # ── Controls Tab ─────────────────────────────────────
+        controls_frame = tk.Frame(self.tab_container, bg=C["surface"])
+        self.tab_frames["controls"] = controls_frame
+
+        # Speed controls
+        speed_card = tk.Frame(controls_frame, bg=C["card"], highlightbackground=C["border"],
+                              highlightthickness=1, padx=16, pady=12)
+        speed_card.pack(fill=tk.X, padx=12, pady=(12, 6))
+
+        tk.Label(speed_card, text="Speed Controls", font=("Segoe UI", 12, "bold"),
+                 fg=C["text"], bg=C["card"]).pack(anchor="w", pady=(0, 8))
+        tk.Label(speed_card, text="Adjust how fast selected bot scans and applies",
+                 font=("Segoe UI", 9), fg=C["text_muted"], bg=C["card"]).pack(anchor="w", pady=(0, 8))
+
+        for label_text, var in [("Scan Speed", self.scan_speed_var), ("Apply Speed", self.apply_speed_var)]:
+            row = tk.Frame(speed_card, bg=C["card"])
+            row.pack(fill=tk.X, pady=4)
+            tk.Label(row, text=label_text, font=("Segoe UI", 10),
+                     fg=C["text"], bg=C["card"], width=12, anchor="w").pack(side=tk.LEFT)
+            slider = tk.Scale(row, from_=1, to=100, orient=tk.HORIZONTAL,
+                              variable=var, bg=C["card"], fg=C["text"],
+                              troughcolor=C["surface"], highlightthickness=0,
+                              sliderrelief=tk.FLAT, font=("Segoe UI", 9), length=250,
+                              command=lambda v: self._on_speed_change())
+            slider.pack(side=tk.LEFT, fill=tk.X, expand=True, padx=(8, 0))
+
+        # Mini chart
+        chart_card = tk.Frame(controls_frame, bg=C["card"], highlightbackground=C["border"],
+                              highlightthickness=1, padx=16, pady=12)
+        chart_card.pack(fill=tk.X, padx=12, pady=6)
+
+        tk.Label(chart_card, text="Applications Over Time", font=("Segoe UI", 12, "bold"),
+                 fg=C["text"], bg=C["card"]).pack(anchor="w", pady=(0, 8))
+
+        self.chart_canvas = tk.Canvas(chart_card, bg=C["surface"], height=120,
+                                      highlightthickness=0)
+        self.chart_canvas.pack(fill=tk.X)
+
+        # ── Energy Tab ───────────────────────────────────────
+        energy_frame = tk.Frame(self.tab_container, bg=C["surface"])
+        self.tab_frames["energy"] = energy_frame
+
+        # Status banner
+        self.energy_status_label = tk.Label(energy_frame, text="Energy management ready",
+                                             font=("Segoe UI", 10), fg=C["text_muted"],
+                                             bg=C["surface2"], pady=8)
+        self.energy_status_label.pack(fill=tk.X)
+
+        # Screen off card
+        screen_card = tk.Frame(energy_frame, bg=C["card"], highlightbackground=C["border"],
+                               highlightthickness=1, padx=16, pady=14)
+        screen_card.pack(fill=tk.X, padx=12, pady=(12, 6))
+
+        tk.Label(screen_card, text="Display", font=("Segoe UI", 12, "bold"),
+                 fg=C["text"], bg=C["card"]).pack(anchor="w", pady=(0, 6))
+
+        screen_btns = tk.Frame(screen_card, bg=C["card"])
+        screen_btns.pack(fill=tk.X, pady=4)
+
+        tk.Button(screen_btns, text="Turn Screen Off Now", command=self._screen_off,
+                 font=("Segoe UI", 10, "bold"), fg="white", bg="#555577",
+                 activebackground="#6666aa",
+                 relief=tk.FLAT, cursor="hand2", padx=16, pady=6).pack(side=tk.LEFT, padx=(0, 12))
+
+        tk.Checkbutton(screen_btns, text="Auto screen off when bots are running",
+                       variable=self.auto_screen_off_var, font=("Segoe UI", 10),
+                       fg=C["text"], bg=C["card"], selectcolor=C["surface"],
+                       activebackground=C["card"], activeforeground=C["text"],
+                       command=self._on_auto_screen_toggle).pack(side=tk.LEFT)
+
+        tk.Label(screen_card, text="Screen turns off but PC stays awake — bots keep running. Move mouse to wake.",
+                 font=("Segoe UI", 8), fg=C["text_muted"], bg=C["card"]).pack(anchor="w", pady=(6, 0))
+
+        # Wake lock card
+        wake_card = tk.Frame(energy_frame, bg=C["card"], highlightbackground=C["border"],
+                             highlightthickness=1, padx=16, pady=14)
+        wake_card.pack(fill=tk.X, padx=12, pady=6)
+
+        tk.Label(wake_card, text="Sleep Prevention", font=("Segoe UI", 12, "bold"),
+                 fg=C["text"], bg=C["card"]).pack(anchor="w", pady=(0, 6))
+        tk.Label(wake_card, text="While any bot is running, Windows sleep & hibernate are automatically blocked.\n"
+                 "When all bots stop, normal power settings resume.",
+                 font=("Segoe UI", 9), fg=C["text_dim"], bg=C["card"], justify=tk.LEFT).pack(anchor="w")
+
+        self.wake_lock_indicator = tk.Label(wake_card, text="  Sleep Allowed  ",
+                                             font=("Segoe UI", 10, "bold"), fg=C["text_muted"],
+                                             bg=C["surface"], pady=4, padx=8)
+        self.wake_lock_indicator.pack(anchor="w", pady=(8, 0))
+
+        # Scheduled shutdown card
+        shutdown_card = tk.Frame(energy_frame, bg=C["card"], highlightbackground=C["border"],
+                                 highlightthickness=1, padx=16, pady=14)
+        shutdown_card.pack(fill=tk.X, padx=12, pady=6)
+
+        tk.Label(shutdown_card, text="Scheduled Sleep / Shutdown", font=("Segoe UI", 12, "bold"),
+                 fg=C["text"], bg=C["card"]).pack(anchor="w", pady=(0, 6))
+        tk.Label(shutdown_card, text="Set a time to automatically stop all bots and sleep or shut down the PC.",
+                 font=("Segoe UI", 9), fg=C["text_dim"], bg=C["card"]).pack(anchor="w", pady=(0, 10))
+
+        time_row = tk.Frame(shutdown_card, bg=C["card"])
+        time_row.pack(fill=tk.X, pady=4)
+
+        tk.Label(time_row, text="Time:", font=("Segoe UI", 10),
+                 fg=C["text"], bg=C["card"]).pack(side=tk.LEFT, padx=(0, 8))
+
+        h_spin = tk.Spinbox(time_row, from_=0, to=23, width=3, wrap=True,
+                            textvariable=self.shutdown_hour_var, font=("Segoe UI", 12),
+                            bg=C["surface"], fg=C["text"], buttonbackground=C["surface2"],
+                            relief=tk.FLAT, format="%02.0f", justify=tk.CENTER)
+        h_spin.pack(side=tk.LEFT, padx=2)
+        tk.Label(time_row, text=":", font=("Segoe UI", 12, "bold"),
+                 fg=C["text"], bg=C["card"]).pack(side=tk.LEFT)
+        m_spin = tk.Spinbox(time_row, from_=0, to=59, width=3, wrap=True,
+                            textvariable=self.shutdown_min_var, font=("Segoe UI", 12),
+                            bg=C["surface"], fg=C["text"], buttonbackground=C["surface2"],
+                            relief=tk.FLAT, format="%02.0f", justify=tk.CENTER)
+        m_spin.pack(side=tk.LEFT, padx=2)
+
+        tk.Label(time_row, text="   ", bg=C["card"]).pack(side=tk.LEFT, padx=4)
+
+        for text, val in [("Sleep", "sleep"), ("Shutdown", "shutdown")]:
+            tk.Radiobutton(time_row, text=text, variable=self.shutdown_action_var,
+                          value=val, font=("Segoe UI", 10), fg=C["text"], bg=C["card"],
+                          selectcolor=C["surface"], activebackground=C["card"],
+                          activeforeground=C["text"]).pack(side=tk.LEFT, padx=6)
+
+        self.shutdown_toggle_btn = tk.Button(shutdown_card, text="Enable Timer",
+                                              command=self._toggle_shutdown_timer,
+                                              font=("Segoe UI", 11, "bold"), fg="white",
+                                              bg=C["accent"], activebackground=C["accent_hover"],
+                                              relief=tk.FLAT, cursor="hand2",
+                                              padx=20, pady=6)
+        self.shutdown_toggle_btn.pack(anchor="w", pady=(10, 0))
 
         # ── Status Bar ────────────────────────────────────────
         status_bar = tk.Frame(self.root, bg=C["surface2"], height=26)
@@ -532,7 +575,9 @@ class MultiBotGUI:
         )
         self.status_label.pack(side=tk.LEFT, padx=12, pady=4)
 
+        # Show default tab
         self._style_active_tab()
+        self._show_tab_frame("logs")
         self._load_speed_from_config()
 
     # ── Clock ─────────────────────────────────────────────────
@@ -541,16 +586,29 @@ class MultiBotGUI:
         self.root.after(1000, self._update_clock)
 
     # ── Tabs ──────────────────────────────────────────────────
+    def _show_tab_frame(self, tab_id):
+        """Show the frame for tab_id, hide all others."""
+        for tid, frame in self.tab_frames.items():
+            frame.pack_forget()
+        if tab_id in self.tab_frames:
+            self.tab_frames[tab_id].pack(fill=tk.BOTH, expand=True)
+
     def _switch_tab(self, tab_id):
         self.active_tab = tab_id
         self._style_active_tab()
+        self._show_tab_frame(tab_id)
+
+        # Show/hide filter dropdown (only relevant for logs)
         if tab_id == "logs":
-            self.history_frame.pack_forget()
-            self.log_text.pack(side=tk.LEFT, fill=tk.BOTH, expand=True)
+            self.filter_frame.pack(side=tk.RIGHT, padx=8)
             self._update_log_preview()
-        elif tab_id == "history":
-            self.log_text.pack_forget()
+        else:
+            self.filter_frame.pack_forget()
+
+        if tab_id == "history":
             self._show_job_history()
+        elif tab_id == "energy":
+            self._update_energy_indicators()
 
     def _style_active_tab(self):
         for tid, btn in self.tab_btns.items():
@@ -558,6 +616,16 @@ class MultiBotGUI:
                 btn.config(bg=C["accent"], fg="white")
             else:
                 btn.config(bg=C["surface2"], fg=C["text_dim"])
+
+    def _update_energy_indicators(self):
+        """Refresh wake lock indicator on energy tab."""
+        running = any(i.get("status") == "running" for i in self.instances.values())
+        if running:
+            self.wake_lock_indicator.config(text="  Sleep Blocked — Bots Active  ",
+                                             fg=C["green"], bg="#1b3a2a")
+        else:
+            self.wake_lock_indicator.config(text="  Sleep Allowed  ",
+                                             fg=C["text_muted"], bg=C["surface"])
 
     def _on_filter_change(self):
         self.log_filter = self.filter_var.get()
