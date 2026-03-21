@@ -519,50 +519,80 @@ class MultiBotGUI:
                                              bg=C["surface"], pady=4, padx=8)
         self.wake_lock_indicator.pack(anchor="w", pady=(8, 0))
 
-        # Scheduled shutdown card
-        shutdown_card = tk.Frame(energy_frame, bg=C["card"], highlightbackground=C["border"],
-                                 highlightthickness=1, padx=16, pady=14)
+        # Shutdown Timer card
+        shutdown_card = tk.Frame(energy_frame, bg=C["card"], highlightbackground=C["red"],
+                                 highlightthickness=2, padx=16, pady=14)
         shutdown_card.pack(fill=tk.X, padx=12, pady=6)
 
-        tk.Label(shutdown_card, text="Scheduled Sleep / Shutdown", font=("Segoe UI", 12, "bold"),
-                 fg=C["text"], bg=C["card"]).pack(anchor="w", pady=(0, 6))
-        tk.Label(shutdown_card, text="Set a time to automatically stop all bots and sleep or shut down the PC.",
+        tk.Label(shutdown_card, text="Shutdown Timer", font=("Segoe UI", 14, "bold"),
+                 fg=C["red"], bg=C["card"]).pack(anchor="w", pady=(0, 4))
+        tk.Label(shutdown_card, text="Hard shutdown — stops all bots and powers off the PC.",
                  font=("Segoe UI", 9), fg=C["text_dim"], bg=C["card"]).pack(anchor="w", pady=(0, 10))
 
-        time_row = tk.Frame(shutdown_card, bg=C["card"])
-        time_row.pack(fill=tk.X, pady=4)
+        # Countdown display
+        self.countdown_label = tk.Label(shutdown_card, text="No timer set",
+                                         font=("Consolas", 28, "bold"), fg=C["text_muted"],
+                                         bg=C["surface"], padx=20, pady=10)
+        self.countdown_label.pack(fill=tk.X, pady=(0, 10))
 
-        tk.Label(time_row, text="Time:", font=("Segoe UI", 10),
+        # Quick preset buttons
+        tk.Label(shutdown_card, text="Quick Set:", font=("Segoe UI", 10),
+                 fg=C["text_dim"], bg=C["card"]).pack(anchor="w", pady=(0, 4))
+
+        presets_row = tk.Frame(shutdown_card, bg=C["card"])
+        presets_row.pack(fill=tk.X, pady=(0, 10))
+
+        for label, minutes in [("30 min", 30), ("1 hour", 60), ("2 hours", 120), ("4 hours", 240)]:
+            b = tk.Button(presets_row, text=label,
+                         font=("Segoe UI", 10, "bold"), fg="white", bg=C["surface2"],
+                         activebackground=C["border"], relief=tk.FLAT, cursor="hand2",
+                         padx=12, pady=4,
+                         command=lambda m=minutes: self._set_shutdown_minutes(m))
+            b.pack(side=tk.LEFT, padx=3)
+            b.bind("<Enter>", lambda e, btn=b: btn.config(bg=C["border"]))
+            b.bind("<Leave>", lambda e, btn=b: btn.config(bg=C["surface2"]))
+
+        # Custom time row
+        custom_row = tk.Frame(shutdown_card, bg=C["card"])
+        custom_row.pack(fill=tk.X, pady=4)
+
+        tk.Label(custom_row, text="Or set time:", font=("Segoe UI", 10),
                  fg=C["text"], bg=C["card"]).pack(side=tk.LEFT, padx=(0, 8))
 
-        h_spin = tk.Spinbox(time_row, from_=0, to=23, width=3, wrap=True,
-                            textvariable=self.shutdown_hour_var, font=("Segoe UI", 12),
+        h_spin = tk.Spinbox(custom_row, from_=0, to=23, width=3, wrap=True,
+                            textvariable=self.shutdown_hour_var, font=("Segoe UI", 14),
                             bg=C["surface"], fg=C["text"], buttonbackground=C["surface2"],
                             relief=tk.FLAT, format="%02.0f", justify=tk.CENTER)
         h_spin.pack(side=tk.LEFT, padx=2)
-        tk.Label(time_row, text=":", font=("Segoe UI", 12, "bold"),
+        tk.Label(custom_row, text=":", font=("Segoe UI", 14, "bold"),
                  fg=C["text"], bg=C["card"]).pack(side=tk.LEFT)
-        m_spin = tk.Spinbox(time_row, from_=0, to=59, width=3, wrap=True,
-                            textvariable=self.shutdown_min_var, font=("Segoe UI", 12),
+        m_spin = tk.Spinbox(custom_row, from_=0, to=59, width=3, wrap=True,
+                            textvariable=self.shutdown_min_var, font=("Segoe UI", 14),
                             bg=C["surface"], fg=C["text"], buttonbackground=C["surface2"],
                             relief=tk.FLAT, format="%02.0f", justify=tk.CENTER)
         m_spin.pack(side=tk.LEFT, padx=2)
 
-        tk.Label(time_row, text="   ", bg=C["card"]).pack(side=tk.LEFT, padx=4)
+        tk.Button(custom_row, text="Set", command=self._set_shutdown_at_time,
+                 font=("Segoe UI", 10, "bold"), fg="white", bg=C["accent"],
+                 activebackground=C["accent_hover"], relief=tk.FLAT,
+                 cursor="hand2", padx=14, pady=2).pack(side=tk.LEFT, padx=(12, 0))
 
-        for text, val in [("Sleep", "sleep"), ("Shutdown", "shutdown")]:
-            tk.Radiobutton(time_row, text=text, variable=self.shutdown_action_var,
-                          value=val, font=("Segoe UI", 10), fg=C["text"], bg=C["card"],
-                          selectcolor=C["surface"], activebackground=C["card"],
-                          activeforeground=C["text"]).pack(side=tk.LEFT, padx=6)
+        # Action row
+        action_row = tk.Frame(shutdown_card, bg=C["card"])
+        action_row.pack(fill=tk.X, pady=(8, 0))
 
-        self.shutdown_toggle_btn = tk.Button(shutdown_card, text="Enable Timer",
-                                              command=self._toggle_shutdown_timer,
-                                              font=("Segoe UI", 11, "bold"), fg="white",
-                                              bg=C["accent"], activebackground=C["accent_hover"],
+        self.shutdown_toggle_btn = tk.Button(action_row, text="Cancel Timer",
+                                              command=self._cancel_shutdown_timer,
+                                              font=("Segoe UI", 10, "bold"), fg="white",
+                                              bg=C["text_muted"],
                                               relief=tk.FLAT, cursor="hand2",
-                                              padx=20, pady=6)
-        self.shutdown_toggle_btn.pack(anchor="w", pady=(10, 0))
+                                              padx=14, pady=4, state=tk.DISABLED)
+        self.shutdown_toggle_btn.pack(side=tk.LEFT, padx=(0, 8))
+
+        tk.Button(action_row, text="Shutdown NOW", command=self._shutdown_now,
+                 font=("Segoe UI", 10, "bold"), fg="white", bg=C["red"],
+                 activebackground="#ff3355", relief=tk.FLAT, cursor="hand2",
+                 padx=14, pady=4).pack(side=tk.LEFT)
 
         # ── Status Bar ────────────────────────────────────────
         status_bar = tk.Frame(self.root, bg=C["surface2"], height=26)
@@ -1478,85 +1508,124 @@ class MultiBotGUI:
         except Exception:
             pass
 
-    def _toggle_shutdown_timer(self):
-        if self.shutdown_enabled_var.get():
-            # Disable
-            self.shutdown_enabled_var.set(False)
-            self.shutdown_toggle_btn.config(text="Enable", bg=C["text_muted"])
-            if self._shutdown_timer_id:
-                self.root.after_cancel(self._shutdown_timer_id)
-                self._shutdown_timer_id = None
-            # Cancel any pending Windows shutdown
-            try:
-                subprocess.run(["shutdown", "/a"], capture_output=True,
-                              creationflags=subprocess.CREATE_NO_WINDOW)
-            except Exception:
-                pass
-            self.energy_status_label.config(text="Timer cancelled", fg=C["text_muted"])
-        else:
-            # Enable
-            self.shutdown_enabled_var.set(True)
-            self.shutdown_toggle_btn.config(text="Cancel", bg=C["red"])
-            self._check_shutdown_timer()
+    def _set_shutdown_minutes(self, minutes):
+        """Set shutdown timer for N minutes from now."""
+        self._shutdown_target = datetime.now() + timedelta(minutes=minutes)
+        self.shutdown_enabled_var.set(True)
+        self.shutdown_toggle_btn.config(state=tk.NORMAL, bg=C["red"])
+        self.energy_status_label.config(
+            text=f"SHUTDOWN in {minutes} minutes", fg=C["red"]
+        )
+        notify("SeekMateAI", f"Shutdown timer set: {minutes} minutes")
+        self._tick_countdown()
 
-    def _check_shutdown_timer(self):
-        """Check every 30s if it's time to sleep/shutdown."""
-        if not self.shutdown_enabled_var.get():
-            return
+    def _set_shutdown_at_time(self):
+        """Set shutdown timer for a specific clock time."""
         try:
             target_h = int(self.shutdown_hour_var.get())
             target_m = int(self.shutdown_min_var.get())
         except ValueError:
-            self._shutdown_timer_id = self.root.after(30000, self._check_shutdown_timer)
             return
-
         now = datetime.now()
         target = now.replace(hour=target_h, minute=target_m, second=0, microsecond=0)
-        if target < now:
+        if target <= now:
             target += timedelta(days=1)
-        diff = (target - now).total_seconds()
-
+        self._shutdown_target = target
+        self.shutdown_enabled_var.set(True)
+        self.shutdown_toggle_btn.config(state=tk.NORMAL, bg=C["red"])
+        diff_min = int((target - now).total_seconds() / 60)
         self.energy_status_label.config(
-            text=f"{self.shutdown_action_var.get().title()} in {int(diff // 3600)}h {int((diff % 3600) // 60)}m",
-            fg=C["yellow"]
+            text=f"SHUTDOWN at {target_h:02d}:{target_m:02d} ({diff_min}m)", fg=C["red"]
         )
+        notify("SeekMateAI", f"Shutdown at {target_h:02d}:{target_m:02d}")
+        self._tick_countdown()
 
-        if diff <= 30:
-            # Time to act
-            self._release_wake_lock()
-            action = self.shutdown_action_var.get()
-            notify("SeekMateAI", f"System will {action} now...")
+    def _tick_countdown(self):
+        """Update countdown display every second."""
+        if not self.shutdown_enabled_var.get() or not hasattr(self, '_shutdown_target'):
+            return
+        now = datetime.now()
+        diff = (self._shutdown_target - now).total_seconds()
 
-            # Stop all bots first
-            for name, info in self.instances.items():
-                if info.get("status") == "running":
-                    ctrl = self._control_path(name)
-                    if ctrl:
-                        try:
-                            with open(ctrl, "w") as f:
-                                json.dump({"status": "stop"}, f)
-                        except Exception:
-                            pass
-
-            if action == "sleep":
-                # Hibernate/sleep
-                try:
-                    subprocess.run(["rundll32.exe", "powrprof.dll,SetSuspendState", "0,1,0"],
-                                  creationflags=subprocess.CREATE_NO_WINDOW)
-                except Exception:
-                    pass
-            elif action == "shutdown":
-                try:
-                    subprocess.run(["shutdown", "/s", "/t", "60", "/c",
-                                   "SeekMateAI scheduled shutdown"],
-                                  creationflags=subprocess.CREATE_NO_WINDOW)
-                except Exception:
-                    pass
-            self.shutdown_enabled_var.set(False)
-            self.shutdown_toggle_btn.config(text="Enable", bg=C["text_muted"])
+        if diff <= 0:
+            self._execute_shutdown()
             return
 
-        self._shutdown_timer_id = self.root.after(30000, self._check_shutdown_timer)
+        h = int(diff // 3600)
+        m = int((diff % 3600) // 60)
+        s = int(diff % 60)
+
+        if h > 0:
+            display = f"{h:02d}:{m:02d}:{s:02d}"
+        else:
+            display = f"{m:02d}:{s:02d}"
+
+        # Color changes as time gets closer
+        if diff < 60:
+            color = C["red"]
+        elif diff < 300:
+            color = C["orange"]
+        else:
+            color = C["yellow"]
+
+        self.countdown_label.config(text=display, fg=color)
+        self.energy_status_label.config(
+            text=f"SHUTDOWN in {display}", fg=color
+        )
+
+        self._shutdown_timer_id = self.root.after(1000, self._tick_countdown)
+
+    def _cancel_shutdown_timer(self):
+        """Cancel the shutdown timer."""
+        self.shutdown_enabled_var.set(False)
+        if self._shutdown_timer_id:
+            self.root.after_cancel(self._shutdown_timer_id)
+            self._shutdown_timer_id = None
+        self._shutdown_target = None
+        self.countdown_label.config(text="No timer set", fg=C["text_muted"])
+        self.shutdown_toggle_btn.config(state=tk.DISABLED, bg=C["text_muted"])
+        self.energy_status_label.config(text="Timer cancelled", fg=C["text_muted"])
+        # Cancel any pending Windows shutdown
+        try:
+            subprocess.run(["shutdown", "/a"], capture_output=True,
+                          creationflags=subprocess.CREATE_NO_WINDOW)
+        except Exception:
+            pass
+        notify("SeekMateAI", "Shutdown timer cancelled")
+
+    def _execute_shutdown(self):
+        """Stop all bots and shut down the PC."""
+        self._release_wake_lock()
+        notify("SeekMateAI", "Shutting down NOW...")
+        self.countdown_label.config(text="SHUTTING DOWN", fg=C["red"])
+
+        # Stop all bots
+        for name, info in self.instances.items():
+            if info.get("status") == "running":
+                ctrl = self._control_path(name)
+                if ctrl:
+                    try:
+                        with open(ctrl, "w") as f:
+                            json.dump({"status": "stop"}, f)
+                    except Exception:
+                        pass
+
+        # Hard shutdown in 30 seconds
+        try:
+            subprocess.run(["shutdown", "/s", "/t", "30", "/c",
+                           "SeekMateAI scheduled shutdown"],
+                          creationflags=subprocess.CREATE_NO_WINDOW)
+        except Exception:
+            pass
+
+        self.shutdown_enabled_var.set(False)
+        self.shutdown_toggle_btn.config(state=tk.DISABLED)
+
+    def _shutdown_now(self):
+        """Immediate hard shutdown with confirmation."""
+        if messagebox.askyesno("Shutdown NOW",
+                               "This will stop all bots and shut down your PC immediately.\n\nAre you sure?"):
+            self._execute_shutdown()
 
     def _energy_auto_manage(self):
         """Called from refresh_list — auto-manage wake lock based on bot status."""
